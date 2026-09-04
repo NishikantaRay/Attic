@@ -7,6 +7,11 @@ format is a public interface, so changing it is a major version.
 
 ### Added
 
+- A promotional poster. `scripts/make-poster.js` emits a 1200x1600 portrait
+  and a 1200x630 social card, both reading their figures from
+  `benchmarks/results/` and the eval results, so the poster cannot outlive
+  the data it cites. It shows the counter-case too: with nothing relevant
+  stashed the attic costs more, and the poster says so rather than hiding it.
 - A logo. `scripts/make-logo.js` generates four variants from one source: a
   square mark for avatars and favicons, and a wordmark for the README, each
   in a light and a dark form. The README picks per theme with `<picture>`.

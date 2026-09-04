@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="Attic — your agent stops re-reading the same files">
+<title>Attic 1.2.0</title>
+<rect width="1200" height="630" fill="#0d1117"/>
+
+  <path d="M 96.00,56.00 L 126.40,82.40 L 126.40,89.60 L 96.00,63.20 L 65.60,89.60 L 65.60,82.40 Z" fill="#58a6ff"/>
+  <path d="M 72.00,83.20 L 72.00,118.40 L 76.80,118.40 L 76.80,83.20 Z" fill="#58a6ff" opacity="0.55"/>
+  <path d="M 115.20,83.20 L 115.20,118.40 L 120.00,118.40 L 120.00,83.20 Z" fill="#58a6ff" opacity="0.55"/>
+  <rect x="80.00" y="92.80" width="32.00" height="7.20" rx="2.00" fill="#3fb950" opacity="0.5"/><rect x="80.00" y="103.20" width="32.00" height="7.20" rx="2.00" fill="#3fb950" opacity="0.8"/><rect x="80.00" y="113.60" width="32.00" height="7.20" rx="2.00" fill="#3fb950"/>
+<text x="196" y="98" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="44" font-weight="700" fill="#e6edf3" letter-spacing="-1">Attic</text>
+<text x="199" y="128" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="18" fill="#8b949e">Claude Code · Codex CLI</text>
+
+<text x="56" y="248" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="38" font-weight="700" fill="#e6edf3">Your agent re-reads the</text>
+<text x="56" y="294" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="38" font-weight="700" fill="#e6edf3">same files after every</text>
+<text x="56" y="340" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="38" font-weight="700" fill="#58a6ff">/compact.</text>
+<text x="56" y="390" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="22" fill="#8b949e">Attic writes what it learns to <tspan font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" fill="#3fb950">.attic/</tspan></text>
+<text x="56" y="420" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="22" fill="#8b949e">so it doesn't.</text>
+
+<line x1="580" y1="200" x2="580" y2="440" stroke="#30363d"/>
+<text x="620" y="224" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="19" font-weight="700" fill="#e6edf3">Input tokens, one question</text>
+<text x="620" y="248" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="14" fill="#8b949e">Codex CLI · median of 3 runs · both correct</text>
+
+  <text x="620" y="295" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="18" fill="#e6edf3">without Attic</text>
+  <rect x="752" y="278" width="340" height="24" rx="5" fill="#f85149"/>
+  <text x="1102" y="296" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="17" fill="#e6edf3">43,357</text>
+  
+
+  <text x="620" y="357" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="18" fill="#e6edf3">with Attic</text>
+  <rect x="752" y="340" width="114" height="24" rx="5" fill="#3fb950"/>
+  <text x="876" y="358" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="17" fill="#e6edf3">14,569</text>
+  <text x="620" y="388" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="19" font-weight="700" fill="#3fb950">−66.4% input tokens</text>
+<text x="620" y="428" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="14" fill="#8b949e">2 shell commands to find it, versus 0.</text>
+
+<rect x="56" y="492" width="620" height="58" rx="10" fill="#161b22" stroke="#58a6ff"/>
+<text x="84" y="529" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="20" fill="#58a6ff">claude plugin install attic@attic</text>
+<text x="1144" y="529" text-anchor="end" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="17" fill="#8b949e">github.com/NishikantaRay/Attic</text>
+<text x="56" y="586" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="15" fill="#8b949e">Survives /compact · no telemetry · MIT · activation evals 100%</text>
+</svg>

@@ -9,7 +9,9 @@
     "build:codex": "node scripts/build-codex.js",
     "make:assets": "node scripts/make-assets.js",
     "bench": "node benchmarks/run.js --runs 3",
-    "bump": "node scripts/bump-version.js"
+    "bump": "node scripts/bump-version.js",
+    "make:logo": "node scripts/make-logo.js",
+    "make:poster": "node scripts/make-poster.js"
   },
   "engines": {
     "node": ">=18"

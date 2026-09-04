@@ -122,3 +122,17 @@ test('the try-attic demo script is present and executable', () => {
   assert.match(src, /mktemp -d/, 'the demo must work in a temp dir, not the user\'s project');
   assert.match(src, /plugins\."attic@attic"\.enabled=false/, 'the Codex baseline must disable the installed plugin');
 });
+
+test('the poster cites only figures that exist in recorded results', () => {
+  // A poster with hardcoded numbers would outlive the runs behind it.
+  const src = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'make-poster.js'), 'utf8');
+  assert.match(src, /benchmarks\/results\//, 'the poster must read the recorded benchmark');
+  assert.doesNotMatch(src, /66\.4|43,?357|14,?569/, 'no benchmark figure may be hardcoded');
+
+  const svg = fs.readFileSync(path.join(__dirname, '..', 'assets', 'poster.svg'), 'utf8');
+  const bench = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'benchmarks', 'results', '2026-09-04-codex.json'), 'utf8'));
+  const c = bench.cases.find((x) => x.id === 'cache-ttl');
+  assert.ok(svg.includes(c.noAttic.input.median.toLocaleString()), 'poster must show the recorded baseline');
+  assert.ok(svg.includes(c.attic.input.median.toLocaleString()), 'poster must show the recorded attic figure');
+  assert.match(svg, /costs \+?-?\d/, 'the poster must state where the attic costs more');
+});

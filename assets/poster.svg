@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1600" viewBox="0 0 1200 1600" role="img" aria-label="Attic — your agent stops re-reading the same files">
+<title>Attic 1.2.0</title>
+<rect width="1200" height="1600" fill="#0d1117"/>
+
+
+  <path d="M 150.00,94.00 L 203.20,140.20 L 203.20,152.80 L 150.00,106.60 L 96.80,152.80 L 96.80,140.20 Z" fill="#58a6ff"/>
+  <path d="M 108.00,141.60 L 108.00,203.20 L 116.40,203.20 L 116.40,141.60 Z" fill="#58a6ff" opacity="0.55"/>
+  <path d="M 183.60,141.60 L 183.60,203.20 L 192.00,203.20 L 192.00,141.60 Z" fill="#58a6ff" opacity="0.55"/>
+  <rect x="122.00" y="158.40" width="56.00" height="12.60" rx="3.50" fill="#3fb950" opacity="0.5"/><rect x="122.00" y="176.60" width="56.00" height="12.60" rx="3.50" fill="#3fb950" opacity="0.8"/><rect x="122.00" y="194.80" width="56.00" height="12.60" rx="3.50" fill="#3fb950"/>
+<text x="248" y="150" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="66" font-weight="700" fill="#e6edf3" letter-spacing="-1.5">Attic</text>
+<text x="252" y="192" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="24" fill="#8b949e">v1.2.0 · Claude Code · Codex CLI</text>
+
+<text x="80" y="330" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="60" font-weight="700" fill="#e6edf3">Your agent re-reads the</text>
+<text x="80" y="400" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="60" font-weight="700" fill="#e6edf3">same files after every</text>
+<text x="80" y="470" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="60" font-weight="700" fill="#58a6ff">/compact.</text>
+<text x="80" y="546" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="34" fill="#8b949e">Attic writes what it learns to <tspan font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" fill="#3fb950">.attic/</tspan> so it doesn't.</text>
+
+<rect x="80" y="610" width="1040" height="268" rx="14" fill="#161b22" stroke="#30363d"/>
+
+<text x="120" y="672" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="23" fill="#8b949e">you:</text>
+<text x="240" y="672" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="23" fill="#8b949e">why are users logged out at random?</text>
+<text x="120" y="748" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="23" fill="#8b949e">claude:</text>
+<text x="240" y="748" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="23" fill="#e6edf3">`attic:redis-eviction-bug` · maxmemory-policy is</text>
+<text x="120" y="786" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="23" fill="#8b949e"></text>
+<text x="240" y="786" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="23" fill="#e6edf3">allkeys-lru, so session keys get evicted.</text>
+<text x="120" y="824" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="23" fill="#8b949e"></text>
+<text x="240" y="824" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="23" fill="#e6edf3">fix is volatile-lru.</text>
+<text x="240" y="862" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="23" fill="#d29922">no files read</text>
+
+<text x="80" y="962" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="30" font-weight="700" fill="#e6edf3">Input tokens to answer one question about known code</text>
+<text x="80" y="998" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="21" fill="#8b949e">Codex CLI · 26-file fixture · median of 3 runs · both arms answered correctly</text>
+
+  <text x="90" y="1050" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="24" fill="#e6edf3">without Attic</text>
+  <rect x="360" y="1030" width="620" height="30" rx="6" fill="#f85149"/>
+  <text x="992" y="1053" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="22" fill="#e6edf3">43,357</text>
+  
+  <text x="90" y="1098" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="24" fill="#e6edf3">with Attic</text>
+  <rect x="360" y="1078" width="208" height="30" rx="6" fill="#3fb950"/>
+  <text x="580" y="1101" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="22" fill="#e6edf3">14,569</text>
+  <text x="710" y="1101" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="22" font-weight="700" fill="#3fb950">−66.4%</text>
+<text x="90" y="1150" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="21" fill="#8b949e">2 shell commands to find it, versus 0. The answer was already in context.</text>
+
+<line x1="80" y1="1196" x2="1120" y2="1196" stroke="#30363d"/>
+
+
+<text x="80" y="1248" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="28" font-weight="700" fill="#3fb950">Survives /compact</text>
+<text x="80" y="1284" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="22" fill="#8b949e">The index is re-injected at every session start,</text><text x="80" y="1314" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="22" fill="#8b949e">so a finding outlives the conversation.</text>
+<text x="80" y="1356" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="28" font-weight="700" fill="#3fb950">Newest never dropped</text>
+<text x="80" y="1392" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="22" fill="#8b949e">Pinned items always survive; older ones collapse</text><text x="80" y="1422" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="22" fill="#8b949e">to one discoverable line.</text>
+<text x="80" y="1464" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="28" font-weight="700" fill="#3fb950">Nothing leaves your machine</text>
+<text x="80" y="1500" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="22" fill="#8b949e">No network calls, no telemetry. The script refuses</text><text x="80" y="1530" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="22" fill="#8b949e">to write a detected credential.</text>
+
+<rect x="80" y="1478" width="1040" height="70" rx="10" fill="#161b22" stroke="#58a6ff"/>
+<text x="112" y="1522" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="24" fill="#58a6ff">claude plugin install attic@attic</text>
+<text x="1088" y="1522" text-anchor="end" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="21" fill="#8b949e">github.com/NishikantaRay/Attic</text>
+<text x="80" y="1580" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="19" fill="#8b949e">Activation evals 100% across 22 cases · with nothing relevant stashed the attic costs +2.5%, and the docs say so</text>
+</svg>
