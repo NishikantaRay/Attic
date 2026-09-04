@@ -1,0 +1,242 @@
+{
+  "suite": "attic-activation",
+  "version": "1.0.0",
+  "date": "2026-09-04T10:36:42.417Z",
+  "binary": "<redacted local path>",
+  "metrics": {
+    "cases": 22,
+    "graded": 22,
+    "ungraded": 0,
+    "total": 22,
+    "pass": 22,
+    "fail": 0,
+    "activation_accuracy": 100,
+    "coverage": 100,
+    "false_positive_rate": 0,
+    "false_negative_rate": 0,
+    "wrong_skill_rate": 0,
+    "errors": 0
+  },
+  "results": [
+    {
+      "id": "act-01",
+      "prompt": "stash this in the attic",
+      "expected_skill": "attic-stash",
+      "should_activate": true,
+      "actual_skill": "attic-stash",
+      "result": "pass",
+      "raw": "attic-stash",
+      "ambiguous": false
+    },
+    {
+      "id": "act-02",
+      "prompt": "remember this for later, we'll need it after compaction",
+      "expected_skill": "attic-stash",
+      "should_activate": true,
+      "actual_skill": "attic-stash",
+      "result": "pass",
+      "raw": "attic-stash",
+      "ambiguous": false
+    },
+    {
+      "id": "act-03",
+      "prompt": "what did we find out about the login timeout?",
+      "expected_skill": "attic-recall",
+      "should_activate": true,
+      "actual_skill": "attic-recall",
+      "result": "pass",
+      "raw": "attic-recall",
+      "ambiguous": false
+    },
+    {
+      "id": "act-04",
+      "prompt": "what's in the attic?",
+      "expected_skill": "attic-index",
+      "should_activate": true,
+      "actual_skill": "attic-index",
+      "result": "pass",
+      "raw": "attic-index",
+      "ambiguous": false
+    },
+    {
+      "id": "act-05",
+      "prompt": "I'm about to run /compact, save the state first",
+      "expected_skill": "attic-sweep",
+      "should_activate": true,
+      "actual_skill": "attic-sweep",
+      "result": "pass",
+      "raw": "attic-sweep",
+      "ambiguous": false
+    },
+    {
+      "id": "act-06",
+      "prompt": "context is getting long",
+      "expected_skill": "attic-sweep",
+      "should_activate": true,
+      "actual_skill": "attic-sweep",
+      "result": "pass",
+      "raw": "attic-sweep",
+      "ambiguous": false
+    },
+    {
+      "id": "act-07",
+      "prompt": "switch attic to ultra",
+      "expected_skill": "attic",
+      "should_activate": true,
+      "actual_skill": "attic",
+      "result": "pass",
+      "raw": "attic",
+      "ambiguous": false
+    },
+    {
+      "id": "act-08",
+      "prompt": "trace why the auth middleware rejects valid tokens, it spans several files",
+      "expected_skill": null,
+      "should_activate": false,
+      "actual_skill": null,
+      "result": "pass",
+      "raw": "NONE",
+      "ambiguous": false
+    },
+    {
+      "id": "act-20",
+      "prompt": "what's 2 + 2?",
+      "expected_skill": null,
+      "should_activate": false,
+      "actual_skill": null,
+      "result": "pass",
+      "raw": "NONE",
+      "ambiguous": false
+    },
+    {
+      "id": "act-21",
+      "prompt": "fix the typo in README.md line 3",
+      "expected_skill": null,
+      "should_activate": false,
+      "actual_skill": null,
+      "result": "pass",
+      "raw": "NONE",
+      "ambiguous": false
+    },
+    {
+      "id": "act-22",
+      "prompt": "I'm converting the attic in my house into an office, what insulation do I need?",
+      "expected_skill": null,
+      "should_activate": false,
+      "actual_skill": null,
+      "result": "pass",
+      "raw": "NONE",
+      "ambiguous": false
+    },
+    {
+      "id": "act-23",
+      "prompt": "write me a haiku about autumn",
+      "expected_skill": null,
+      "should_activate": false,
+      "actual_skill": null,
+      "result": "pass",
+      "raw": "NONE",
+      "ambiguous": false
+    },
+    {
+      "id": "act-24",
+      "prompt": "git status",
+      "expected_skill": null,
+      "should_activate": false,
+      "actual_skill": null,
+      "result": "pass",
+      "raw": "NONE",
+      "ambiguous": false
+    },
+    {
+      "id": "amb-01",
+      "prompt": "clean up this file, it's over-engineered",
+      "expected_skill": null,
+      "should_activate": false,
+      "actual_skill": null,
+      "result": "pass",
+      "raw": "NONE",
+      "ambiguous": false
+    },
+    {
+      "id": "amb-02",
+      "prompt": "be less verbose in your replies",
+      "expected_skill": null,
+      "should_activate": false,
+      "actual_skill": null,
+      "result": "pass",
+      "raw": "NONE",
+      "ambiguous": false
+    },
+    {
+      "id": "amb-03",
+      "prompt": "summarise what we've done so far",
+      "expected_skill": "attic-sweep",
+      "should_activate": true,
+      "actual_skill": "attic-sweep",
+      "result": "pass",
+      "raw": "attic-sweep",
+      "ambiguous": true
+    },
+    {
+      "id": "act-09",
+      "prompt": "pin that decision so you don't forget it",
+      "expected_skill": "attic-pin",
+      "should_activate": true,
+      "actual_skill": "attic-pin",
+      "result": "pass",
+      "raw": "attic-pin",
+      "ambiguous": false
+    },
+    {
+      "id": "act-10",
+      "prompt": "the attic is getting big, clean out the old stuff",
+      "expected_skill": "attic-prune",
+      "should_activate": true,
+      "actual_skill": "attic-prune",
+      "result": "pass",
+      "raw": "attic-prune",
+      "ambiguous": false
+    },
+    {
+      "id": "act-11",
+      "prompt": "is the attic actually saving me anything?",
+      "expected_skill": "attic-stats",
+      "should_activate": true,
+      "actual_skill": "attic-stats",
+      "result": "pass",
+      "raw": "attic-stats",
+      "ambiguous": false
+    },
+    {
+      "id": "act-12",
+      "prompt": "my team keeps getting merge conflicts in INDEX.md",
+      "expected_skill": "attic-git",
+      "should_activate": true,
+      "actual_skill": "attic-git",
+      "result": "pass",
+      "raw": "attic-git",
+      "ambiguous": false
+    },
+    {
+      "id": "act-25",
+      "prompt": "clean up the old unused functions in this file",
+      "expected_skill": null,
+      "should_activate": false,
+      "actual_skill": null,
+      "result": "pass",
+      "raw": "NONE",
+      "ambiguous": false
+    },
+    {
+      "id": "act-26",
+      "prompt": "pin this tab in my browser",
+      "expected_skill": null,
+      "should_activate": false,
+      "actual_skill": null,
+      "result": "pass",
+      "raw": "NONE",
+      "ambiguous": false
+    }
+  ]
+}

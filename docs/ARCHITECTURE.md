@@ -100,7 +100,13 @@ sibling skills. `scripts/run-evals.js` runs each as a real headless session
 and reports accuracy, false positive rate, false negative rate and wrong-skill
 rate.
 
-**Behaviour** asks whether an active skill does the required things.
+**Behaviour** asks whether an active skill does the required things. Cases
+that can be decided from the resulting files or the reply text are automated
+in `scripts/run-behavior.js`, which runs real sessions against a seeded
+attic. Activation proving the right skill fires is not evidence the skill
+then works; these two suites answer different questions.
+
+
 `skills/attic/evals/behavior.json` holds per-level scenarios with required
 and forbidden behaviours, graded against the transcript and the resulting
 `.attic/` tree. Cases that a script already enforces name that script in

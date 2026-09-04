@@ -1,22 +1,42 @@
 # Attic
 
-**Offload context.** A [Claude Code](https://claude.com/claude-code) plugin that makes Claude stash findings, decisions, plans and long outputs into a project-local `.attic/` folder and keep only a one-line index in the conversation. The live context stays lean, and what matters survives `/compact`, `/clear` and new sessions.
+**Offload context.** A [Claude Code](https://claude.com/claude-code) plugin that makes Claude stash findings, decisions and long outputs into a project-local `.attic/` folder and keep only a one-line index in the conversation. The live context stays lean, and what matters survives `/compact`, `/clear` and new sessions.
+
+![Attic in action: a finding is stashed, the context is compacted, and Claude still knows](assets/demo.gif)
 
 Most token-saving tools shorten what Claude writes. Attic targets a different sink: the knowledge Claude keeps re-reading and re-explaining because it lives nowhere but the chat.
+
+![How Attic works](assets/how-it-works.svg)
 
 ```
 you:    why does the login test time out?
 claude: `attic:login-test-timeout` · 5s fixture timeout in tests/conftest.py:41, SMTP call is real. Fixing now.
 ```
 
-The full trace, the files it read and the reasoning are in `.attic/items/login-test-timeout.md`. Three hours and one `/compact` later, Claude still knows.
+The full trace, the files it read and the reasoning are in
+`.attic/items/login-test-timeout.md`. Three hours and one `/compact` later,
+Claude still knows.
 
 ## Install
+
+**Claude Code**
 
 ```
 claude plugin marketplace add NishikantaRay/Attic
 claude plugin install attic@attic
 ```
+
+**Codex CLI**
+
+```sh
+git clone https://github.com/NishikantaRay/Attic
+sh Attic/codex/install.sh
+```
+
+Same skills, same script, same hooks. The installer registers the hooks and
+enables the feature flag for you. Skills-only alternative, without automatic
+activation: `npx skills add NishikantaRay/Attic --skill 'attic*' -a codex`.
+See [docs/CODEX.md](docs/CODEX.md).
 
 Requires Node.js on `PATH` for the hooks. Without Node the skills and commands still work; only the automatic session-start injection is lost.
 
@@ -42,6 +62,10 @@ claude --plugin-dir ./Attic
 | `/attic-stats` | What the attic costs and holds, measured locally. |
 | `/attic-doctor` | Check `.attic/` for drift, orphans and leaked credentials. |
 | `/attic-git` | Fix `.attic/` merge conflicts and set up a shared team attic. |
+
+If the index ever gets out of step with the items, it is derived data and can
+be regenerated: `node skills/attic/scripts/attic.js rebuild`. The item files
+are the source of truth, so nothing is lost.
 | `/attic-help` | One-screen reference. |
 
 Installed plugins are namespaced, so the fully qualified form is `/attic:attic-help`; the short form works when no other plugin claims the name.
@@ -82,6 +106,8 @@ bound. Three tiers share a fixed budget:
 
 Trimming drops the oldest unpinned entries. Your newest finding is never the
 one that disappears.
+
+![Which items reach your next session](assets/scale-fix.svg)
 
 Kinds: `finding`, `decision`, `plan`, `output`, `note`. Handles look like `attic:<slug>`.
 
@@ -140,15 +166,55 @@ node skills/attic/scripts/attic.js recall "login timeout"
 node skills/attic/scripts/attic.js validate     # exit 3 on drift or a leaked credential
 ```
 
+## Does it actually help?
+
+Sometimes. Here is the measurement, including where it does not.
+
+![Input tokens with and without the attic](assets/benchmark.svg)
+
+The benchmark asks one question about code whose answer is already stashed,
+against a 26-file fixture, and counts real input tokens from the CLI's own
+usage output. Both arms are graded for correctness, because a cheaper wrong
+answer is not a win.
+
+| Case | Without attic | With attic | Delta |
+|---|---|---|---|
+| Answer is stashed, run 1 | 90,263 | 30,163 | **-66.6%** |
+| Answer is stashed, run 2 | 90,272 | 60,687 | **-32.8%** |
+| Nothing relevant stashed | 57,698 | 60,428 | **+4.7%** |
+
+Correctness held at 12 of 12 across both arms and both cases.
+
+**Read that honestly.** The two runs of the same benchmark differ by more
+than 30 points, so no single percentage is trustworthy. What the data
+supports is the direction: when the answer is already stashed, the attic arm
+consistently costs fewer input tokens and fewer turns, because its cost does
+not depend on how much the model decides to read. When nothing relevant is
+stashed, the attic is pure overhead and the last row is what that looks like.
+
+```bash
+node benchmarks/run.js --runs 3          # reproduce it
+```
+
+Full method, raw samples and the reasons not to quote a headline number:
+[benchmarks/README.md](benchmarks/README.md) and
+[docs/HONEST-NUMBERS.md](docs/HONEST-NUMBERS.md).
+
 ## Evaluation
 
 Activation and behaviour are measured separately.
 
 ```bash
 node scripts/run-evals.js --suite activation   # real headless sessions, scores the classifier
-node scripts/run-evals.js --suite behavior     # per-level behaviour checklist
+node scripts/run-behavior.js                   # real sessions, graded on files + reply
+node scripts/run-evals.js --suite behavior     # the remaining judgement-call checklist
 node scripts/run-evals.js --case act-22        # a single case
 ```
+
+Activation proves the right skill fires. Behaviour proves it then does its
+job: `run-behavior.js` seeds an attic, runs a real headless session, and
+asserts on what landed on disk and what the reply said. It is what catches a
+skill that activates correctly and then does nothing.
 
 The activation suite reports accuracy, coverage, false positive rate, false
 negative rate and wrong-skill rate over positive cases, negative cases, and
@@ -170,12 +236,17 @@ returns. See [docs/HONEST-NUMBERS.md](docs/HONEST-NUMBERS.md).
 | CI | `.github/workflows/ci.yml` runs tests and manifest validation; `attic-guard.yml` validates `.attic/` on pull requests. |
 | Merge time | `scripts/attic-merge.js` resolves index conflicts instead of losing one side. |
 
+## Project files
+
+[CHANGELOG.md](CHANGELOG.md) · [docs/CODEX.md](docs/CODEX.md) · [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) · [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/HONEST-NUMBERS.md](docs/HONEST-NUMBERS.md) · [docs/TEAM.md](docs/TEAM.md)
+
 ## Development
 
 ```
 npm test                          # unit tests: hooks, script, eval suite integrity
 claude plugin validate . --strict # manifest and component checks
 claude --plugin-dir .             # load this checkout into a session
+npm run build:codex               # regenerate the Codex distribution
 ```
 
 ## Uninstall

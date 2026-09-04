@@ -32,7 +32,7 @@ jobs:
       - name: Lint eval suites
         run: node scripts/run-evals.js --suite behavior
 
-  activation-evals:
+  live-evals:
     # Live activation evals cost tokens, so they run on demand and nightly,
     # not on every push.
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
@@ -47,9 +47,16 @@ jobs:
       - name: Run activation suite
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: node scripts/run-evals.js --suite activation --out activation-report.json
+        run: node scripts/run-evals.js --suite activation --delay 1500 --out activation-report.json
+
+      - name: Run behaviour suite
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node scripts/run-behavior.js --json > behavior-report.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: activation-report
-          path: activation-report.json
+          name: eval-reports
+          path: |
+            activation-report.json
+            behavior-report.json

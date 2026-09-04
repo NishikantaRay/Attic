@@ -1,0 +1,40 @@
+{
+  "description": "Attic hooks for Codex. Set ATTIC_HOME to the directory holding hooks/. Requires [features] hooks = true in config.toml.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${ATTIC_HOME}/hooks/attic-activate.js\"",
+            "timeout": 5,
+            "statusMessage": "Loading attic..."
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${ATTIC_HOME}/hooks/attic-mode.js\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${ATTIC_HOME}/hooks/attic-subagent.js\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

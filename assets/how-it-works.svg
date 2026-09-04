@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="300" viewBox="0 0 880 300" role="img">
+<rect width="880" height="300" rx="10" fill="#0d1117"/>
+
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+<path d="M0,0 L10,5 L0,10 z" fill="#58a6ff"/></marker></defs>
+<text x="24" y="34" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="17" font-weight="700" fill="#e6edf3">How Attic works</text>
+
+  <rect x="24" y="56" width="240" height="108" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+  <text x="38" y="82" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="14" font-weight="600" fill="#e6edf3">You work</text>
+  <text x="38" y="106" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="12" fill="#8b949e">read 5 files</text>
+  <text x="38" y="125" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="12" fill="#8b949e">trace the bug</text>
+  <text x="38" y="144" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="12" fill="#8b949e">find the cause</text>
+
+  <line x1="272" y1="110" x2="320" y2="110" stroke="#58a6ff" stroke-width="2" marker-end="url(#a)"/>
+  <text x="296" y="102" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" fill="#58a6ff">stash</text>
+
+  <rect x="328" y="56" width="236" height="108" rx="8" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+  <text x="342" y="82" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="14" font-weight="600" fill="#e6edf3">.attic/</text>
+  <text x="342" y="106" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="12" fill="#8b949e">items/redis-bug.md</text>
+  <text x="342" y="125" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="12" fill="#8b949e">INDEX.md  +1 line</text>
+  <text x="342" y="144" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="12" fill="#8b949e">DECISIONS.md</text>
+
+  <line x1="572" y1="110" x2="620" y2="110" stroke="#58a6ff" stroke-width="2" marker-end="url(#a)"/>
+  <text x="596" y="102" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11" fill="#58a6ff">inject</text>
+
+  <rect x="628" y="56" width="228" height="108" rx="8" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
+  <text x="642" y="82" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="14" font-weight="600" fill="#e6edf3">Next session</text>
+  <text x="642" y="106" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="12" fill="#8b949e">index in context</text>
+  <text x="642" y="125" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="12" fill="#8b949e">after /compact too</text>
+  <text x="642" y="144" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="12" fill="#8b949e">answers, no re-read</text>
+<rect x="24" y="188" width="832" height="86" rx="8" fill="#161b22" stroke="#30363d"/>
+<text x="40" y="214" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="12.5" fill="#8b949e">you:    why are users logged out at random?</text>
+<text x="40" y="238" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="12.5" fill="#e6edf3">claude: <tspan fill="#3fb950">attic:redis-eviction-bug</tspan> · maxmemory-policy is allkeys-lru, session keys get evicted.</text>
+<text x="40" y="260" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="12.5" fill="#8b949e">        fix is volatile-lru. <tspan fill="#d29922">no files read</tspan></text>
+</svg>

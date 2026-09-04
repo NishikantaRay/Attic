@@ -1,0 +1,24 @@
+#!/usr/bin/env sh
+# Attic launcher for Codex. Finds attic.js wherever the skills were installed
+# and runs it, so skill commands are a plain `attic ...` from any directory.
+set -e
+for c in \
+  "${ATTIC_HOME:-}/skills/attic/scripts/attic.js" \
+  "${CODEX_HOME:-$HOME/.codex}/skills/attic/scripts/attic.js" \
+  "$HOME/.agents/skills/attic/scripts/attic.js" \
+  "$HOME/.codex/skills/attic/scripts/attic.js" \
+  "$PWD/.agents/skills/attic/scripts/attic.js" \
+  "$PWD/.codex/skills/attic/scripts/attic.js"
+do
+  if [ -n "$c" ] && [ -f "$c" ]; then
+    SKILLS_DIR=$(cd "$(dirname "$c")/../.." && pwd -P)
+    case "${1:-}" in
+      --skills-dir) echo "$SKILLS_DIR"; exit 0 ;;
+      --where)      echo "$c"; exit 0 ;;
+      stats)        shift; exec node "$SKILLS_DIR/../scripts/attic-stats.js" "$@" ;;
+    esac
+    exec node "$c" "$@"
+  fi
+done
+echo "attic: could not find attic.js. Set ATTIC_HOME to the directory containing skills/." >&2
+exit 1

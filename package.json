@@ -5,7 +5,10 @@
   "description": "Attic: a Claude Code plugin that offloads context into .attic/",
   "license": "MIT",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "build:codex": "node scripts/build-codex.js",
+    "make:assets": "node scripts/make-assets.js",
+    "bench": "node benchmarks/run.js --runs 3"
   },
   "engines": {
     "node": ">=18"

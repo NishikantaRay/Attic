@@ -1,0 +1,226 @@
+{
+  "date": "2026-09-04T12:46:56.990Z",
+  "runs": 3,
+  "cases": [
+    {
+      "id": "cache-ttl",
+      "question": "Why does the cache serve stale data? Answer in one sentence naming the file and the cause.",
+      "noiseFiles": 25,
+      "noAttic": {
+        "input": {
+          "n": 3,
+          "min": 90212,
+          "max": 90304,
+          "mean": 90263,
+          "median": 90272
+        },
+        "output": {
+          "n": 3,
+          "min": 342,
+          "max": 360,
+          "mean": 348,
+          "median": 342
+        },
+        "turns": {
+          "n": 3,
+          "min": 3,
+          "max": 3,
+          "mean": 3,
+          "median": 3
+        },
+        "durationMs": {
+          "n": 3,
+          "min": 7795,
+          "max": 8254,
+          "mean": 7980,
+          "median": 7891
+        },
+        "correct": 3,
+        "errors": 0,
+        "samples": [
+          {
+            "input": 90212,
+            "output": 342,
+            "turns": 3,
+            "correct": true
+          },
+          {
+            "input": 90304,
+            "output": 342,
+            "turns": 3,
+            "correct": true
+          },
+          {
+            "input": 90272,
+            "output": 360,
+            "turns": 3,
+            "correct": true
+          }
+        ]
+      },
+      "attic": {
+        "input": {
+          "n": 3,
+          "min": 30158,
+          "max": 60736,
+          "mean": 50527,
+          "median": 60687
+        },
+        "output": {
+          "n": 3,
+          "min": 179,
+          "max": 316,
+          "mean": 262,
+          "median": 290
+        },
+        "turns": {
+          "n": 3,
+          "min": 1,
+          "max": 2,
+          "mean": 2,
+          "median": 2
+        },
+        "durationMs": {
+          "n": 3,
+          "min": 4445,
+          "max": 7902,
+          "mean": 6386,
+          "median": 6811
+        },
+        "correct": 3,
+        "errors": 0,
+        "samples": [
+          {
+            "input": 60687,
+            "output": 290,
+            "turns": 2,
+            "correct": true
+          },
+          {
+            "input": 30158,
+            "output": 179,
+            "turns": 1,
+            "correct": true
+          },
+          {
+            "input": 60736,
+            "output": 316,
+            "turns": 2,
+            "correct": true
+          }
+        ]
+      },
+      "inputDeltaPct": -32.8
+    },
+    {
+      "id": "cold-attic",
+      "question": "What is the value of VERSION in src/version.ts? Answer with just the version string.",
+      "noiseFiles": 4,
+      "noAttic": {
+        "input": {
+          "n": 3,
+          "min": 57700,
+          "max": 86967,
+          "mean": 77204,
+          "median": 86946
+        },
+        "output": {
+          "n": 3,
+          "min": 123,
+          "max": 269,
+          "mean": 217,
+          "median": 260
+        },
+        "turns": {
+          "n": 3,
+          "min": 2,
+          "max": 3,
+          "mean": 3,
+          "median": 3
+        },
+        "durationMs": {
+          "n": 3,
+          "min": 5764,
+          "max": 8194,
+          "mean": 6983,
+          "median": 6991
+        },
+        "correct": 3,
+        "errors": 0,
+        "samples": [
+          {
+            "input": 57700,
+            "output": 123,
+            "turns": 2,
+            "correct": true
+          },
+          {
+            "input": 86946,
+            "output": 260,
+            "turns": 3,
+            "correct": true
+          },
+          {
+            "input": 86967,
+            "output": 269,
+            "turns": 3,
+            "correct": true
+          }
+        ]
+      },
+      "attic": {
+        "input": {
+          "n": 3,
+          "min": 60424,
+          "max": 60435,
+          "mean": 60430,
+          "median": 60430
+        },
+        "output": {
+          "n": 3,
+          "min": 113,
+          "max": 114,
+          "mean": 113,
+          "median": 113
+        },
+        "turns": {
+          "n": 3,
+          "min": 2,
+          "max": 2,
+          "mean": 2,
+          "median": 2
+        },
+        "durationMs": {
+          "n": 3,
+          "min": 3997,
+          "max": 4320,
+          "mean": 4187,
+          "median": 4243
+        },
+        "correct": 3,
+        "errors": 0,
+        "samples": [
+          {
+            "input": 60435,
+            "output": 114,
+            "turns": 2,
+            "correct": true
+          },
+          {
+            "input": 60424,
+            "output": 113,
+            "turns": 2,
+            "correct": true
+          },
+          {
+            "input": 60430,
+            "output": 113,
+            "turns": 2,
+            "correct": true
+          }
+        ]
+      },
+      "inputDeltaPct": -30.5
+    }
+  ]
+}

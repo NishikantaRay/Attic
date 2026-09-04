@@ -250,3 +250,134 @@ test('recent items are not pruned', () => {
   const r = run(cwd, ['prune', '--older-than', '90d']);
   assert.equal(r.out.candidates.length, 0);
 });
+
+// ---------- regressions found in the v1.1 audit ----------
+
+test('concurrent stashes do not lose index lines', async () => {
+  const cwd = proj();
+  const { spawn } = require('node:child_process');
+  await Promise.all([...Array(8)].map((_, i) => new Promise((res) => {
+    const c = spawn(process.execPath, [SCRIPT, 'stash', '--slug', `race-${i}`, '--kind', 'note',
+      '--hook', `h${i}`, '--body', 'b', '--cwd', cwd], { stdio: 'ignore' });
+    c.on('exit', res);
+  })));
+  const idx = fs.readFileSync(path.join(cwd, '.attic', 'INDEX.md'), 'utf8');
+  const lines = idx.split('\n').filter((l) => l.startsWith('- '));
+  assert.equal(lines.length, 8, 'every concurrent stash must reach the index');
+  assert.equal(fs.readdirSync(path.join(cwd, '.attic', 'items')).length, 8);
+  assert.equal(run(cwd, ['validate']).status, 0, 'a raced attic must still validate');
+});
+
+test('stash leaves no lock directory behind', () => {
+  const cwd = proj();
+  stash(cwd);
+  assert.equal(fs.existsSync(path.join(cwd, '.attic', 'INDEX.md.lock')), false);
+});
+
+test('validate renders its problems instead of "undefined"', () => {
+  const cwd = proj();
+  stash(cwd);
+  fs.writeFileSync(path.join(cwd, '.attic', 'INDEX.md'), 'total garbage\n');
+  const res = spawnSync(process.execPath, [SCRIPT, 'validate', '--cwd', cwd], { encoding: 'utf8' });
+  assert.equal(res.status, 3);
+  assert.doesNotMatch(res.stdout, /undefined/, 'the human renderer must not print undefined');
+  assert.match(res.stdout, /ERROR .*not listed in INDEX/);
+});
+
+test('rebuild regenerates the index from item files', () => {
+  const cwd = proj();
+  stash(cwd);
+  run(cwd, ['stash', '--slug', 'second', '--kind', 'note', '--hook', 'h', '--body', 'b']);
+  fs.writeFileSync(path.join(cwd, '.attic', 'INDEX.md'), 'total garbage\n');
+
+  const dry = run(cwd, ['rebuild', '--dry-run']);
+  assert.equal(dry.out.applied, false);
+  assert.match(fs.readFileSync(path.join(cwd, '.attic', 'INDEX.md'), 'utf8'), /garbage/, 'dry run must not write');
+
+  const r = run(cwd, ['rebuild']);
+  assert.equal(r.out.applied, true);
+  assert.equal(r.out.items, 2);
+  assert.deepEqual(r.out.recovered.sort(), ['demo-finding', 'second']);
+  assert.equal(run(cwd, ['validate']).status, 0);
+});
+
+test('rebuild drops index lines whose item file is gone', () => {
+  const cwd = proj();
+  stash(cwd);
+  fs.unlinkSync(path.join(cwd, '.attic', 'items', 'demo-finding.md'));
+  const r = run(cwd, ['rebuild']);
+  assert.deepEqual(r.out.dropped, ['demo-finding']);
+  assert.equal(run(cwd, ['validate']).status, 0);
+});
+
+test('rebuild preserves existing hooks rather than regenerating them', () => {
+  const cwd = proj();
+  stash(cwd);
+  run(cwd, ['rebuild']);
+  assert.match(fs.readFileSync(path.join(cwd, '.attic', 'INDEX.md'), 'utf8'), /a short hook/);
+});
+
+test('a hook cannot forge index structure', () => {
+  const cwd = proj();
+  run(cwd, ['stash', '--slug', 'inj', '--kind', 'note', '--body', 'b',
+    '--hook', 'fake](evil.md) · note · injected']);
+  const idx = fs.readFileSync(path.join(cwd, '.attic', 'INDEX.md'), 'utf8');
+  const lines = idx.split('\n').filter((l) => l.startsWith('- '));
+  assert.equal(lines.length, 1, 'a crafted hook must not produce a second entry');
+  assert.doesNotMatch(lines[0].split(' · ').slice(2).join(' · '), /·/, 'separator must be neutralised in the hook');
+  assert.equal(run(cwd, ['validate']).status, 0);
+});
+
+test('a path-traversal slug cannot escape the items directory', () => {
+  const cwd = proj();
+  const r = run(cwd, ['stash', '--slug', '../../etc/evil', '--kind', 'note', '--hook', 'h', '--body', 'b']);
+  assert.equal(r.status, 0);
+  assert.ok(!r.out.file.includes('..'), `escaped: ${r.out.file}`);
+  assert.ok(fs.readdirSync(path.join(cwd, '.attic', 'items')).every((f) => !f.includes('..')));
+});
+
+test('a filesystem failure reports rather than crashing', () => {
+  const cwd = proj();
+  const ro = path.join(cwd, 'ro');
+  fs.mkdirSync(ro);
+  fs.chmodSync(ro, 0o555);
+  try {
+    const res = spawnSync(process.execPath, [SCRIPT, 'stash', '--slug', 'x', '--kind', 'note',
+      '--hook', 'h', '--body', 'b', '--cwd', ro], { encoding: 'utf8' });
+    assert.equal(res.status, 1);
+    assert.match(res.stdout + res.stderr, /permission denied/);
+    assert.doesNotMatch(res.stderr, /at Object\./, 'must not dump a stack trace');
+  } finally { fs.chmodSync(ro, 0o755); }
+});
+
+test('unicode survives a stash and recall round trip', () => {
+  const cwd = proj();
+  run(cwd, ['stash', '--slug', 'uni', '--kind', 'note', '--hook', 'café ☕', '--body', 'émoji 🎉 中文']);
+  const r = run(cwd, ['recall', 'uni']);
+  assert.match(r.out.body, /émoji 🎉 中文/);
+});
+
+test('a v1.0-era attic works unchanged under v1.1', () => {
+  const cwd = proj();
+  // No archive/ dir, no pinned field: exactly what 1.0.0 produced.
+  fs.mkdirSync(path.join(cwd, '.attic', 'items'), { recursive: true });
+  fs.writeFileSync(path.join(cwd, '.attic', 'INDEX.md'),
+    '# Attic index\n\n- [old-item](items/old-item.md) · finding · a v1.0 era hook\n');
+  fs.writeFileSync(path.join(cwd, '.attic', 'items', 'old-item.md'),
+    '---\ntitle: Old item\nkind: finding\ndate: 2026-01-01\ntags: [legacy]\n---\nBody.\n');
+
+  assert.equal(run(cwd, ['validate']).status, 0, 'an old attic must still validate');
+  assert.equal(run(cwd, ['index']).out.counts.items, 1);
+  assert.equal(run(cwd, ['recall', 'old-item']).out.slug, 'old-item');
+  assert.equal(run(cwd, ['pin', 'old-item']).out.pinned, true, 'pin works on an item with no pinned field');
+  assert.equal(run(cwd, ['prune', '--older-than', '1d']).out.skippedPinned, 1);
+});
+
+test('an empty .attic directory degrades gracefully', () => {
+  const cwd = proj();
+  fs.mkdirSync(path.join(cwd, '.attic'), { recursive: true });
+  assert.equal(run(cwd, ['validate']).status, 0);
+  assert.equal(run(cwd, ['index']).status, 1, 'index reports absence rather than crashing');
+  const rt = require(path.join(__dirname, '..', 'hooks', 'attic-runtime.js'));
+  assert.equal(rt.loadIndex(cwd), null, 'no index means nothing injected');
+});

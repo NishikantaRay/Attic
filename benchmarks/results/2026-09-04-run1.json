@@ -1,0 +1,116 @@
+{
+  "date": "2026-09-04T12:45:05.263Z",
+  "runs": 3,
+  "cases": [
+    {
+      "id": "cache-ttl",
+      "question": "Why does the cache serve stale data? Answer in one sentence naming the file and the cause.",
+      "noiseFiles": 25,
+      "noAttic": {
+        "input": {
+          "n": 3,
+          "min": 90202,
+          "max": 119652,
+          "mean": 100039,
+          "median": 90263
+        },
+        "output": {
+          "n": 3,
+          "min": 341,
+          "max": 451,
+          "mean": 380,
+          "median": 347
+        },
+        "turns": {
+          "n": 3,
+          "min": 3,
+          "max": 4,
+          "mean": 3,
+          "median": 3
+        },
+        "durationMs": {
+          "n": 3,
+          "min": 8613,
+          "max": 10877,
+          "mean": 9506,
+          "median": 9028
+        },
+        "correct": 3,
+        "errors": 0,
+        "samples": [
+          {
+            "input": 90263,
+            "output": 347,
+            "turns": 3,
+            "correct": true
+          },
+          {
+            "input": 90202,
+            "output": 341,
+            "turns": 3,
+            "correct": true
+          },
+          {
+            "input": 119652,
+            "output": 451,
+            "turns": 4,
+            "correct": true
+          }
+        ]
+      },
+      "attic": {
+        "input": {
+          "n": 3,
+          "min": 30161,
+          "max": 60703,
+          "mean": 40342,
+          "median": 30163
+        },
+        "output": {
+          "n": 3,
+          "min": 101,
+          "max": 291,
+          "mean": 195,
+          "median": 192
+        },
+        "turns": {
+          "n": 3,
+          "min": 1,
+          "max": 2,
+          "mean": 1,
+          "median": 1
+        },
+        "durationMs": {
+          "n": 3,
+          "min": 2720,
+          "max": 7185,
+          "mean": 4728,
+          "median": 4280
+        },
+        "correct": 3,
+        "errors": 0,
+        "samples": [
+          {
+            "input": 60703,
+            "output": 291,
+            "turns": 2,
+            "correct": true
+          },
+          {
+            "input": 30163,
+            "output": 192,
+            "turns": 1,
+            "correct": true
+          },
+          {
+            "input": 30161,
+            "output": 101,
+            "turns": 1,
+            "correct": true
+          }
+        ]
+      },
+      "inputDeltaPct": -66.6
+    }
+  ]
+}

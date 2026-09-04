@@ -12,8 +12,6 @@ description: >
   "context is getting long", "before compact", or complains that Claude
   forgot something after compaction. Do NOT use for one-line answers, typo
   fixes, or non-coding chat.
-argument-hint: "[lite|full|ultra|off]"
-allowed-tools: Bash(node:*attic.js*)
 version: 1.1.0
 license: MIT
 ---
@@ -43,22 +41,22 @@ changed or session end.
 
 ## Use the script, not your own bookkeeping
 
-`${CLAUDE_SKILL_DIR}/scripts/attic.js` owns every mechanical part: slug
+`$(attic --skills-dir)/attic/scripts/attic.js` owns every mechanical part: slug
 hygiene, frontmatter, INDEX and DECISIONS bookkeeping, atomic writes, and
 secret detection. Call it. Do not hand-write these files when the script is
 available.
 
 ```bash
-node "${CLAUDE_SKILL_DIR}/scripts/attic.js" stash \
+attic stash \
   --slug login-test-timeout --kind finding \
   --title "Login test times out" \
   --hook "5s fixture timeout in tests/conftest.py:41, SMTP call is real" \
   --tags tests,flaky \
   --body-file /tmp/body.md
 
-node "${CLAUDE_SKILL_DIR}/scripts/attic.js" recall "login timeout"
-node "${CLAUDE_SKILL_DIR}/scripts/attic.js" index
-node "${CLAUDE_SKILL_DIR}/scripts/attic.js" validate
+attic recall "login timeout"
+attic index
+attic validate
 ```
 
 `--kind` is one of `finding`, `decision`, `plan`, `output`, `note`. Add

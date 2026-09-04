@@ -7,8 +7,6 @@ description: >
   healthy", or "did anything leak into the attic". Never use this for git,
   merge or conflict problems, even though they sound like breakage: every
   merge conflict goes to attic-git.
-disable-model-invocation: true
-allowed-tools: Bash(node:*attic.js*)
 version: 1.1.0
 license: MIT
 ---
@@ -16,7 +14,7 @@ license: MIT
 # Attic doctor
 
 ```bash
-node "${CLAUDE_SKILL_DIR}/../attic/scripts/attic.js" validate
+attic validate
 ```
 
 Exit 0 is healthy. Exit 3 means errors were found.
@@ -36,8 +34,8 @@ been hand-edited into garbage), rebuild it rather than fixing lines one by
 one. Items are the source of truth; the index is derived:
 
 ```bash
-node "${CLAUDE_SKILL_DIR}/../attic/scripts/attic.js" rebuild --dry-run
-node "${CLAUDE_SKILL_DIR}/../attic/scripts/attic.js" rebuild
+attic rebuild --dry-run
+attic rebuild
 ```
 
 Do not bulk-delete items to make the check pass. Ask before removing
