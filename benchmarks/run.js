@@ -17,9 +17,14 @@
  * report real token counts from the CLI's own usage output. Correctness is
  * checked too: a cheap wrong answer is not a win.
  *
+ * Runs against Claude Code (default) or Codex CLI (--host codex). The two
+ * hosts differ in how they are invoked, how the attic is enabled, and how
+ * usage is reported, so each has an adapter below. Everything else is shared.
+ *
  * Usage:
  *   node benchmarks/run.js [--runs 3] [--case cache-ttl] [--json]
- *                          [--out results.json] [--claude <path>]
+ *                          [--host claude|codex] [--out results.json]
+ *                          [--claude <path>]
  */
 const fs = require('fs');
 const os = require('os');
@@ -57,27 +62,89 @@ function buildFixture(dir, spec) {
   fs.writeFileSync(path.join(dir, 'src', spec.answerFile), spec.answerContent);
 }
 
-function runSession(bin, dir, prompt, useAttic) {
-  const args = ['-p', prompt, '--output-format', 'json', '--max-turns', '12', '--permission-mode', 'acceptEdits'];
-  if (useAttic) args.unshift('--plugin-dir', ROOT);
-  const res = spawnSync(bin, args, {
-    cwd: dir, encoding: 'utf8', timeout: 300000, stdio: ['ignore', 'pipe', 'pipe'],
-    env: Object.assign({}, process.env, useAttic ? {} : { ATTIC_DEFAULT_MODE: 'off' }),
-  });
-  let parsed = null;
-  try { parsed = JSON.parse(res.stdout); } catch (e) { /* fall through */ }
-  if (!parsed) return { error: (res.stderr || '').slice(0, 200) || `exit ${res.status}` };
-
-  const u = parsed.usage || {};
-  return {
-    text: parsed.result || '',
-    inputTokens: (u.input_tokens || 0) + (u.cache_read_input_tokens || 0) + (u.cache_creation_input_tokens || 0),
-    outputTokens: u.output_tokens || 0,
-    turns: parsed.num_turns || 0,
-    costUsd: parsed.total_cost_usd || 0,
-    durationMs: parsed.duration_ms || 0,
-  };
+function findCodex(explicit) {
+  if (explicit) return explicit;
+  if (process.env.ATTIC_CODEX_BIN) return process.env.ATTIC_CODEX_BIN;
+  try {
+    const w = execSync('command -v codex', { encoding: 'utf8', shell: '/bin/sh' }).trim();
+    if (w) return w;
+  } catch (e) { /* not on PATH */ }
+  return null;
 }
+
+/**
+ * Host adapters.
+ *
+ * Each knows how to launch its CLI headlessly, how to turn the attic on and
+ * off, and how to read real token usage out of the result. The benchmark
+ * body never branches on host beyond this.
+ */
+const HOSTS = {
+  claude: {
+    find: findClaude,
+    missing: 'no claude binary found. Pass --claude <path> or set ATTIC_CLAUDE_BIN.',
+    // Claude Code loads the plugin from the repo; ATTIC_DEFAULT_MODE=off disables it.
+    run(bin, dir, prompt, useAttic) {
+      const args = ['-p', prompt, '--output-format', 'json', '--max-turns', '12',
+        '--permission-mode', 'acceptEdits'];
+      if (useAttic) args.unshift('--plugin-dir', ROOT);
+      const res = spawnSync(bin, args, {
+        cwd: dir, encoding: 'utf8', timeout: 300000, stdio: ['ignore', 'pipe', 'pipe'],
+        env: Object.assign({}, process.env, useAttic ? {} : { ATTIC_DEFAULT_MODE: 'off' }),
+      });
+      let parsed = null;
+      try { parsed = JSON.parse(res.stdout); } catch (e) { /* fall through */ }
+      if (!parsed) return { error: (res.stderr || '').slice(0, 200) || `exit ${res.status}` };
+      const u = parsed.usage || {};
+      return {
+        text: parsed.result || '',
+        inputTokens: (u.input_tokens || 0) + (u.cache_read_input_tokens || 0) + (u.cache_creation_input_tokens || 0),
+        outputTokens: u.output_tokens || 0,
+        turns: parsed.num_turns || 0,
+        durationMs: parsed.duration_ms || 0,
+      };
+    },
+  },
+
+  codex: {
+    find: findCodex,
+    missing: 'no codex binary found. npm i -g @openai/codex, or set ATTIC_CODEX_BIN.',
+    // Codex has no --plugin-dir. The attic arm gets the index the way the
+    // SessionStart hook would deliver it, prepended to the prompt; the
+    // no-attic arm gets the bare prompt. That isolates the same variable the
+    // Claude arm isolates: whether the knowledge is already in context.
+    run(bin, dir, prompt, useAttic) {
+      let full = prompt;
+      if (useAttic) {
+        const rt = require(path.join(ROOT, 'hooks', 'attic-runtime.js'));
+        const idx = rt.loadIndex(dir);
+        const parts = [rt.rulesFor('full')];
+        if (idx) parts.push(`Current attic index (.attic/INDEX.md):\n${idx.text}`);
+        full = `${parts.join('\n\n')}\n\n${prompt}`;
+      }
+      const res = spawnSync(bin, ['exec', '--json', '--skip-git-repo-check',
+        '-s', 'workspace-write', full], {
+        cwd: dir, encoding: 'utf8', timeout: 300000, stdio: ['ignore', 'pipe', 'pipe'],
+        input: '',
+      });
+      const lines = (res.stdout || '').split('\n').filter(Boolean)
+        .map((l) => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(Boolean);
+      const done = lines.filter((l) => l.type === 'turn.completed').pop();
+      if (!done) return { error: (res.stderr || '').slice(0, 200) || `exit ${res.status}` };
+      const u = done.usage || {};
+      const msgs = lines.filter((l) => l.type === 'item.completed' && l.item && l.item.type === 'agent_message');
+      const cmds = lines.filter((l) => l.type === 'item.completed' && l.item && l.item.type === 'command_execution');
+      return {
+        text: msgs.map((m) => m.item.text).join('\n'),
+        // cached_input_tokens is a subset of input_tokens here, so do not double count.
+        inputTokens: u.input_tokens || 0,
+        outputTokens: (u.output_tokens || 0) + (u.reasoning_output_tokens || 0),
+        turns: cmds.length,
+        durationMs: 0,
+      };
+    },
+  },
+};
 
 const CASES = [
   {
@@ -141,18 +208,21 @@ function main() {
     if (a.startsWith('--')) { const k = a.slice(2), n = argv[i + 1];
       if (n === undefined || n.startsWith('--')) args[k] = true; else { args[k] = n; i++; } }
   }
-  const bin = findClaude(args.claude);
-  if (!bin) { process.stderr.write('no claude binary found. Pass --claude <path> or set ATTIC_CLAUDE_BIN.\n'); process.exit(2); }
+  const hostName = args.host || 'claude';
+  const host = HOSTS[hostName];
+  if (!host) { process.stderr.write(`unknown --host ${hostName}; use claude or codex\n`); process.exit(2); }
+  const bin = host.find(args.claude);
+  if (!bin) { process.stderr.write(host.missing + '\n'); process.exit(2); }
 
   const runs = args.runs ? parseInt(args.runs, 10) : 3;
   const cases = args.case ? CASES.filter((c) => c.id === args.case) : CASES;
-  const report = { date: new Date().toISOString(), runs, cases: [] };
+  const report = { date: new Date().toISOString(), host: hostName, binary: bin, runs, cases: [] };
 
   for (const c of cases) {
     const arms = { noAttic: [], attic: [] };
     for (let r = 0; r < runs; r++) {
       for (const arm of ['noAttic', 'attic']) {
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), `attic-bench-${arm}-`));
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), `attic-bench-${hostName}-${arm}-`));
         try {
           buildFixture(dir, c);
           if (arm === 'attic') {
@@ -160,8 +230,8 @@ function main() {
               '--slug', c.stash.slug, '--kind', c.stash.kind, '--title', c.stash.title,
               '--hook', c.stash.hook, '--body', c.stash.body], { encoding: 'utf8' });
           }
-          process.stderr.write(`· ${c.id} run ${r + 1}/${runs} ${arm}\n`);
-          const out = runSession(bin, dir, c.question, arm === 'attic');
+          process.stderr.write(`· ${hostName} ${c.id} run ${r + 1}/${runs} ${arm}\n`);
+          const out = host.run(bin, dir, c.question, arm === 'attic');
           if (!out.error) out.correct = c.correct(out.text);
           arms[arm].push(out);
         } finally { try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) { /* ignore */ } }
@@ -193,7 +263,7 @@ function main() {
 }
 
 function render(r) {
-  const L = [`Attic benchmark — ${r.runs} run(s) per arm, ${r.date.slice(0, 10)}`, ''];
+  const L = [`Attic benchmark — ${r.host} — ${r.runs} run(s) per arm, ${r.date.slice(0, 10)}`, ''];
   for (const c of r.cases) {
     L.push(`${c.id}: ${c.question}`);
     L.push(`  fixture: ${c.noiseFiles} noise files + 1 file holding the answer`);

@@ -1,6 +1,6 @@
 # Attic
 
-**Offload context.** A [Claude Code](https://claude.com/claude-code) plugin that makes Claude stash findings, decisions and long outputs into a project-local `.attic/` folder and keep only a one-line index in the conversation. The live context stays lean, and what matters survives `/compact`, `/clear` and new sessions.
+**Offload context.** A plugin for [Claude Code](https://claude.com/claude-code) and [Codex CLI](https://developers.openai.com/codex) that stashes findings, decisions and long outputs into a project-local `.attic/` folder and keeps only a one-line index in the conversation. The live context stays lean, and what matters survives `/compact`, `/clear` and new sessions.
 
 ![Attic in action: a finding is stashed, the context is compacted, and Claude still knows](assets/demo.gif)
 
@@ -175,7 +175,16 @@ Sometimes. Here is the measurement, including where it does not.
 The benchmark asks one question about code whose answer is already stashed,
 against a 26-file fixture, and counts real input tokens from the CLI's own
 usage output. Both arms are graded for correctness, because a cheaper wrong
-answer is not a win.
+answer is not a win. It runs on both supported hosts.
+
+**Codex CLI**, three runs per arm:
+
+| Case | Without attic | With attic | Delta |
+|---|---|---|---|
+| Answer is stashed | 43,357 | 14,569 | **-66.4%** |
+| Nothing relevant stashed | 28,654 | 29,363 | **+2.5%** |
+
+**Claude Code**, two independent runs of three:
 
 | Case | Without attic | With attic | Delta |
 |---|---|---|---|
@@ -183,17 +192,21 @@ answer is not a win.
 | Answer is stashed, run 2 | 90,272 | 60,687 | **-32.8%** |
 | Nothing relevant stashed | 57,698 | 60,428 | **+4.7%** |
 
-Correctness held at 12 of 12 across both arms and both cases.
+Correctness held at 18 of 18 across both hosts, both arms and both cases.
 
-**Read that honestly.** The two runs of the same benchmark differ by more
-than 30 points, so no single percentage is trustworthy. What the data
-supports is the direction: when the answer is already stashed, the attic arm
-consistently costs fewer input tokens and fewer turns, because its cost does
-not depend on how much the model decides to read. When nothing relevant is
-stashed, the attic is pure overhead and the last row is what that looks like.
+**Read that honestly.** On Claude Code, two runs of the same benchmark differ
+by more than 30 points, so no single percentage from that host is
+trustworthy. Codex is far steadier: its attic arm varied by 14 tokens across
+three runs. What both hosts agree on is the direction. When the answer is
+already stashed the attic arm costs fewer input tokens and fewer turns,
+because its cost does not depend on how much the model decides to read. On
+Codex the attic arm ran zero shell commands against two for the arm that had
+to search. When nothing relevant is stashed, the attic is pure overhead, and
+the last row of each table is what that looks like.
 
 ```bash
-node benchmarks/run.js --runs 3          # reproduce it
+node benchmarks/run.js --runs 3                 # Claude Code
+node benchmarks/run.js --host codex --runs 3    # Codex CLI
 ```
 
 Full method, raw samples and the reasons not to quote a headline number:
@@ -240,13 +253,30 @@ returns. See [docs/HONEST-NUMBERS.md](docs/HONEST-NUMBERS.md).
 
 [CHANGELOG.md](CHANGELOG.md) · [docs/CODEX.md](docs/CODEX.md) · [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) · [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/HONEST-NUMBERS.md](docs/HONEST-NUMBERS.md) · [docs/TEAM.md](docs/TEAM.md)
 
+## Repository layout
+
+```
+skills/            the skills, shared by both hosts
+hooks/             session hooks, shared by both hosts
+scripts/           tooling; scripts/codex/ holds the Codex launcher and installer
+codex/             GENERATED Codex build — do not edit, run npm run build:codex
+benchmarks/        the two-arm benchmark and its recorded results
+docs/              architecture, honest numbers, team workflow, Codex notes
+```
+
+Claude Code loads `skills/` and `hooks/` directly through the plugin
+manifest. Codex gets the same content via the generated `codex/` build, which
+carries no plugin or marketplace manifest of its own.
+
 ## Development
 
 ```
 npm test                          # unit tests: hooks, script, eval suite integrity
 claude plugin validate . --strict # manifest and component checks
 claude --plugin-dir .             # load this checkout into a session
-npm run build:codex               # regenerate the Codex distribution
+npm run build:codex               # regenerate codex/ after changing a skill
+npm run bench                     # the two-arm token benchmark
+npm run make:assets               # regenerate the README diagrams
 ```
 
 ## Uninstall

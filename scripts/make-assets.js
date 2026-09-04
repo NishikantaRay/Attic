@@ -84,7 +84,9 @@ ${bar(24, 176, arr, (i) => i === 3 || i >= 20, 'After: pinned + newest survive, 
 
 // ---------- 3. benchmark chart, from real data ----------
 function benchmark() {
-  const file = path.join(__dirname, '..', 'benchmarks', 'results', '2026-09-04-run2.json');
+  // Chart the Codex run: its spread is 14 tokens across three runs, so it is
+  // the honest one to put a bar chart against.
+  const file = path.join(__dirname, '..', 'benchmarks', 'results', '2026-09-04-codex.json');
   let data;
   try { data = JSON.parse(fs.readFileSync(file, 'utf8')); }
   catch (e) { return null; }
@@ -106,13 +108,13 @@ function benchmark() {
 
   return svg(w, h, `
 <text x="24" y="34" font-family="${C.sans}" font-size="17" font-weight="700" fill="${C.text}">Input tokens to answer one question about known code</text>
-<text x="24" y="56" font-family="${C.sans}" font-size="12.5" fill="${C.dim}">26-file fixture, median of 3 runs, both arms answered correctly 3/3</text>
+<text x="24" y="56" font-family="${C.sans}" font-size="12.5" fill="${C.dim}">Codex CLI · 26-file fixture · median of 3 runs · both arms correct 3/3</text>
 ${row(88, 'without attic', noA, C.bad, 'reads the repo')}
 ${row(134, 'with attic', wi, C.good, 'answer already stashed')}
 <line x1="24" y1="188" x2="856" y2="188" stroke="${C.line}"/>
-<text x="24" y="212" font-family="${C.sans}" font-size="12.5" fill="${C.dim}">A second run of the same benchmark measured -66.6%. The spread is real:</text>
-<text x="24" y="232" font-family="${C.sans}" font-size="12.5" fill="${C.dim}">the direction is the finding, not the exact percentage. When nothing relevant is</text>
-<text x="24" y="252" font-family="${C.sans}" font-size="12.5" fill="${C.warn}">stashed, Attic costs more than it returns — measured at +4.7%.</text>`);
+<text x="24" y="212" font-family="${C.sans}" font-size="12.5" fill="${C.dim}">Across three runs the attic arm varied by 14 tokens. It ran zero shell commands;</text>
+<text x="24" y="232" font-family="${C.sans}" font-size="12.5" fill="${C.dim}">the other arm ran two to find the same answer. Claude Code shows the same</text>
+<text x="24" y="252" font-family="${C.sans}" font-size="12.5" fill="${C.warn}">direction. With nothing relevant stashed, Attic costs more: +2.5%.</text>`);
 }
 
 // ---------- 4. GIF frames ----------

@@ -62,9 +62,21 @@ Stated plainly, because a tool that only reports its wins is not measuring:
   than from nothing.
 - **Across a team**, when the attic is committed.
 
+## Two hosts
+
+The benchmark runs on Claude Code and Codex CLI. That matters for confidence:
+an effect that reproduces across two different CLIs with different models is
+better evidence than repeated runs against one.
+
+They also differ in how measurable they are. Codex's input-token counts moved
+by 14 tokens across three identical runs; Claude Code's moved by more than 30
+percentage points between two. Where a single figure is quoted, it comes from
+the Codex data, and the Claude Code numbers are given as a range.
+
 ## Reproducing
 
 ```bash
+node benchmarks/run.js --host codex --runs 3   # the token benchmark
 node scripts/attic-stats.js            # this project
 node scripts/attic-stats.js --json     # machine-readable
 node scripts/attic-stats.js --cwd /path/to/other/project

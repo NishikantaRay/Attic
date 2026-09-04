@@ -19,6 +19,20 @@ format is a public interface, so changing it is a major version.
 - `docs/CODEX.md`, including the Codex bugs that affect Attic and what each
   one means in practice.
 
+### Fixed (Codex build payload)
+
+- The Codex build no longer ships `evals/`. Test fixtures and recorded
+  results were being copied into users' skills directories by `install.sh`,
+  where nothing reads them and the host-specific numbers could mislead. The
+  build is 188K to 152K, and a test fails if they reappear.
+
+### Changed (layout)
+
+- The hand-written Codex files moved from a top-level `codex-src/` into
+  `scripts/codex/`. Two sibling directories named `codex/` and `codex-src/`
+  were needlessly confusing; there is now one `codex/`, and it is generated
+  output.
+
 ### Changed (Codex install hardening)
 
 - The Codex installer now registers the hooks and sets `[features] hooks =
@@ -31,6 +45,18 @@ format is a public interface, so changing it is a major version.
   injected. The attic is a file, so recovery is one read.
 - Documented the skills-only install path (`npx skills add`) and stated
   plainly that it loses automatic activation.
+
+### Added (Codex benchmark)
+
+- The benchmark runs on Codex CLI: `node benchmarks/run.js --host codex`.
+  Hosts are table-driven adapters, each knowing how to launch its CLI
+  headlessly, enable the attic, and read real usage numbers.
+- Measured on `codex-cli 0.153.2`: **-66.4%** input tokens when the answer is
+  stashed (43,357 to 14,569, zero shell commands against two), and **+2.5%**
+  when nothing relevant is stashed. Correct in 6 of 6 runs.
+- Codex proved far more reproducible than Claude Code: 14 tokens of spread
+  across three runs, against a 30-point swing between Claude Code runs. The
+  README chart now uses the Codex data for that reason.
 
 ### Added (benchmark + visuals)
 

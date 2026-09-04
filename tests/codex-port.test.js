@@ -166,3 +166,46 @@ test('the skill tells the model to recover when injection did not run', () => {
   assert.match(raw, /no index appears in your context/i,
     'Codex can soft-restart without firing SessionStart; the skill must handle it');
 });
+
+test('the benchmark exposes an adapter for each supported host', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'benchmarks', 'run.js'), 'utf8');
+  assert.match(src, /HOSTS\s*=\s*\{/, 'hosts should be table-driven, not branched inline');
+  for (const h of ['claude:', 'codex:']) assert.ok(src.includes(h), `missing host adapter ${h}`);
+  // Codex reports cached_input_tokens as a subset of input_tokens; adding both
+  // would double count and inflate the no-attic arm.
+  assert.doesNotMatch(src, /input_tokens \|\| 0\) \+ \(u\.cached_input_tokens/,
+    'cached_input_tokens must not be added to input_tokens for Codex');
+});
+
+test('a recorded Codex benchmark result is committed and well formed', () => {
+  const f = path.join(ROOT, 'benchmarks', 'results', '2026-09-04-codex.json');
+  assert.ok(fs.existsSync(f), 'the Codex benchmark result should be committed');
+  const r = JSON.parse(fs.readFileSync(f, 'utf8'));
+  assert.equal(r.host, 'codex');
+  assert.doesNotMatch(JSON.stringify(r.binary), /Users|home/, 'local paths must be redacted');
+  for (const c of r.cases) {
+    for (const arm of ['noAttic', 'attic']) {
+      assert.ok(c[arm].input && c[arm].input.median > 0, `${c.id}/${arm} needs a median`);
+      assert.equal(c[arm].errors, 0, `${c.id}/${arm} had errored runs`);
+      assert.equal(c[arm].correct, c[arm].samples.length, `${c.id}/${arm}: every run must answer correctly`);
+    }
+  }
+});
+
+test('development-only directories are not shipped to Codex users', () => {
+  // evals/ are fixtures and host-specific recorded results. Nothing reads them
+  // at runtime, and install.sh copies into a user's home, so they stay behind.
+  assert.equal(fs.existsSync(path.join(CODEX, 'skills', 'attic', 'evals')), false,
+    'evals must not ship in the Codex build');
+  for (const d of fs.readdirSync(path.join(CODEX, 'skills'))) {
+    assert.equal(fs.existsSync(path.join(CODEX, 'skills', d, 'evals')), false, `${d}: evals leaked`);
+  }
+});
+
+test('everything the skill actually references does ship', () => {
+  const atticDir = path.join(CODEX, 'skills', 'attic');
+  for (const d of ['scripts', 'references', 'templates']) {
+    assert.ok(fs.existsSync(path.join(atticDir, d)), `${d}/ is referenced by the skill and must ship`);
+  }
+  assert.ok(fs.existsSync(path.join(atticDir, 'scripts', 'attic.js')));
+});

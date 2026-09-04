@@ -46,7 +46,7 @@ path too. Use the full install if you want the attic to load on its own.
 
 | | Claude Code | Codex |
 |---|---|---|
-| Packaging | plugin marketplace | `install.sh` |
+| Packaging | plugin marketplace, `plugin.json` | `install.sh`, no manifest |
 | Skill invocation | `/attic-stash` | `$attic-stash`, or the model picks it from the description |
 | Script path | `${CLAUDE_SKILL_DIR}` | `attic` on PATH |
 | State directory | plugin data dir | `$CODEX_HOME/attic` |
@@ -80,10 +80,43 @@ These are Codex bugs, not Attic bugs, but they change what you should expect.
 The middle row is why Attic does not depend solely on the hook. The index is
 a file in your project: if injection fails, reading it is one command.
 
-## Keeping the port honest
+## Measured on Codex
 
-`codex/` is **generated** by `scripts/build-codex.js` from `skills/` and
-`hooks/`. Never edit it by hand.
+Three runs per arm on `codex-cli 0.153.2`, counting real input tokens from
+the CLI's own usage output:
+
+| Case | No attic | Attic | Delta |
+|---|---|---|---|
+| The answer is stashed | 43,357 | 14,569 | -66.4% |
+| Nothing relevant is stashed | 28,654 | 29,363 | +2.5% |
+
+Both arms answered correctly in all six runs. On the first case the attic arm
+ran no shell commands at all, against two for the arm that had to search the
+repository.
+
+```sh
+node benchmarks/run.js --host codex --runs 3
+```
+
+Full method and the reasons not to over-read a single figure:
+[../benchmarks/README.md](../benchmarks/README.md).
+
+## Repository layout
+
+There is one source of truth. The Codex build is generated from it.
+
+| Path | What it is |
+|---|---|
+| `skills/`, `hooks/` | the actual skills and hooks, shared by both hosts |
+| `scripts/codex/` | the only hand-written Codex-specific files: the `attic` launcher and `install.sh` |
+| `codex/` | **generated output.** Committed so you can clone and install without building |
+
+`codex/` is produced by `scripts/build-codex.js`. Never edit it by hand.
+
+The build ships only what the skills use at runtime. `evals/` is excluded:
+those are test fixtures and recorded results measured against a specific
+host, so copying them into a user's skills directory would be noise at best
+and misleading at worst.
 
 ```sh
 npm run build:codex
@@ -92,6 +125,9 @@ npm run build:codex
 A test fails if the committed `codex/` drifts from the source, and others
 assert that no Claude-only variable or frontmatter field leaks into it. That
 is what stops the two builds diverging silently.
+
+There is no marketplace or plugin manifest in the Codex build. Those are
+Claude Code concepts; Codex installs from the filesystem.
 
 ## Uninstall
 

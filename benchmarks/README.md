@@ -18,10 +18,18 @@ Both arms answer the same question against the same fixture. Correctness is
 graded, because a cheaper wrong answer is not a win.
 
 ```bash
-node benchmarks/run.js --runs 3
+node benchmarks/run.js --runs 3                 # Claude Code (default)
+node benchmarks/run.js --host codex --runs 3    # Codex CLI
 node benchmarks/run.js --case cold-attic --runs 3
 node benchmarks/run.js --runs 5 --json --out results.json
 ```
+
+Each host has an adapter that knows how to launch it headlessly, how to turn
+the attic on and off, and how to read its usage numbers. On Claude Code the
+attic arm loads the plugin with `--plugin-dir`. Codex has no equivalent flag,
+so the attic arm receives the index exactly as the SessionStart hook would
+deliver it, prepended to the prompt. Both isolate the same variable: whether
+the knowledge is already in context.
 
 Token counts come from the CLI's own usage output, not an estimate.
 
@@ -43,6 +51,31 @@ Two independent runs of 3 samples per arm, same machine, same day.
 | 1 | 57,698 | 60,428 | **+4.7%** | 3/3 both arms |
 | 2 | 86,946 | 60,430 | -30.5% | 3/3 both arms |
 
+### Codex CLI, 2026-09-04
+
+Three runs per arm, `codex-cli 0.153.2`.
+
+| Case | No attic (median input) | Attic | Delta | Correct |
+|---|---|---|---|---|
+| cache-ttl (answer stashed) | 43,357 | 14,569 | **-66.4%** | 3/3 both arms |
+| cold-attic (nothing relevant) | 28,654 | 29,363 | **+2.5%** | 3/3 both arms |
+
+The attic arm ran **zero** shell commands on `cache-ttl`, against two for the
+arm that had to search the repo. That is the mechanism: the answer was
+already in context, so there was nothing to look up.
+
+**Codex is far more reproducible than Claude Code here.** Across three runs
+the attic arm's input spanned 14 tokens (14,562-14,576) and the no-attic arm
+156. Compare the Claude Code table above, where two runs of the same
+benchmark differed by more than 30 percentage points. The Codex numbers can
+be read at face value in a way the Claude Code ones cannot.
+
+One outlier: `cold-attic` run 3 used 44,262 input tokens against ~29,360 for
+the other two, because the model took a second turn. It still answered
+correctly. Medians are reported throughout for exactly this reason; the mean
+for that cell would have been 34,328 and would have misrepresented the
+typical run.
+
 ## Reading these honestly
 
 **The variance is larger than the effect in the counter-case.** `cold-attic`
@@ -53,8 +86,10 @@ one run. Do not quote a single number from this table.
 **What the data does support:**
 
 - When the answer is stashed, the attic arm consistently uses fewer input
-  tokens and fewer turns. Both runs agree on direction, and the arm that
-  read files always cost more.
+  tokens and fewer turns. Every run on both hosts agrees on direction, and
+  the arm that read files always cost more.
+- The effect reproduces across two independent agent CLIs with different
+  models, which is stronger evidence than repeated runs on one host.
 - Correctness never degraded: 12 of 12 sampled runs answered correctly across
   both arms and both cases.
 - The attic arm's cost is stable (~30k-60k) because it does not depend on how

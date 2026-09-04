@@ -11,8 +11,12 @@
  *     strict parser cannot trip on them
  *   - hooks.json needs Codex's feature flag documented alongside it
  *
- * Generated, never hand-edited: one source of truth stays in skills/.
- * Run `npm run build:codex` after changing any skill.
+ * Layout:
+ *   skills/, hooks/       the single source of truth, shared with Claude Code
+ *   scripts/codex/        the two hand-written Codex-only files (launcher, installer)
+ *   codex/                GENERATED output, committed so users can clone and install
+ *
+ * Never hand-edit codex/. Run `npm run build:codex` after changing a skill.
  */
 const fs = require('fs');
 const path = require('path');
@@ -60,9 +64,15 @@ function portBody(body) {
     .replace(/\bCLAUDE_PROJECT_DIR\b/g, 'CODEX_PROJECT_DIR');
 }
 
+// Development-only directories. Nothing reads these at runtime, and the
+// recorded results are measured against a specific host, so shipping them to
+// a user's skills directory is noise at best and misleading at worst.
+const SKIP_DIRS = new Set(['evals']);
+
 function copyTree(from, to, transform) {
   fs.mkdirSync(to, { recursive: true });
   for (const entry of fs.readdirSync(from, { withFileTypes: true })) {
+    if (entry.isDirectory() && SKIP_DIRS.has(entry.name)) continue;
     const src = path.join(from, entry.name);
     const dst = path.join(to, entry.name);
     if (entry.isDirectory()) copyTree(src, dst, transform);
@@ -88,14 +98,14 @@ function main() {
   }
 
   // Installer ships alongside the payload.
-  const inst = path.join(ROOT, 'codex-src', 'install.sh');
+  const inst = path.join(__dirname, 'codex', 'install.sh');
   if (fs.existsSync(inst)) {
     fs.copyFileSync(inst, path.join(OUT, 'install.sh'));
     fs.chmodSync(path.join(OUT, 'install.sh'), 0o755);
   }
 
   // The launcher that puts `attic` on PATH.
-  const binSrc = path.join(ROOT, 'codex-src', 'bin');
+  const binSrc = path.join(__dirname, 'codex', 'bin');
   if (fs.existsSync(binSrc)) {
     copyTree(binSrc, path.join(OUT, 'bin'), null);
     fs.chmodSync(path.join(OUT, 'bin', 'attic'), 0o755);
@@ -125,7 +135,7 @@ function main() {
     '',
   ].join('\n'));
 
-  console.log(`codex/: ${names.length} skills + hooks`);
+  console.log(`codex/: ${names.length} skills + hooks (evals excluded: development-only)`);
   return names;
 }
 
