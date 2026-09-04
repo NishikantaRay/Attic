@@ -2,6 +2,7 @@
 name: attic-help
 description: One-screen reference for the attic commands and levels.
 disable-model-invocation: true
+version: 1.0.0
 license: MIT
 ---
 
@@ -16,6 +17,7 @@ Attic · offload context into .attic/, keep the chat lean
 /attic-recall <slug|words>     pull an item back and summarise it
 /attic-index                   list everything stashed in this project
 /attic-sweep                   save plan + open questions + state; run before /compact
+/attic-doctor                  check .attic/ for drift, orphans and leaked secrets
 /attic-help                    this screen
 
 Levels
@@ -27,4 +29,5 @@ Levels
 Layout   .attic/INDEX.md · .attic/DECISIONS.md · .attic/items/<slug>.md
 Handle   attic:<slug>
 Env      ATTIC_DEFAULT_MODE=lite|full|ultra|off
+Script   skills/attic/scripts/attic.js (stash|recall|index|validate|init)
 ```

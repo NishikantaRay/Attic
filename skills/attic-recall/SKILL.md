@@ -1,10 +1,14 @@
 ---
 name: attic-recall
 description: >
-  Pull an item back out of .attic/ by slug or search words and summarise it.
-  Use when the user asks "what did we find about X", "recall X", "what's in
-  the attic about X", or references an attic:<slug> handle.
+  Pull ONE item back out of .attic/ by slug or search words and summarise it.
+  Use when the question names a TOPIC: "what did we find about X", "recall
+  X", "what's in the attic about X", or when the user references an
+  attic:<slug> handle. A question with no topic that just asks what the attic
+  contains goes to attic-index instead.
 argument-hint: "<slug or search words>"
+allowed-tools: Bash(node:*attic.js*)
+version: 1.0.0
 license: MIT
 ---
 
@@ -12,13 +16,18 @@ license: MIT
 
 Query: `$ARGUMENTS`.
 
-1. If `.attic/INDEX.md` does not exist, say so in one line and stop.
-2. If the query matches a slug exactly, read `.attic/items/<slug>.md`.
-   Otherwise grep INDEX.md and the `title:` lines of `.attic/items/*.md`
-   case-insensitively for the query words and pick the best match. If
-   several match equally, list them as handles and ask which one.
-3. Report the item in at most ten lines: title, kind, date, then the
-   substance. Keep code, paths and commands verbatim.
-4. End with the handle: `` `attic:<slug>` ``.
+```bash
+node "${CLAUDE_SKILL_DIR}/../attic/scripts/attic.js" recall "$ARGUMENTS"
+```
 
-Do not rewrite or delete items while recalling.
+The script scores slug, index hook and item body, returns the best match, and
+lists alternatives.
+
+1. No `.attic/` yet, or nothing matches: say so in one line and stop. Do not
+   invent an answer or go read source files unless the user asks.
+2. Several plausible matches: report the best one, then list the alternative
+   handles in one line so the user can redirect.
+3. Report the item in at most ten lines. Keep code, paths and commands
+   verbatim. End with the handle.
+
+Never rewrite or delete items while recalling.

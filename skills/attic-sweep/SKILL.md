@@ -5,7 +5,11 @@ description: >
   lost: the current plan, open questions, in-progress work, and any finding
   not yet stashed. Use right before /compact or /clear, at the end of a
   session, or when the user says "save state", "wrap up", "before compact",
-  "checkpoint", or "context is getting long".
+  "checkpoint", "context is getting long", "summarise what we've done so
+  far", "where are we", or "recap the session". A request to recap session
+  progress IS a sweep: give the recap and persist it in the same pass.
+allowed-tools: Bash(node:*attic.js*)
+version: 1.0.0
 license: MIT
 ---
 
@@ -14,22 +18,36 @@ license: MIT
 Goal: after this runs, a fresh session that reads only `.attic/INDEX.md`
 could continue the work.
 
-1. Review the conversation so far and collect anything not yet in the attic:
-   - findings from investigation (root causes, how a flow works, where things live)
-   - decisions made and why
-   - the current plan and which steps are done
-   - open questions and things the user still has to decide
-   - in-progress state: files being edited, tests failing, commands to rerun
-2. Stash findings and decisions as separate items (follow `/attic-stash`).
-   Skip anything already covered by an existing item; append to it instead
-   if there is genuinely new detail.
-3. Write or update one item `items/session-<YYYY-MM-DD>.md` with
-   `kind: plan` holding the plan, open questions and in-progress state.
-   If it exists from earlier today, replace its content with the current
-   state.
-4. Append INDEX.md lines for every new item, and DECISIONS.md lines for
-   every new decision.
-5. Reply with the list of handles written, one per line, then a single line:
+Pipeline:
+
+1. **Collect.** Review the conversation for anything not yet stashed:
+   findings, decisions and why, the current plan and what is done, open
+   questions, and in-progress state (files being edited, failing tests,
+   commands to rerun).
+2. **Dedupe.** Run the index and drop anything already covered. Append to an
+   existing item where there is genuinely new detail.
+
+```bash
+node "${CLAUDE_SKILL_DIR}/../attic/scripts/attic.js" index
+```
+
+3. **Write.** One stash per finding or decision, following `/attic-stash`.
+   Then one session item, using `templates/session.md` as the shape:
+
+```bash
+node "${CLAUDE_SKILL_DIR}/../attic/scripts/attic.js" stash \
+  --slug session-$(date +%F) --kind plan --title "Session $(date +%F)" \
+  --hook "<what this session is doing, one line>" --body-file <tmpfile>
+```
+
+4. **Verify.**
+
+```bash
+node "${CLAUDE_SKILL_DIR}/../attic/scripts/attic.js" validate
+```
+
+   Fix anything it reports before finishing.
+5. **Report.** List the handles written, one per line, then a single line:
    "Safe to /compact."
 
 Copy commands, paths and errors verbatim. No secrets.

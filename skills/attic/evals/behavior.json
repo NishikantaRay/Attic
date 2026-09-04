@@ -1,0 +1,116 @@
+{
+  "suite": "attic-behavior",
+  "version": "1.0.0",
+  "description": "Behaviour checks: given the skill is active, does it do the required things? Each check is graded pass/fail against the transcript and the resulting .attic/ tree.",
+  "cases": [
+    {
+      "id": "beh-01",
+      "level": "full",
+      "scenario": "Claude investigates a bug across five files and finds the root cause.",
+      "required_behaviors": [
+        "creates .attic/items/<slug>.md with title, kind, date frontmatter",
+        "appends exactly one line to .attic/INDEX.md",
+        "reply contains the attic:<slug> handle",
+        "reply body is at most three lines beyond the handle",
+        "file paths and line numbers appear verbatim in the item, not paraphrased"
+      ],
+      "forbidden_behaviors": [
+        "pasting the full investigation transcript into the reply",
+        "creating an item for a finding already stashed under another slug"
+      ]
+    },
+    {
+      "id": "beh-02",
+      "level": "full",
+      "scenario": "A command produces 400 lines of test output, 3 failures.",
+      "required_behaviors": [
+        "summarises the output in at most five lines",
+        "stashes an item with kind: output that records the exact command",
+        "reply references the handle instead of the raw log"
+      ],
+      "forbidden_behaviors": ["pasting more than 20 lines of raw output into the reply"]
+    },
+    {
+      "id": "beh-03",
+      "level": "full",
+      "scenario": "The user asks about something already stashed earlier in the session.",
+      "required_behaviors": [
+        "consults .attic/INDEX.md before re-reading source files",
+        "answers from the stashed item",
+        "cites the handle as the source"
+      ],
+      "forbidden_behaviors": ["re-reading the same files to rebuild an answer that is already stashed"]
+    },
+    {
+      "id": "beh-04",
+      "level": "full",
+      "scenario": "The user makes a library choice during the conversation.",
+      "required_behaviors": [
+        "appends one line to .attic/DECISIONS.md",
+        "the line names the decision and the why",
+        "the line is dated YYYY-MM-DD"
+      ],
+      "forbidden_behaviors": []
+    },
+    {
+      "id": "beh-05",
+      "level": "lite",
+      "scenario": "Claude investigates a bug across five files at level lite.",
+      "required_behaviors": [
+        "replies normally without stashing",
+        "offers /attic-stash in at most one line"
+      ],
+      "forbidden_behaviors": ["writing to .attic/ without being asked"]
+    },
+    {
+      "id": "beh-06",
+      "level": "ultra",
+      "scenario": "Claude finds two separate non-trivial issues.",
+      "required_behaviors": [
+        "stashes both as separate items",
+        "reply is handles plus at most three lines total"
+      ],
+      "forbidden_behaviors": ["explaining either issue in prose beyond the three-line budget"]
+    },
+    {
+      "id": "beh-07",
+      "level": "off",
+      "scenario": "The user investigates a bug after running /attic off.",
+      "required_behaviors": ["replies normally", "creates no .attic/ files"],
+      "forbidden_behaviors": ["stashing anything", "mentioning handles"]
+    },
+    {
+      "id": "beh-08",
+      "level": "full",
+      "scenario": "A finding contains an AWS access key that appeared in a config file.",
+      "required_behaviors": [
+        "does not write the credential into .attic/",
+        "redacts it or refers to its location instead"
+      ],
+      "forbidden_behaviors": ["stashing the literal credential"],
+      "mechanically_enforced_by": "scripts/attic.js secret scan, exit code 2"
+    },
+    {
+      "id": "beh-09",
+      "level": "full",
+      "scenario": "The user runs /attic-sweep before compacting.",
+      "required_behaviors": [
+        "writes or updates items/session-<date>.md with kind: plan",
+        "captures open questions and in-progress state",
+        "reply lists the handles written",
+        "reply ends with the line: Safe to /compact."
+      ],
+      "forbidden_behaviors": []
+    },
+    {
+      "id": "beh-10",
+      "level": "full",
+      "scenario": "Session resumes after /compact in a project with an existing .attic/.",
+      "required_behaviors": [
+        "answers a question about earlier work from the injected index without re-reading source files"
+      ],
+      "forbidden_behaviors": ["claiming no memory of earlier findings"],
+      "mechanically_enforced_by": "hooks/attic-activate.js SessionStart injection"
+    }
+  ]
+}

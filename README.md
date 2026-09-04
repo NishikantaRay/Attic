@@ -37,6 +37,7 @@ claude --plugin-dir ./Attic
 | `/attic-recall <slug or words>` | Pull an item back and summarise it. |
 | `/attic-index` | List everything stashed in this project. |
 | `/attic-sweep` | Save plan, open questions and in-progress state. Run before `/compact`. |
+| `/attic-doctor` | Check `.attic/` for drift, orphans and leaked credentials. |
 | `/attic-help` | One-screen reference. |
 
 Installed plugins are namespaced, so the fully qualified form is `/attic:attic-help`; the short form works when no other plugin claims the name.
@@ -89,10 +90,61 @@ Three hooks, all zero-dependency Node scripts in [hooks/](hooks/):
 
 The ruleset itself lives in [skills/attic/SKILL.md](skills/attic/SKILL.md). The other skills are the slash commands.
 
+## Architecture
+
+Attic is built as a versioned, testable, enforceable component rather than a
+Markdown prompt. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full
+layer map.
+
+```
+skills/attic/
+├── SKILL.md          the hub: scope, rules, routing
+├── references/       domain knowledge, loaded on demand
+├── scripts/attic.js  deterministic file operations
+├── templates/        output shapes
+└── evals/            activation + behaviour suites
+```
+
+The split that matters: **the model decides what is worth stashing and writes
+the prose; the script owns everything mechanical.** Slug hygiene, frontmatter,
+index bookkeeping, atomic writes and credential detection are software
+concerns, so `scripts/attic.js` handles them and exits non-zero when something
+is wrong. "Never stash secrets" is still in the instructions, but it is no
+longer the only thing enforcing it.
+
+```bash
+node skills/attic/scripts/attic.js stash --slug x --kind finding --hook "..." --body "..."
+node skills/attic/scripts/attic.js recall "login timeout"
+node skills/attic/scripts/attic.js validate     # exit 3 on drift or a leaked credential
+```
+
+## Evaluation
+
+Activation and behaviour are measured separately.
+
+```bash
+node scripts/run-evals.js --suite activation   # real headless sessions, scores the classifier
+node scripts/run-evals.js --suite behavior     # per-level behaviour checklist
+node scripts/run-evals.js --case act-22        # a single case
+```
+
+The activation suite reports accuracy, false positive rate, false negative
+rate and wrong-skill rate over positive cases, negative cases, and collision
+cases with sibling skills such as caveman and ponytail.
+
+## Enforcement
+
+| Layer | Mechanism |
+|---|---|
+| Session start | `hooks/attic-activate.js` injects the index, so the attic survives `/compact`. |
+| Write time | `scripts/attic.js` refuses credentials with exit code 2. |
+| Commit time | `scripts/attic-precommit.sh` blocks a commit with a malformed or leaking `.attic/`. |
+| CI | `.github/workflows/ci.yml` runs tests and manifest validation; `attic-guard.yml` validates `.attic/` on pull requests. |
+
 ## Development
 
 ```
-npm test                          # node --test, exercises every hook with fake stdin
+npm test                          # unit tests: hooks, script, eval suite integrity
 claude plugin validate . --strict # manifest and component checks
 claude --plugin-dir .             # load this checkout into a session
 ```

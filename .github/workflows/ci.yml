@@ -1,0 +1,55 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Validate plugin manifest
+        run: npx --yes @anthropic-ai/claude-code plugin validate .claude-plugin/plugin.json --strict
+
+      - name: Validate marketplace manifest
+        run: npx --yes @anthropic-ai/claude-code plugin validate .claude-plugin/marketplace.json --strict
+
+      - name: Validate skills
+        run: npx --yes @anthropic-ai/claude-code plugin validate skills --strict
+
+      - name: Lint eval suites
+        run: node scripts/run-evals.js --suite behavior
+
+  activation-evals:
+    # Live activation evals cost tokens, so they run on demand and nightly,
+    # not on every push.
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+      - name: Run activation suite
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node scripts/run-evals.js --suite activation --out activation-report.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: activation-report
+          path: activation-report.json

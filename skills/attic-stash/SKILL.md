@@ -6,6 +6,8 @@ description: >
   attic", "remember this", "save this for later", or when a finding is worth
   keeping and attic mode is active.
 argument-hint: "[title or slug]"
+allowed-tools: Bash(node:*attic.js*)
+version: 1.0.0
 license: MIT
 ---
 
@@ -13,18 +15,29 @@ license: MIT
 
 Argument: `$ARGUMENTS` (a title, a slug, or empty).
 
-1. Decide what to stash: the most recent finding, result, plan or decision
-   in this conversation. If the argument names something specific, stash
-   that. If nothing obvious exists, ask in one line what to stash.
-2. Pick `kind`: `finding`, `decision`, `plan`, `output`, or `note`.
-3. Derive a specific kebab-case slug from the argument or the content.
-   If `.attic/items/<slug>.md` already exists, append a dated section to it
-   instead of creating a new file.
-4. `mkdir -p .attic/items` if needed, then write `items/<slug>.md` with the
-   frontmatter and content format from the `attic` skill. Copy code, paths,
-   commands and errors verbatim. No secrets.
-5. Append one line to `.attic/INDEX.md`
-   (`- [<slug>](items/<slug>.md) · <kind> · <hook>`). Create the file with a
-   `# Attic index` heading if it does not exist.
-6. If `kind` is `decision`, also append one line to `.attic/DECISIONS.md`.
-7. Reply with exactly: `` Stashed `attic:<slug>` · <hook> ``.
+1. Decide what to stash: the most recent finding, result, plan or decision in
+   this conversation. If the argument names something specific, stash that.
+   If nothing obvious exists, ask in one line what to stash.
+   Unsure whether it is worth keeping? Read
+   `${CLAUDE_SKILL_DIR}/../attic/references/what-to-stash.md`.
+2. Pick a `kind` (`finding`, `decision`, `plan`, `output`, `note`) and a
+   specific kebab-case slug that will still make sense in a month.
+3. Write the body to a temp file, then call the script. It handles the
+   folder, frontmatter, index line, atomic write, and secret scan:
+
+```bash
+node "${CLAUDE_SKILL_DIR}/../attic/scripts/attic.js" stash \
+  --slug <slug> --kind <kind> --title "<title>" \
+  --hook "<one line under 100 chars>" [--tags a,b] \
+  [--decision-why "<why>"] --body-file <tmpfile>
+```
+
+   An existing slug appends a dated update instead of overwriting.
+4. Exit code 2 means a credential was detected and nothing was written.
+   Redact the value, keep the location, retry. Never pass `--force`.
+5. If the script cannot run at all (no Node, or the call is denied), fall
+   back to writing the files yourself following
+   `${CLAUDE_SKILL_DIR}/../attic/references/item-format.md`, and say in one
+   line that the secret scan and atomic write were skipped. Never silently
+   substitute hand-written files for the script.
+6. Reply with exactly: `` Stashed `attic:<slug>` · <hook> ``.

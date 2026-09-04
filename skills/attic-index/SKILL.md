@@ -1,20 +1,24 @@
 ---
 name: attic-index
 description: >
-  Show what is in the attic: the full INDEX.md and the last decisions. Use
-  when the user asks "what's in the attic", "list stashed items", or
-  "show the index".
+  List everything in the attic. Use for questions about the attic's CONTENTS
+  as a whole with no particular topic: "what's in the attic", "what have you
+  stashed", "list stashed items", "show the index", "how many items are in
+  the attic". A question about a specific topic goes to attic-recall instead;
+  this skill answers "what is in there", not "what did we find about X".
 disable-model-invocation: true
+allowed-tools: Bash(node:*attic.js*)
+version: 1.0.0
 license: MIT
 ---
 
 # Attic index
 
-1. If `.attic/INDEX.md` does not exist, reply: "Attic is empty. Nothing
-   stashed yet in this project." and stop.
-2. Print `.attic/INDEX.md` as-is inside a fenced block.
-3. If `.attic/DECISIONS.md` exists, print its last ten lines under a
-   "Recent decisions" line.
-4. Add one line with the counts: items, decisions.
+```bash
+node "${CLAUDE_SKILL_DIR}/../attic/scripts/attic.js" index
+```
+
+Print the output as-is. If the script reports no `.attic/`, reply "Attic is
+empty. Nothing stashed yet in this project." and stop.
 
 No commentary beyond that.

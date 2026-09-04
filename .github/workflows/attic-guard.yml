@@ -1,0 +1,20 @@
+name: attic-guard
+
+# For repositories that commit their .attic/ folder: fail the build if an
+# item is malformed or a credential reached disk. Software enforcing what
+# instructions alone cannot.
+
+on:
+  pull_request:
+    paths: ['.attic/**']
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate .attic/
+        run: node skills/attic/scripts/attic.js validate
