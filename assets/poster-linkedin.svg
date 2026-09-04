@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="627" viewBox="0 0 1200 627" role="img" aria-label="Attic — your agent writes down what it learns, so it does not forget">
+<title>Attic — your agent stops forgetting</title>
+<rect width="1200" height="627" fill="#ffffff"/>
+
+
+  <path d="M 101.00,51.80 L 123.04,70.94 L 123.04,76.16 L 101.00,57.02 L 78.96,76.16 L 78.96,70.94 Z" fill="#0969da"/>
+  <path d="M 83.60,71.52 L 83.60,97.04 L 87.08,97.04 L 87.08,71.52 Z" fill="#0969da" opacity="0.5"/>
+  <path d="M 114.92,71.52 L 114.92,97.04 L 118.40,97.04 L 118.40,71.52 Z" fill="#0969da" opacity="0.5"/>
+  <rect x="89.40" y="78.48" width="23.20" height="5.22" rx="1.45" fill="#1a7f37" opacity="0.35"/><rect x="89.40" y="86.02" width="23.20" height="5.22" rx="1.45" fill="#1a7f37" opacity="0.65"/><rect x="89.40" y="93.56" width="23.20" height="5.22" rx="1.45" fill="#1a7f37"/>
+<text x="146" y="82" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="30" font-weight="700" fill="#1f2328" letter-spacing="-0.5">Attic</text>
+<text x="1128" y="82" text-anchor="end" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="19" fill="#59636e">Claude Code · Codex CLI</text>
+<line x1="72" y1="118" x2="1128" y2="118" stroke="#d1d9e0"/>
+
+<text x="72" y="204" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="47" font-weight="700" fill="#1f2328">Your AI coding agent forgets</text>
+<text x="72" y="262" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="47" font-weight="700" fill="#1f2328">what it just figured out.</text>
+<text x="72" y="322" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="25" fill="#59636e">Attic writes it down, so tomorrow it already knows.</text>
+
+<line x1="72" y1="358" x2="1128" y2="358" stroke="#d1d9e0"/>
+
+
+  <circle cx="94" cy="400" r="22" fill="#0969da"/>
+  <text x="94" y="408" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="22" font-weight="700" fill="#ffffff">1</text>
+  <text x="72" y="470" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="25" font-weight="700" fill="#1f2328">It investigates</text>
+  <text x="72" y="506" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="19" fill="#59636e">Reads the files, traces the bug,</text>
+  <text x="72" y="534" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="19" fill="#59636e">finds the actual cause.</text>
+
+  <circle cx="474" cy="400" r="22" fill="#0969da"/>
+  <text x="474" y="408" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="22" font-weight="700" fill="#ffffff">2</text>
+  <text x="452" y="470" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="25" font-weight="700" fill="#1f2328">It writes it down</text>
+  <text x="452" y="506" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="19" fill="#59636e">The finding lands in .attic/,</text>
+  <text x="452" y="534" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="19" fill="#59636e">one line stays in the chat.</text>
+
+  <circle cx="854" cy="400" r="22" fill="#0969da"/>
+  <text x="854" y="408" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="22" font-weight="700" fill="#ffffff">3</text>
+  <text x="832" y="470" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="25" font-weight="700" fill="#1f2328">It remembers</text>
+  <text x="832" y="506" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="19" fill="#59636e">Survives /compact, /clear</text>
+  <text x="832" y="534" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="19" fill="#59636e">and tomorrow morning.</text>
+
+<text x="72" y="592" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="18" fill="#59636e">Open source · MIT · no telemetry</text>
+<text x="1128" y="592" text-anchor="end" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="18" fill="#0969da">github.com/NishikantaRay/Attic</text>
+</svg>

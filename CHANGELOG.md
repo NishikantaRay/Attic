@@ -7,6 +7,10 @@ format is a public interface, so changing it is a major version.
 
 ### Added
 
+- A LinkedIn feed card, `assets/poster-linkedin.svg` and a 2x PNG. Light
+  ground for LinkedIn's white feed, no metrics, three steps saying what the
+  tool does. A feed image gets a second of attention, and a number there
+  invites an argument about method rather than curiosity about the tool.
 - A promotional poster. `scripts/make-poster.js` emits a 1200x1600 portrait
   and a 1200x630 social card, both reading their figures from
   `benchmarks/results/` and the eval results, so the poster cannot outlive

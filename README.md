@@ -294,7 +294,7 @@ returns. See [docs/HONEST-NUMBERS.md](docs/HONEST-NUMBERS.md).
 
 ## Project files
 
-[docs/QUICKSTART.md](docs/QUICKSTART.md) · [poster](assets/poster.svg) · [docs/COMMANDS.md](docs/COMMANDS.md) · [CHANGELOG.md](CHANGELOG.md) · [docs/CODEX.md](docs/CODEX.md) · [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) · [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/HONEST-NUMBERS.md](docs/HONEST-NUMBERS.md) · [docs/TEAM.md](docs/TEAM.md)
+[docs/QUICKSTART.md](docs/QUICKSTART.md) · [poster](assets/poster.svg) · [share card](assets/poster-linkedin.png) · [docs/COMMANDS.md](docs/COMMANDS.md) · [CHANGELOG.md](CHANGELOG.md) · [docs/CODEX.md](docs/CODEX.md) · [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) · [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/HONEST-NUMBERS.md](docs/HONEST-NUMBERS.md) · [docs/TEAM.md](docs/TEAM.md)
 
 ## Repository layout
 

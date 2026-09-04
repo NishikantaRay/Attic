@@ -10,6 +10,7 @@
  * Emits:
  *   poster.svg        1200x1600 portrait, for print or a link preview
  *   poster-wide.svg   1200x630, the OpenGraph / social card ratio
+ *   poster-linkedin.svg  1200x627, light, no metrics, for a LinkedIn feed
  */
 const fs = require('fs');
 const path = require('path');
@@ -168,7 +169,69 @@ ${row(340, 'with Attic', d.attic, C.good, `−${d.delta}% input tokens`)}
 `;
 }
 
+
+/**
+ * LinkedIn feed card, 1200x627, light.
+ *
+ * No metrics: a feed image has a second of attention, and a number invites
+ * an argument about method rather than curiosity about the tool. This says
+ * what Attic does, in three steps, on a light ground that reads well in
+ * LinkedIn's white feed.
+ */
+function linkedin() {
+  const W = 1200, H = 627;
+  const L = {
+    bg: '#ffffff', panel: '#f6f8fa', line: '#d1d9e0',
+    ink: '#1f2328', dim: '#59636e',
+    blue: '#0969da', green: '#1a7f37', amber: '#9a6700',
+  };
+  // The mark, in light-theme colours.
+  const markLight = (ox, oy, sc) => {
+    const X = (x) => (ox + x * sc).toFixed(2);
+    const Y = (y) => (oy + y * sc).toFixed(2);
+    const w = (n) => (n * sc).toFixed(2);
+    const bar = (y, fill, op) =>
+      `<rect x="${X(30)}" y="${Y(y)}" width="${w(40)}" height="${w(9)}" rx="${w(2.5)}" fill="${fill}"${op ? ` opacity="${op}"` : ''}/>`;
+    return `
+  <path d="M ${X(50)},${Y(10)} L ${X(88)},${Y(43)} L ${X(88)},${Y(52)} L ${X(50)},${Y(19)} L ${X(12)},${Y(52)} L ${X(12)},${Y(43)} Z" fill="${L.blue}"/>
+  <path d="M ${X(20)},${Y(44)} L ${X(20)},${Y(88)} L ${X(26)},${Y(88)} L ${X(26)},${Y(44)} Z" fill="${L.blue}" opacity="0.5"/>
+  <path d="M ${X(74)},${Y(44)} L ${X(74)},${Y(88)} L ${X(80)},${Y(88)} L ${X(80)},${Y(44)} Z" fill="${L.blue}" opacity="0.5"/>
+  ${bar(56, L.green, 0.35)}${bar(69, L.green, 0.65)}${bar(82, L.green)}`;
+  };
+
+  const step = (x, n, title, body) => `
+  <circle cx="${x + 22}" cy="${400}" r="22" fill="${L.blue}"/>
+  <text x="${x + 22}" y="${408}" text-anchor="middle" font-family="${C.sans}" font-size="22" font-weight="700" fill="#ffffff">${n}</text>
+  <text x="${x}" y="${470}" font-family="${C.sans}" font-size="25" font-weight="700" fill="${L.ink}">${esc(title)}</text>
+  ${body.map((line, i) => `<text x="${x}" y="${506 + i * 28}" font-family="${C.sans}" font-size="19" fill="${L.dim}">${esc(line)}</text>`).join('\n  ')}`;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Attic — your agent writes down what it learns, so it does not forget">
+<title>Attic — your agent stops forgetting</title>
+<rect width="${W}" height="${H}" fill="${L.bg}"/>
+
+${markLight(72, 46, 0.58)}
+<text x="146" y="82" font-family="${C.sans}" font-size="30" font-weight="700" fill="${L.ink}" letter-spacing="-0.5">Attic</text>
+<text x="1128" y="82" text-anchor="end" font-family="${C.sans}" font-size="19" fill="${L.dim}">Claude Code · Codex CLI</text>
+<line x1="72" y1="118" x2="1128" y2="118" stroke="${L.line}"/>
+
+<text x="72" y="204" font-family="${C.sans}" font-size="47" font-weight="700" fill="${L.ink}">Your AI coding agent forgets</text>
+<text x="72" y="262" font-family="${C.sans}" font-size="47" font-weight="700" fill="${L.ink}">what it just figured out.</text>
+<text x="72" y="322" font-family="${C.sans}" font-size="25" fill="${L.dim}">Attic writes it down, so tomorrow it already knows.</text>
+
+<line x1="72" y1="358" x2="1128" y2="358" stroke="${L.line}"/>
+
+${step(72, '1', 'It investigates', ['Reads the files, traces the bug,', 'finds the actual cause.'])}
+${step(452, '2', 'It writes it down', ['The finding lands in .attic/,', 'one line stays in the chat.'])}
+${step(832, '3', 'It remembers', ['Survives /compact, /clear', 'and tomorrow morning.'])}
+
+<text x="72" y="592" font-family="${C.sans}" font-size="18" fill="${L.dim}">Open source · MIT · no telemetry</text>
+<text x="1128" y="592" text-anchor="end" font-family="${C.mono}" font-size="18" fill="${L.blue}">github.com/NishikantaRay/Attic</text>
+</svg>
+`;
+}
+
 const d = data();
 fs.writeFileSync(path.join(OUT, 'poster.svg'), portrait(d));
 fs.writeFileSync(path.join(OUT, 'poster-wide.svg'), wide(d));
+fs.writeFileSync(path.join(OUT, 'poster-linkedin.svg'), linkedin());
 console.log(`wrote assets/poster.svg and assets/poster-wide.svg (v${d.version}, −${d.delta}% from recorded runs)`);
