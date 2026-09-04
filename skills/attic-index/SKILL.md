@@ -8,7 +8,7 @@ description: >
   this skill answers "what is in there", not "what did we find about X".
 disable-model-invocation: true
 allowed-tools: Bash(node:*attic.js*)
-version: 1.0.0
+version: 1.1.0
 license: MIT
 ---
 

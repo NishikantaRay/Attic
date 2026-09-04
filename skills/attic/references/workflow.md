@@ -46,5 +46,6 @@ everything else, while active   → the rules in SKILL.md, no skill invocation
 ## Boundary with sibling skills
 
 Attic governs **what you keep in context**. It does not govern how terse your
-prose is (caveman) or how much code you write (ponytail). They compose: at
-`ultra` with caveman on, a reply is a handle and a fragment.
+prose is, or how much code you write. Those are separate concerns, and skills
+that govern them compose cleanly with this one: at `ultra`, alongside a skill
+that enforces terse prose, a reply is a handle and a fragment.

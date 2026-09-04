@@ -82,24 +82,105 @@ function parseJson(text) {
   try { return JSON.parse(text); } catch (e) { return {}; }
 }
 
-// Load .attic/INDEX.md from the project, capped so it never floods context.
+const INDEX_LINE_RE = /^- \[([^\]]+)\]\(items\/([^)]+)\.md\) · ([a-z]+) · (.*)$/;
+
+function parseIndexLine(line) {
+  const m = String(line).trim().match(INDEX_LINE_RE);
+  return m ? { raw: line.trim(), slug: m[2], kind: m[3], hook: m[4] } : null;
+}
+
+// Which items are pinned? Pinned items are never trimmed out of the index.
+function readPinned(cwd) {
+  const dir = path.join(cwd || process.cwd(), '.attic', 'items');
+  const pinned = new Set();
+  let files = [];
+  try { files = fs.readdirSync(dir).filter((f) => f.endsWith('.md')); } catch (e) { return pinned; }
+  for (const f of files) {
+    try {
+      // Only the frontmatter matters; read the head of the file.
+      const fd = fs.openSync(path.join(dir, f), 'r');
+      const buf = Buffer.alloc(512);
+      const n = fs.readSync(fd, buf, 0, 512, 0);
+      fs.closeSync(fd);
+      if (/\npinned: true/.test(buf.slice(0, n).toString('utf8'))) pinned.add(f.replace(/\.md$/, ''));
+    } catch (e) { /* unreadable item, treat as unpinned */ }
+  }
+  return pinned;
+}
+
+// Collapse the items that did not fit into one discoverable summary line, so
+// the model knows older knowledge exists and can recall it by topic.
+function summariseRest(rest) {
+  if (!rest.length) return null;
+  const byKind = {};
+  for (const e of rest) byKind[e.kind] = (byKind[e.kind] || 0) + 1;
+  const parts = Object.entries(byKind).sort((a, b) => b[1] - a[1]).slice(0, 6)
+    .map(([k, n]) => `${k}(${n})`);
+  return `+ ${rest.length} older item(s) not shown: ${parts.join(' ')} — use /attic-recall <topic> or /attic-index`;
+}
+
+/**
+ * Load .attic/INDEX.md for injection, newest first, under a byte budget.
+ *
+ * Three tiers: pinned items always survive, then the most recent items fill
+ * the remaining budget, and everything else collapses to one summary line.
+ * Trimming drops the OLDEST unpinned entries, never the newest.
+ */
 function loadIndex(cwd, opts = {}) {
-  const maxLines = opts.maxLines || 60;
-  const maxBytes = opts.maxBytes || 4096;
+  const maxBytes = opts.maxBytes || 6144;
+  const maxLines = opts.maxLines || 120;
   const file = path.join(cwd || process.cwd(), '.attic', 'INDEX.md');
   let raw;
   try { raw = fs.readFileSync(file, 'utf8'); } catch (e) { return null; }
-  const lines = raw.split(/\r?\n/).filter((l) => l.trim() !== '' && !l.startsWith('#'));
-  const total = lines.length;
-  let kept = lines.slice(0, maxLines);
-  let text = kept.join('\n');
-  while (Buffer.byteLength(text, 'utf8') > maxBytes && kept.length > 1) {
-    kept = kept.slice(0, -1);
-    text = kept.join('\n');
+
+  const entries = raw.split(/\r?\n/).map(parseIndexLine).filter(Boolean);
+  const total = entries.length;
+  if (!total) return { text: '', total: 0, shown: 0, pinned: 0, hidden: 0 };
+
+  const pinnedSet = opts.pinned || readPinned(cwd);
+  const pinned = entries.filter((e) => pinnedSet.has(e.slug));
+  const unpinned = entries.filter((e) => !pinnedSet.has(e.slug));
+
+  // Pinned may take at most a quarter of the budget, newest pinned first.
+  const pinnedBudget = Math.floor(maxBytes * 0.25);
+  const keptPinned = [];
+  let pinnedBytes = 0;
+  for (const e of pinned.slice().reverse()) {
+    const cost = Buffer.byteLength(e.raw, 'utf8') + 1;
+    if (keptPinned.length && pinnedBytes + cost > pinnedBudget) break;
+    keptPinned.unshift(e);
+    pinnedBytes += cost;
   }
-  const hidden = total - kept.length;
-  if (hidden > 0) text += `\n... ${hidden} more line(s) not shown. Run /attic-index to see everything.`;
-  return { text, total, shown: kept.length };
+
+  // Recent items fill what is left, newest first. Reserve room for the block
+  // headers ("Pinned:", "Recent:") and the trailing summary line so the
+  // rendered text stays inside the budget.
+  const OVERHEAD = 220;
+  const keptRecent = [];
+  let bytes = pinnedBytes + OVERHEAD;
+  for (const e of unpinned.slice().reverse()) {
+    const cost = Buffer.byteLength(e.raw, 'utf8') + 1;
+    if (bytes + cost > maxBytes || keptPinned.length + keptRecent.length >= maxLines) break;
+    keptRecent.unshift(e);
+    bytes += cost;
+  }
+
+  const keptSlugs = new Set(keptPinned.concat(keptRecent).map((e) => e.slug));
+  const rest = entries.filter((e) => !keptSlugs.has(e.slug));
+
+  const blocks = [];
+  if (keptPinned.length) blocks.push('Pinned:\n' + keptPinned.map((e) => e.raw).join('\n'));
+  if (keptRecent.length) blocks.push((keptPinned.length ? 'Recent:\n' : '') + keptRecent.map((e) => e.raw).join('\n'));
+  const summary = summariseRest(rest);
+  if (summary) blocks.push(summary);
+
+  return {
+    text: blocks.join('\n\n'),
+    total,
+    shown: keptPinned.length + keptRecent.length,
+    pinned: keptPinned.length,
+    hidden: rest.length,
+  };
 }
 
 const RULES = {
@@ -153,5 +234,5 @@ function writeHookOutput(hookEventName, additionalContext) {
 module.exports = {
   LEVELS, DEFAULT_LEVEL, stateDir, modeFile, configFile,
   normalizeMode, getDefaultMode, readMode, setMode, clearMode, writeDefaultMode,
-  readStdin, parseJson, loadIndex, rulesFor, subagentRulesFor, writeHookOutput,
+  readStdin, parseJson, loadIndex, readPinned, parseIndexLine, rulesFor, subagentRulesFor, writeHookOutput,
 };

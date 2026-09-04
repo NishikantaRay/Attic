@@ -1,13 +1,15 @@
 ---
 name: attic-doctor
 description: >
-  Check .attic/ for drift: orphaned items, stale index lines, malformed
-  frontmatter, oversized hooks, and leaked credentials. Use when the user
-  says "check the attic", "attic doctor", "is the attic healthy", or before
-  committing .attic/ to a shared repo.
+  Check the CONTENTS of .attic/ for drift: orphaned items, stale index
+  lines, malformed frontmatter, oversized hooks, and leaked credentials. Use
+  when the user says "check the attic", "attic doctor", "is the attic
+  healthy", or "did anything leak into the attic". Never use this for git,
+  merge or conflict problems, even though they sound like breakage: every
+  merge conflict goes to attic-git.
 disable-model-invocation: true
 allowed-tools: Bash(node:*attic.js*)
-version: 1.0.0
+version: 1.1.0
 license: MIT
 ---
 

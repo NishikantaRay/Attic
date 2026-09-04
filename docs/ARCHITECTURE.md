@@ -144,8 +144,14 @@ than a silent failure in someone's session.
 |---|---|
 | `attic` | Active |
 | `attic-stash`, `attic-recall`, `attic-index`, `attic-sweep` | Active |
-| `attic-doctor` | Active |
-| `attic-help` | Active |
+| `attic-doctor`, `attic-help` | Active |
+| `attic-pin`, `attic-prune` | Active (1.1.0) |
+| `attic-stats`, `attic-git` | Active (1.1.0) |
+
+`attic-init-team` was renamed to `attic-git` before release, never shipped
+under the old name, so no deprecation window was needed. The lesson is
+recorded in the eval results: a skill name should describe the occasion the
+user is in, not the setup task it performs.
 
 Nothing is deprecated yet. When something is, it gets a `deprecated: true`
 note in its frontmatter and a pointer to the replacement, kept for one minor

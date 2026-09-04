@@ -8,9 +8,10 @@ node scripts/run-evals.js --suite activation --out skills/attic/evals/results/<d
 
 ## Baseline
 
-| Date | Suite | Version | Accuracy | FP rate | FN rate | Wrong skill |
-|---|---|---|---|---|---|---|
-| 2026-09-04 | activation | 1.0.0 | 100% (16/16) | 0% | 0% | 0% |
+| Date | Suite | Version | Accuracy | Coverage | FP rate | FN rate | Wrong skill |
+|---|---|---|---|---|---|---|---|
+| 2026-09-04 | activation | 1.1.0 | 100% (22/22) | 100% | 0% | 0% | 0% |
+| 2026-09-04 | activation | 1.0.0 | 100% (16/16) | not tracked | 0% | 0% | 0% |
 
 ### How it got there
 
@@ -32,3 +33,27 @@ and now records `governed_by` instead. Behaviour there is covered by
 
 Regression rate is measured against this table. A drop needs a fix or a
 documented reason before release.
+
+
+## v1.1 run
+
+Six cases were added for the new skills, including two negatives that keep
+pruning and pinning away from ordinary code cleanup.
+
+Three things surfaced:
+
+- **`act-12` misrouted twice.** A user reporting "merge conflicts in
+  INDEX.md" got `attic-doctor`, because "doctor" attracts anything that
+  sounds broken. Sharpening both descriptions did not fix it. The real causes
+  were the name and a flag: `attic-init-team` reads as setup-only, and
+  `disable-model-invocation: true` stopped it activating on its own. Renamed
+  to `attic-git` and made model-invocable. That is a skill design lesson: a
+  name that describes the occasion beats a name that describes the setup.
+- **The runner reported 100% while four cases never ran.** Running 22
+  sessions back to back trips a transient limit. The runner now retries once,
+  accepts `--delay`, prints a coverage percentage, and warns loudly when any
+  case fails to run. An accuracy figure that hides its denominator is worse
+  than no figure.
+- **A wrong verification command.** `echo "exit=$?"` after a pipe reports the
+  exit of the last pipe stage, not the runner. The runner had been correct
+  all along.

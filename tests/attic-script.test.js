@@ -153,3 +153,100 @@ test('validate is silent on a project with no attic', () => {
   assert.equal(r.status, 0);
   assert.match(r.out.note, /no \.attic\//);
 });
+
+// ---------- v1.1: pin, archive, prune ----------
+
+function backdate(cwd, slug, date) {
+  const f = path.join(cwd, '.attic', 'items', slug + '.md');
+  fs.writeFileSync(f, fs.readFileSync(f, 'utf8').replace(/date: \d{4}-\d{2}-\d{2}/, 'date: ' + date));
+}
+
+test('pin marks an item and unpin reverses it', () => {
+  const cwd = proj();
+  stash(cwd);
+  const p = run(cwd, ['pin', 'demo-finding']);
+  assert.equal(p.status, 0);
+  assert.equal(p.out.pinned, true);
+  assert.match(fs.readFileSync(path.join(cwd, '.attic', 'items', 'demo-finding.md'), 'utf8'), /\npinned: true/);
+
+  const u = run(cwd, ['pin', 'demo-finding', '--unpin']);
+  assert.equal(u.out.pinned, false);
+  assert.doesNotMatch(fs.readFileSync(path.join(cwd, '.attic', 'items', 'demo-finding.md'), 'utf8'), /pinned: true/);
+
+  assert.equal(run(cwd, ['pin', 'no-such-item']).status, 1);
+});
+
+test('pinning survives a later stash to the same slug', () => {
+  const cwd = proj();
+  stash(cwd);
+  run(cwd, ['pin', 'demo-finding']);
+  stash(cwd, ['--body', 'more detail']);
+  assert.match(fs.readFileSync(path.join(cwd, '.attic', 'items', 'demo-finding.md'), 'utf8'), /\npinned: true/,
+    'an append must not silently unpin the item');
+});
+
+test('archive moves an item out of the index but keeps it recallable', () => {
+  const cwd = proj();
+  stash(cwd);
+  const a = run(cwd, ['archive', 'demo-finding']);
+  assert.equal(a.status, 0);
+  assert.equal(a.out.archived, true);
+  assert.equal(fs.existsSync(path.join(cwd, '.attic', 'items', 'demo-finding.md')), false);
+  assert.equal(fs.existsSync(path.join(cwd, '.attic', 'archive', 'demo-finding.md')), true);
+  assert.doesNotMatch(fs.readFileSync(path.join(cwd, '.attic', 'INDEX.md'), 'utf8'), /demo-finding/);
+
+  const r = run(cwd, ['recall', 'demo-finding']);
+  assert.equal(r.status, 0, 'an archived item must still be recallable');
+  assert.equal(r.out.slug, 'demo-finding');
+
+  const back = run(cwd, ['archive', 'demo-finding', '--restore']);
+  assert.equal(back.out.archived, false);
+  assert.equal(fs.existsSync(path.join(cwd, '.attic', 'items', 'demo-finding.md')), true);
+  assert.match(fs.readFileSync(path.join(cwd, '.attic', 'INDEX.md'), 'utf8'), /demo-finding/);
+});
+
+test('prune is a dry run by default and never deletes', () => {
+  const cwd = proj();
+  stash(cwd);
+  backdate(cwd, 'demo-finding', '2020-01-01');
+  const dry = run(cwd, ['prune', '--older-than', '90d']);
+  assert.equal(dry.status, 0);
+  assert.equal(dry.out.applied, false);
+  assert.equal(dry.out.candidates.length, 1);
+  assert.equal(fs.existsSync(path.join(cwd, '.attic', 'items', 'demo-finding.md')), true,
+    'dry run must not move anything');
+});
+
+test('prune --apply archives rather than deleting, and skips pinned items', () => {
+  const cwd = proj();
+  stash(cwd);
+  run(cwd, ['stash', '--slug', 'pinned-old', '--kind', 'note', '--hook', 'h', '--body', 'b']);
+  backdate(cwd, 'demo-finding', '2020-01-01');
+  backdate(cwd, 'pinned-old', '2020-01-01');
+  run(cwd, ['pin', 'pinned-old']);
+
+  const r = run(cwd, ['prune', '--older-than', '90d', '--apply']);
+  assert.equal(r.out.applied, true);
+  assert.equal(r.out.skippedPinned, 1, 'pinned items must be skipped');
+  assert.equal(r.out.candidates.length, 1);
+  assert.equal(fs.existsSync(path.join(cwd, '.attic', 'archive', 'demo-finding.md')), true, 'archived, not deleted');
+  assert.equal(fs.existsSync(path.join(cwd, '.attic', 'items', 'pinned-old.md')), true, 'pinned item untouched');
+});
+
+test('prune respects --kind and rejects a bad age', () => {
+  const cwd = proj();
+  stash(cwd);
+  run(cwd, ['stash', '--slug', 'old-out', '--kind', 'output', '--hook', 'h', '--body', 'b']);
+  backdate(cwd, 'demo-finding', '2020-01-01');
+  backdate(cwd, 'old-out', '2020-01-01');
+  const r = run(cwd, ['prune', '--older-than', '90d', '--kind', 'output']);
+  assert.deepEqual(r.out.candidates.map((c) => c.slug), ['old-out']);
+  assert.equal(run(cwd, ['prune', '--older-than', 'soon']).status, 1);
+});
+
+test('recent items are not pruned', () => {
+  const cwd = proj();
+  stash(cwd);
+  const r = run(cwd, ['prune', '--older-than', '90d']);
+  assert.equal(r.out.candidates.length, 0);
+});

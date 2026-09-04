@@ -11,6 +11,7 @@
  * Usage:
  *   node scripts/run-evals.js [--suite activation] [--case act-01] [--json]
  *                             [--claude <path>] [--out <file>] [--dry-run]
+ *                             [--delay <ms>]   pause between cases (avoids rate limits)
  *
  * Exit codes: 0 all pass, 1 failures, 2 could not run (no claude binary).
  */
@@ -43,7 +44,8 @@ function findClaude(explicit) {
 
 const CLASSIFY = `You have the attic plugin loaded. A user has just sent the message below.
 Answer with ONE line and nothing else: the name of the attic skill you would invoke
-(one of: attic, attic-stash, attic-recall, attic-index, attic-sweep, attic-help),
+(one of: attic, attic-stash, attic-recall, attic-index, attic-sweep, attic-help,
+attic-pin, attic-prune, attic-stats, attic-doctor, attic-git),
 or the word NONE if no attic skill applies.
 
 Do not invoke the skill. Do not explain. One word.
@@ -64,7 +66,7 @@ function runCase(bin, c, opts) {
   }
   const raw = (res.stdout || '').trim();
   const last = raw.split('\n').filter((l) => l.trim()).pop() || '';
-  const m = last.match(/\b(attic-stash|attic-recall|attic-index|attic-sweep|attic-help|attic|none)\b/i);
+  const m = last.match(/\b(attic-stash|attic-recall|attic-index|attic-sweep|attic-help|attic-pin|attic-prune|attic-stats|attic-doctor|attic-git|attic|none)\b/i);
   const actual = m ? (m[1].toLowerCase() === 'none' ? null : m[1].toLowerCase()) : null;
 
   const activated = actual !== null;
@@ -90,8 +92,10 @@ function score(results, cases) {
   const wrong = graded.filter((r) => r.result === 'wrong-skill').length;
   const pct = (n, d) => (d ? +(100 * n / d).toFixed(1) : 0);
   return {
+    cases: cases.length, graded: total, ungraded: cases.length - total,
     total, pass, fail: total - pass,
     activation_accuracy: pct(pass, total),
+    coverage: pct(total, cases.length),
     false_positive_rate: pct(fp, negatives),
     false_negative_rate: pct(fn, applicable),
     wrong_skill_rate: pct(wrong, applicable),
@@ -134,10 +138,22 @@ function main() {
   if (args.case) cases = cases.filter((c) => c.id === args.case);
   if (!cases.length) { process.stderr.write('no matching cases\n'); process.exit(1); }
 
+  const delayMs = args.delay ? parseInt(args.delay, 10) : 0;
+  const sleep = (ms) => { if (ms > 0) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms); };
+
   const results = [];
   for (const c of cases) {
     if (!args.json) process.stderr.write(`· ${c.id} ${JSON.stringify(c.prompt).slice(0, 60)}\n`);
-    results.push(runCase(bin, c, { dryRun: args['dry-run'] }));
+    let r = runCase(bin, c, { dryRun: args['dry-run'] });
+    // One retry: a long suite can trip a transient rate limit, and a
+    // spawn failure is not evidence about the skill's activation.
+    if (r.error && !args['dry-run']) {
+      sleep(3000);
+      if (!args.json) process.stderr.write(`  retrying ${c.id}\n`);
+      r = runCase(bin, c, { dryRun: false });
+    }
+    results.push(r);
+    sleep(delayMs);
   }
 
   const report = { suite: suite.suite, version: suite.version, date: new Date().toISOString(),
@@ -157,9 +173,14 @@ function renderActivation(r) {
     const detail = x.result === 'pass' ? '' : `  (${x.result}: got ${x.actual_skill || 'NONE'}, wanted ${x.expected_skill || 'NONE'})`;
     return `  ${mark} ${x.id}${detail}`;
   });
+  const warn = m.errors
+    ? `\n!! ${m.errors} case(s) did not run. Accuracy below covers only the ${m.graded} that did.\n` +
+      `   Re-run the failed ids, or use --delay to slow the suite down.\n`
+    : '';
   return [
-    `${r.suite} v${r.version}`, '', rows.join('\n'), '',
-    `activation accuracy   ${m.activation_accuracy}%  (${m.pass}/${m.total})`,
+    `${r.suite} v${r.version}`, '', rows.join('\n'), warn,
+    `activation accuracy   ${m.activation_accuracy}%  (${m.pass}/${m.graded})`,
+    `coverage              ${m.coverage}%  (${m.graded}/${m.cases} cases ran)`,
     `false positive rate   ${m.false_positive_rate}%`,
     `false negative rate   ${m.false_negative_rate}%`,
     `wrong skill rate      ${m.wrong_skill_rate}%`,

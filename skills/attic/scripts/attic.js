@@ -28,6 +28,7 @@ function atticRoot(cwd) { return path.join(cwd || process.cwd(), '.attic'); }
 const P = (cwd) => ({
   root: atticRoot(cwd),
   items: path.join(atticRoot(cwd), 'items'),
+  archive: path.join(atticRoot(cwd), 'archive'),
   index: path.join(atticRoot(cwd), 'INDEX.md'),
   decisions: path.join(atticRoot(cwd), 'DECISIONS.md'),
 });
@@ -101,17 +102,20 @@ function parseFrontmatter(raw) {
 
 function renderItem(meta, body) {
   const tags = Array.isArray(meta.tags) ? meta.tags : (meta.tags ? [meta.tags] : []);
-  return [
+  const lines = [
     '---',
     `title: ${meta.title}`,
     `kind: ${meta.kind}`,
     `date: ${meta.date}`,
     `tags: [${tags.join(', ')}]`,
+  ];
+  if (meta.pinned === true || meta.pinned === 'true') lines.push('pinned: true');
+  return lines.concat([
     '---',
     '',
     String(body).trim(),
     '',
-  ].join('\n');
+  ]).join('\n');
 }
 
 // ---------- index ----------
@@ -227,13 +231,23 @@ function cmdRecall(cwd, query) {
   if (!q) return { ok: false, error: 'a search query is required' };
 
   const entries = readIndexLines(cwd).map(parseIndexLine).filter(Boolean);
+  // Archived items stay recallable even though they left the index.
+  try {
+    for (const f of fs.readdirSync(p.archive).filter((x) => x.endsWith('.md'))) {
+      const slug = f.replace(/\.md$/, '');
+      if (!entries.some((e) => e.slug === slug)) {
+        const meta = parseFrontmatter(fs.readFileSync(path.join(p.archive, f), 'utf8')).meta;
+        entries.push({ slug, label: slug, kind: meta.kind || 'note', hook: meta.title || slug, archived: true });
+      }
+    }
+  } catch (e) { /* no archive */ }
   const exact = entries.find((e) => e.slug === slugify(q));
   const scored = [];
   const words = q.split(/\s+/).filter(Boolean);
   for (const e of entries) {
-    const file = path.join(p.items, e.slug + '.md');
+    const f = findItem(cwd, e.slug);
     let text = '';
-    try { text = fs.readFileSync(file, 'utf8').toLowerCase(); } catch (err) { /* stale index line */ }
+    try { text = f ? fs.readFileSync(f.file, 'utf8').toLowerCase() : ''; } catch (err) { /* stale index line */ }
     let score = 0;
     for (const w of words) {
       if (e.slug.includes(w)) score += 3;
@@ -246,10 +260,10 @@ function cmdRecall(cwd, query) {
   const best = exact ? { entry: exact, score: 99 } : scored[0];
   if (!best) return { ok: false, error: `nothing in the attic matches "${query}"`, candidates: [] };
 
-  const file = path.join(p.items, best.entry.slug + '.md');
-  let content = '';
-  try { content = fs.readFileSync(file, 'utf8'); }
-  catch (e) { return { ok: false, error: `index lists ${best.entry.slug} but ${path.relative(cwd, file)} is missing` }; }
+  const found = findItem(cwd, best.entry.slug);
+  if (!found) return { ok: false, error: `index lists ${best.entry.slug} but its item file is missing` };
+  const file = found.file;
+  const content = fs.readFileSync(file, 'utf8');
   const parsed = parseFrontmatter(content);
   return {
     ok: true, slug: best.entry.slug, handle: `attic:${best.entry.slug}`,
@@ -309,10 +323,105 @@ function cmdValidate(cwd) {
   return { ok: problems.filter((x) => x.level === 'error').length === 0, problems };
 }
 
+function itemPath(cwd, slug, archived) {
+  const p = P(cwd);
+  return path.join(archived ? p.archive : p.items, slug + '.md');
+}
+
+function findItem(cwd, slug) {
+  const live = itemPath(cwd, slug, false);
+  if (fs.existsSync(live)) return { file: live, archived: false };
+  const arch = itemPath(cwd, slug, true);
+  if (fs.existsSync(arch)) return { file: arch, archived: true };
+  return null;
+}
+
+function cmdPin(cwd, args) {
+  const slug = slugify(args._[0] || args.slug);
+  if (!slug) return { ok: false, error: 'a slug is required' };
+  const found = findItem(cwd, slug);
+  if (!found) return { ok: false, error: `no item "${slug}" in the attic` };
+  const parsed = parseFrontmatter(fs.readFileSync(found.file, 'utf8'));
+  const pin = !args.unpin;
+  const meta = Object.assign({}, parsed.meta, { pinned: pin });
+  if (!pin) delete meta.pinned;
+  writeAtomic(found.file, renderItem(meta, parsed.body));
+  return { ok: true, slug, pinned: pin, handle: `attic:${slug}`, archived: found.archived };
+}
+
+function cmdArchive(cwd, args) {
+  const slug = slugify(args._[0] || args.slug);
+  if (!slug) return { ok: false, error: 'a slug is required' };
+  const p = P(cwd);
+  const restore = !!args.restore;
+  // Archiving moves live -> archive; restoring moves archive -> live.
+  const from = itemPath(cwd, slug, restore);
+  const to = itemPath(cwd, slug, !restore);
+  if (!fs.existsSync(from)) {
+    return { ok: false, error: `no ${restore ? 'archived' : 'live'} item "${slug}"` };
+  }
+  fs.mkdirSync(path.dirname(to), { recursive: true });
+  fs.renameSync(from, to);
+
+  // An archived item leaves the index; a restored one rejoins it.
+  const kept = readIndexLines(cwd).filter((l) => {
+    const e = parseIndexLine(l);
+    return e && e.slug !== slug;
+  });
+  if (restore) {
+    const parsed = parseFrontmatter(fs.readFileSync(to, 'utf8'));
+    kept.push(`- [${slug}](items/${slug}.md) · ${parsed.meta.kind || 'note'} · ${truncateHook(parsed.meta.title || slug)}`);
+  }
+  writeAtomic(p.index, INDEX_HEADER + kept.join('\n') + (kept.length ? '\n' : ''));
+  return { ok: true, slug, handle: `attic:${slug}`, archived: !restore, file: path.relative(cwd, to) };
+}
+
+function parseAge(spec) {
+  const m = String(spec || '').match(/^(\d+)\s*([dwmy])$/i);
+  if (!m) return null;
+  const n = parseInt(m[1], 10);
+  const mult = { d: 1, w: 7, m: 30, y: 365 }[m[2].toLowerCase()];
+  return n * mult;
+}
+
+// Prune never deletes. It reports candidates, and only with --apply does it
+// move them to .attic/archive/, where recall can still reach them.
+function cmdPrune(cwd, args) {
+  const p = P(cwd);
+  if (!fs.existsSync(p.index)) return { ok: false, error: 'no .attic/ in this project yet' };
+  const days = args['older-than'] ? parseAge(args['older-than']) : 90;
+  if (days === null) return { ok: false, error: '--older-than takes a value like 90d, 6m or 1y' };
+  const cutoff = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+  const kindFilter = args.kind ? String(args.kind).toLowerCase() : null;
+  if (kindFilter && !KINDS.includes(kindFilter)) return { ok: false, error: `--kind must be one of ${KINDS.join(', ')}` };
+
+  const pinned = new Set();
+  const candidates = [];
+  for (const e of readIndexLines(cwd).map(parseIndexLine).filter(Boolean)) {
+    const file = itemPath(cwd, e.slug, false);
+    let meta = {};
+    try { meta = parseFrontmatter(fs.readFileSync(file, 'utf8')).meta; } catch (err) { continue; }
+    if (meta.pinned === 'true' || meta.pinned === true) { pinned.add(e.slug); continue; }
+    if (kindFilter && meta.kind !== kindFilter) continue;
+    if (!meta.date || meta.date >= cutoff) continue;
+    candidates.push({ slug: e.slug, kind: meta.kind, date: meta.date, hook: e.hook });
+  }
+
+  const apply = !!args.apply;
+  if (apply) for (const c of candidates) cmdArchive(cwd, { _: [c.slug] });
+  return {
+    ok: true, cutoff, days, applied: apply,
+    skippedPinned: pinned.size,
+    candidates,
+    note: apply ? `archived ${candidates.length} item(s) to .attic/archive/`
+                : 'dry run: nothing moved. Re-run with --apply to archive these.',
+  };
+}
+
 // ---------- cli ----------
 const FLAGS = ['slug', 'kind', 'hook', 'title', 'tags', 'body', 'body-file',
-  'decision-why', 'cwd', 'limit', 'suite', 'case', 'claude', 'out'];
-const BOOLS = ['json', 'force', 'dry-run'];
+  'decision-why', 'cwd', 'limit', 'suite', 'case', 'claude', 'out', 'older-than'];
+const BOOLS = ['json', 'force', 'dry-run', 'unpin', 'restore', 'apply'];
 
 // Only a recognised --name is a flag. Anything else is a value, so bodies
 // starting with "-----BEGIN ... KEY-----" or "--foo" survive intact.
@@ -348,6 +457,16 @@ function human(cmd, r) {
       const dec = r.recentDecisions.length ? `\n\nRecent decisions:\n${r.recentDecisions.join('\n')}` : '';
       return `${lines.join('\n') || '(empty)'}${dec}\n\n${r.counts.items} item(s), ${r.counts.decisions} decision(s)`;
     }
+    case 'pin': return `${r.pinned ? 'Pinned' : 'Unpinned'} \`${r.handle}\``;
+    case 'archive': return r.archived
+      ? `Archived \`${r.handle}\` -> ${r.file}. Still recallable, no longer injected.`
+      : `Restored \`${r.handle}\` -> ${r.file}.`;
+    case 'prune': {
+      if (!r.candidates.length) return `Nothing older than ${r.days} day(s) to prune.` + (r.skippedPinned ? ` (${r.skippedPinned} pinned item(s) skipped)` : '');
+      const rows = r.candidates.map((c) => `  ${c.date}  ${c.kind.padEnd(8)} ${c.slug}`);
+      return `Candidates older than ${r.cutoff} (${r.candidates.length}):\n${rows.join('\n')}` +
+             (r.skippedPinned ? `\n${r.skippedPinned} pinned item(s) skipped.` : '') + `\n\n${r.note}`;
+    }
     case 'validate': {
       if (!r.problems.length) return 'attic is valid' + (r.note ? ` (${r.note})` : '');
       return r.problems.map((p) => `${p.level.toUpperCase()} ${p.slug}: ${p.msg}`).join('\n');
@@ -368,8 +487,11 @@ function main() {
     case 'recall': r = cmdRecall(cwd, args._.join(' ')); break;
     case 'index': r = cmdIndex(cwd, args); break;
     case 'validate': r = cmdValidate(cwd); break;
+    case 'pin': r = cmdPin(cwd, args); break;
+    case 'archive': r = cmdArchive(cwd, args); break;
+    case 'prune': r = cmdPrune(cwd, args); break;
     default:
-      process.stderr.write('usage: attic.js <init|stash|recall|index|validate> [options]\n');
+      process.stderr.write('usage: attic.js <init|stash|recall|index|validate|pin|archive|prune> [options]\n');
       process.exit(1);
   }
   process.stdout.write((args.json ? JSON.stringify(r, null, 2) : human(cmd, r)) + '\n');
@@ -377,4 +499,4 @@ function main() {
 }
 
 if (require.main === module) main();
-module.exports = { slugify, truncateHook, scanSecrets, parseFrontmatter, renderItem, cmdInit, cmdStash, cmdRecall, cmdIndex, cmdValidate, parseIndexLine, KINDS };
+module.exports = { slugify, truncateHook, scanSecrets, cmdPin, cmdArchive, cmdPrune, findItem, parseFrontmatter, renderItem, cmdInit, cmdStash, cmdRecall, cmdIndex, cmdValidate, parseIndexLine, KINDS };

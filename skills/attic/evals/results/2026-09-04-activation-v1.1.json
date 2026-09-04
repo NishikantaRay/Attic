@@ -1,176 +1,242 @@
 {
   "suite": "attic-activation",
   "version": "1.0.0",
-  "description": "Activation is a classification problem: does the right attic skill fire, and does it stay quiet when it should?",
-  "skills": [
-    "attic",
-    "attic-stash",
-    "attic-recall",
-    "attic-index",
-    "attic-sweep",
-    "attic-help"
-  ],
-  "cases": [
+  "date": "2026-09-04T10:36:42.417Z",
+  "binary": "<redacted local path>",
+  "metrics": {
+    "cases": 22,
+    "graded": 22,
+    "ungraded": 0,
+    "total": 22,
+    "pass": 22,
+    "fail": 0,
+    "activation_accuracy": 100,
+    "coverage": 100,
+    "false_positive_rate": 0,
+    "false_negative_rate": 0,
+    "wrong_skill_rate": 0,
+    "errors": 0
+  },
+  "results": [
     {
       "id": "act-01",
       "prompt": "stash this in the attic",
       "expected_skill": "attic-stash",
       "should_activate": true,
-      "rationale": "explicit stash verb"
+      "actual_skill": "attic-stash",
+      "result": "pass",
+      "raw": "attic-stash",
+      "ambiguous": false
     },
     {
       "id": "act-02",
       "prompt": "remember this for later, we'll need it after compaction",
       "expected_skill": "attic-stash",
       "should_activate": true,
-      "rationale": "memory intent without the word attic"
+      "actual_skill": "attic-stash",
+      "result": "pass",
+      "raw": "attic-stash",
+      "ambiguous": false
     },
     {
       "id": "act-03",
       "prompt": "what did we find out about the login timeout?",
       "expected_skill": "attic-recall",
       "should_activate": true,
-      "rationale": "retrieval of a past finding"
+      "actual_skill": "attic-recall",
+      "result": "pass",
+      "raw": "attic-recall",
+      "ambiguous": false
     },
     {
       "id": "act-04",
       "prompt": "what's in the attic?",
       "expected_skill": "attic-index",
       "should_activate": true,
-      "rationale": "listing intent"
+      "actual_skill": "attic-index",
+      "result": "pass",
+      "raw": "attic-index",
+      "ambiguous": false
     },
     {
       "id": "act-05",
       "prompt": "I'm about to run /compact, save the state first",
       "expected_skill": "attic-sweep",
       "should_activate": true,
-      "rationale": "pre-compaction checkpoint"
+      "actual_skill": "attic-sweep",
+      "result": "pass",
+      "raw": "attic-sweep",
+      "ambiguous": false
     },
     {
       "id": "act-06",
       "prompt": "context is getting long",
       "expected_skill": "attic-sweep",
       "should_activate": true,
-      "rationale": "the trigger phrase for a proactive sweep"
+      "actual_skill": "attic-sweep",
+      "result": "pass",
+      "raw": "attic-sweep",
+      "ambiguous": false
     },
     {
       "id": "act-07",
       "prompt": "switch attic to ultra",
       "expected_skill": "attic",
       "should_activate": true,
-      "rationale": "level switch"
+      "actual_skill": "attic",
+      "result": "pass",
+      "raw": "attic",
+      "ambiguous": false
     },
     {
       "id": "act-08",
       "prompt": "trace why the auth middleware rejects valid tokens, it spans several files",
       "expected_skill": null,
       "should_activate": false,
-      "rationale": "Multi-file investigation is governed by the SKILL.md rules already in context from session start. No skill invocation is expected; the behaviour is checked by behavior.json beh-01, not here.",
-      "governed_by": "always-on rules injected by hooks/attic-activate.js, not a skill invocation"
+      "actual_skill": null,
+      "result": "pass",
+      "raw": "NONE",
+      "ambiguous": false
     },
     {
       "id": "act-20",
       "prompt": "what's 2 + 2?",
       "expected_skill": null,
       "should_activate": false,
-      "rationale": "trivial one-liner, nothing worth stashing"
+      "actual_skill": null,
+      "result": "pass",
+      "raw": "NONE",
+      "ambiguous": false
     },
     {
       "id": "act-21",
       "prompt": "fix the typo in README.md line 3",
       "expected_skill": null,
       "should_activate": false,
-      "rationale": "trivial edit, no investigation"
+      "actual_skill": null,
+      "result": "pass",
+      "raw": "NONE",
+      "ambiguous": false
     },
     {
       "id": "act-22",
       "prompt": "I'm converting the attic in my house into an office, what insulation do I need?",
       "expected_skill": null,
       "should_activate": false,
-      "rationale": "homograph: the word attic in its ordinary sense"
+      "actual_skill": null,
+      "result": "pass",
+      "raw": "NONE",
+      "ambiguous": false
     },
     {
       "id": "act-23",
       "prompt": "write me a haiku about autumn",
       "expected_skill": null,
       "should_activate": false,
-      "rationale": "non-coding, no context to offload"
+      "actual_skill": null,
+      "result": "pass",
+      "raw": "NONE",
+      "ambiguous": false
     },
     {
       "id": "act-24",
       "prompt": "git status",
       "expected_skill": null,
       "should_activate": false,
-      "rationale": "single mechanical command"
+      "actual_skill": null,
+      "result": "pass",
+      "raw": "NONE",
+      "ambiguous": false
     },
     {
       "id": "amb-01",
       "prompt": "clean up this file, it's over-engineered",
       "expected_skill": null,
       "should_activate": false,
-      "collides_with": "code-style-skill",
-      "rationale": "code minimalism belongs to a code-style skill, not attic"
+      "actual_skill": null,
+      "result": "pass",
+      "raw": "NONE",
+      "ambiguous": false
     },
     {
       "id": "amb-02",
       "prompt": "be less verbose in your replies",
       "expected_skill": null,
       "should_activate": false,
-      "collides_with": "prose-style-skill",
-      "rationale": "prose brevity belongs to a prose-style skill; attic governs what is kept, not how it is worded"
+      "actual_skill": null,
+      "result": "pass",
+      "raw": "NONE",
+      "ambiguous": false
     },
     {
       "id": "amb-03",
       "prompt": "summarise what we've done so far",
       "expected_skill": "attic-sweep",
       "should_activate": true,
-      "ambiguous": true,
-      "rationale": "reads as a plain summary but is the sweep trigger; acceptable either way if the summary is offered"
+      "actual_skill": "attic-sweep",
+      "result": "pass",
+      "raw": "attic-sweep",
+      "ambiguous": true
     },
     {
       "id": "act-09",
       "prompt": "pin that decision so you don't forget it",
       "expected_skill": "attic-pin",
       "should_activate": true,
-      "rationale": "explicit pin verb on an attic item"
+      "actual_skill": "attic-pin",
+      "result": "pass",
+      "raw": "attic-pin",
+      "ambiguous": false
     },
     {
       "id": "act-10",
       "prompt": "the attic is getting big, clean out the old stuff",
       "expected_skill": "attic-prune",
       "should_activate": true,
-      "rationale": "pruning the attic's own contents"
+      "actual_skill": "attic-prune",
+      "result": "pass",
+      "raw": "attic-prune",
+      "ambiguous": false
     },
     {
       "id": "act-11",
       "prompt": "is the attic actually saving me anything?",
       "expected_skill": "attic-stats",
       "should_activate": true,
-      "rationale": "value question, answered by measurement"
+      "actual_skill": "attic-stats",
+      "result": "pass",
+      "raw": "attic-stats",
+      "ambiguous": false
     },
     {
       "id": "act-12",
       "prompt": "my team keeps getting merge conflicts in INDEX.md",
       "expected_skill": "attic-git",
       "should_activate": true,
-      "rationale": "the exact problem the merge driver solves"
+      "actual_skill": "attic-git",
+      "result": "pass",
+      "raw": "attic-git",
+      "ambiguous": false
     },
     {
       "id": "act-25",
       "prompt": "clean up the old unused functions in this file",
       "expected_skill": null,
       "should_activate": false,
-      "collides_with": "attic-prune",
-      "rationale": "pruning SOURCE CODE is not attic-prune; the negative case that keeps prune from firing on ordinary cleanup"
+      "actual_skill": null,
+      "result": "pass",
+      "raw": "NONE",
+      "ambiguous": false
     },
     {
       "id": "act-26",
       "prompt": "pin this tab in my browser",
       "expected_skill": null,
       "should_activate": false,
-      "collides_with": "attic-pin",
-      "rationale": "pin used in an unrelated sense"
+      "actual_skill": null,
+      "result": "pass",
+      "raw": "NONE",
+      "ambiguous": false
     }
-  ],
-  "notes": "Activation measures skill INVOCATION only. Attic's always-on rules arrive via the SessionStart hook, so a case whose correct outcome is \"apply the rules without invoking a skill\" belongs in behavior.json, not here."
+  ]
 }

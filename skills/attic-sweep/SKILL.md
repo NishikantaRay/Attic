@@ -9,7 +9,7 @@ description: >
   far", "where are we", or "recap the session". A request to recap session
   progress IS a sweep: give the recap and persist it in the same pass.
 allowed-tools: Bash(node:*attic.js*)
-version: 1.0.0
+version: 1.1.0
 license: MIT
 ---
 

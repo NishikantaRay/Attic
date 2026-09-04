@@ -14,7 +14,7 @@ description: >
   fixes, or non-coding chat.
 argument-hint: "[lite|full|ultra|off]"
 allowed-tools: Bash(node:*attic.js*)
-version: 1.0.0
+version: 1.1.0
 license: MIT
 ---
 

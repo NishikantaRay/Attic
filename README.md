@@ -2,7 +2,7 @@
 
 **Offload context.** A [Claude Code](https://claude.com/claude-code) plugin that makes Claude stash findings, decisions, plans and long outputs into a project-local `.attic/` folder and keep only a one-line index in the conversation. The live context stays lean, and what matters survives `/compact`, `/clear` and new sessions.
 
-Same idea as [caveman](https://github.com/JuliusBrussee/caveman) (terse prose) and [ponytail](https://github.com/DietrichGebert/ponytail) (minimal code), aimed at a different token sink: the stuff Claude keeps re-reading and re-explaining because it lives nowhere but the chat.
+Most token-saving tools shorten what Claude writes. Attic targets a different sink: the knowledge Claude keeps re-reading and re-explaining because it lives nowhere but the chat.
 
 ```
 you:    why does the login test time out?
@@ -37,7 +37,11 @@ claude --plugin-dir ./Attic
 | `/attic-recall <slug or words>` | Pull an item back and summarise it. |
 | `/attic-index` | List everything stashed in this project. |
 | `/attic-sweep` | Save plan, open questions and in-progress state. Run before `/compact`. |
+| `/attic-pin <slug>` | Always inject this item, never trim it. |
+| `/attic-prune` | Archive stale items. Dry run by default, never deletes. |
+| `/attic-stats` | What the attic costs and holds, measured locally. |
 | `/attic-doctor` | Check `.attic/` for drift, orphans and leaked credentials. |
+| `/attic-git` | Fix `.attic/` merge conflicts and set up a shared team attic. |
 | `/attic-help` | One-screen reference. |
 
 Installed plugins are namespaced, so the fully qualified form is `/attic:attic-help`; the short form works when no other plugin claims the name.
@@ -62,7 +66,22 @@ Claude also stashes on its own at `full` and `ultra`, and reacts to phrases like
   INDEX.md          one line per item:  - [slug](items/slug.md) · kind · one-line hook
   DECISIONS.md      append-only:        - 2026-09-04 · use lru_cache · because one line beats a cache class
   items/<slug>.md   frontmatter (title, kind, date, tags) + the content
+  archive/<slug>.md pruned items: still recallable, no longer injected
 ```
+
+### How the index scales
+
+The index is injected at every session start, so it cannot grow without
+bound. Three tiers share a fixed budget:
+
+| Tier | Rule |
+|---|---|
+| Pinned | `/attic-pin` marks these. Always injected, never trimmed. |
+| Recent | Newest items fill the remaining budget. |
+| Rest | Collapsed to one line naming the counts, so older knowledge stays discoverable via `/attic-recall`. |
+
+Trimming drops the oldest unpinned entries. Your newest finding is never the
+one that disappears.
 
 Kinds: `finding`, `decision`, `plan`, `output`, `note`. Handles look like `attic:<slug>`.
 
@@ -76,7 +95,10 @@ Kinds: `finding`, `decision`, `plan`, `output`, `note`. Handles look like `attic
 - **Commit it** for shared team memory. New contributors (and new Claude sessions) start with the index.
 - **Ignore it** (`echo .attic/ >> .gitignore`) if you want it personal.
 
-Either way the plugin never touches git.
+If you commit it, run `/attic-git`. `INDEX.md` and `DECISIONS.md` are
+append-only, so two branches that each stash something conflict on every
+merge. The command installs a union merge driver that keeps both sides.
+See [docs/TEAM.md](docs/TEAM.md).
 
 ## How it works
 
@@ -128,9 +150,15 @@ node scripts/run-evals.js --suite behavior     # per-level behaviour checklist
 node scripts/run-evals.js --case act-22        # a single case
 ```
 
-The activation suite reports accuracy, false positive rate, false negative
-rate and wrong-skill rate over positive cases, negative cases, and collision
-cases with sibling skills such as caveman and ponytail.
+The activation suite reports accuracy, coverage, false positive rate, false
+negative rate and wrong-skill rate over positive cases, negative cases, and
+collision cases. Current baseline: 100% across 22 cases, recorded in
+[skills/attic/evals/results/](skills/attic/evals/results/).
+
+Attic publishes no headline savings percentage, because a reproducible
+baseline for agent sessions does not exist. `/attic-stats` reports what is
+measurable on your machine and says where the attic costs more than it
+returns. See [docs/HONEST-NUMBERS.md](docs/HONEST-NUMBERS.md).
 
 ## Enforcement
 
@@ -140,6 +168,7 @@ cases with sibling skills such as caveman and ponytail.
 | Write time | `scripts/attic.js` refuses credentials with exit code 2. |
 | Commit time | `scripts/attic-precommit.sh` blocks a commit with a malformed or leaking `.attic/`. |
 | CI | `.github/workflows/ci.yml` runs tests and manifest validation; `attic-guard.yml` validates `.attic/` on pull requests. |
+| Merge time | `scripts/attic-merge.js` resolves index conflicts instead of losing one side. |
 
 ## Development
 

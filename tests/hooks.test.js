@@ -34,19 +34,62 @@ test('activate: startup with no .attic emits full rules and a "no attic" note', 
   assert.match(ctx, /No \.attic\/ in this project yet/);
 });
 
-test('activate: injects INDEX.md and caps it at 60 lines', () => {
+test('activate: injects the index and keeps the NEWEST items under pressure', () => {
   const state = tmpDir('attic-state-');
   const project = tmpDir('attic-proj-');
-  fs.mkdirSync(path.join(project, '.attic'));
+  fs.mkdirSync(path.join(project, '.attic', 'items'), { recursive: true });
   const lines = ['# Attic index'];
-  for (let i = 1; i <= 100; i++) lines.push(`- [item-${i}](items/item-${i}.md) · finding · hook ${i}`);
+  for (let i = 1; i <= 300; i++) {
+    fs.writeFileSync(path.join(project, '.attic', 'items', `item-${i}.md`),
+      `---\ntitle: Item ${i}\nkind: finding\ndate: 2026-01-01\ntags: []\n---\nbody\n`);
+    lines.push(`- [item-${i}](items/item-${i}.md) · finding · a reasonably long hook line for item number ${i}`);
+  }
   fs.writeFileSync(path.join(project, '.attic', 'INDEX.md'), lines.join('\n') + '\n');
+
   const out = runHook('attic-activate.js', { cwd: project, reason: 'compact' }, { CLAUDE_PLUGIN_DATA: state });
   const ctx = out.hookSpecificOutput.additionalContext;
-  assert.match(ctx, /Current attic index \(100 item line\(s\)/);
-  assert.match(ctx, /item-60\]/);
-  assert.doesNotMatch(ctx, /item-61\]/);
-  assert.match(ctx, /40 more line\(s\) not shown/);
+  // The regression this guards: the newest item must never be the one dropped.
+  assert.match(ctx, /item-300\]/, 'newest item must be injected');
+  assert.doesNotMatch(ctx, /item-1\]\(/, 'oldest items should be trimmed, not the newest');
+  assert.match(ctx, /older item\(s\) not shown/, 'trimmed items need a discoverable summary line');
+  assert.match(ctx, /finding\(\d+\)/, 'summary should count by kind');
+});
+
+test('activate: pinned items survive the trim, however old', () => {
+  const state = tmpDir('attic-state-');
+  const project = tmpDir('attic-proj-');
+  fs.mkdirSync(path.join(project, '.attic', 'items'), { recursive: true });
+  const lines = ['# Attic index'];
+  for (let i = 1; i <= 300; i++) {
+    const pinned = i === 2 ? 'pinned: true\n' : '';
+    fs.writeFileSync(path.join(project, '.attic', 'items', `item-${i}.md`),
+      `---\ntitle: Item ${i}\nkind: note\ndate: 2026-01-01\ntags: []\n${pinned}---\nbody\n`);
+    lines.push(`- [item-${i}](items/item-${i}.md) · note · a reasonably long hook line for item number ${i}`);
+  }
+  fs.writeFileSync(path.join(project, '.attic', 'INDEX.md'), lines.join('\n') + '\n');
+
+  const out = runHook('attic-activate.js', { cwd: project, reason: 'resume' }, { CLAUDE_PLUGIN_DATA: state });
+  const ctx = out.hookSpecificOutput.additionalContext;
+  assert.match(ctx, /Pinned:/, 'pinned block should be labelled');
+  assert.match(ctx, /item-2\]/, 'a pinned old item must survive');
+  assert.match(ctx, /item-300\]/, 'newest must still be there too');
+});
+
+test('activate: the injected index stays inside its byte budget', () => {
+  const state = tmpDir('attic-state-');
+  const project = tmpDir('attic-proj-');
+  fs.mkdirSync(path.join(project, '.attic', 'items'), { recursive: true });
+  const lines = ['# Attic index'];
+  for (let i = 1; i <= 500; i++) {
+    fs.writeFileSync(path.join(project, '.attic', 'items', `i${i}.md`),
+      `---\ntitle: I${i}\nkind: note\ndate: 2026-01-01\ntags: []\n---\nb\n`);
+    lines.push(`- [i${i}](items/i${i}.md) · note · ${'x'.repeat(80)} ${i}`);
+  }
+  fs.writeFileSync(path.join(project, '.attic', 'INDEX.md'), lines.join('\n') + '\n');
+  const rt = require(path.join(HOOKS, 'attic-runtime.js'));
+  const r = rt.loadIndex(project);
+  assert.ok(Buffer.byteLength(r.text, 'utf8') <= 6144, `index text was ${Buffer.byteLength(r.text, 'utf8')} bytes`);
+  assert.ok(r.hidden > 0, 'most items should be collapsed at this size');
 });
 
 test('activate: startup resets a leftover session level to the default', () => {

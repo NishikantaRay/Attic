@@ -7,7 +7,7 @@ description: >
   keeping and attic mode is active.
 argument-hint: "[title or slug]"
 allowed-tools: Bash(node:*attic.js*)
-version: 1.0.0
+version: 1.1.0
 license: MIT
 ---
 
