@@ -5,14 +5,20 @@ description: >
   attic", "the attic is getting big", "clean up old items", or "archive old
   findings". This is about the ATTIC's own contents, never about cleaning up
   source code.
-version: 1.1.0
+version: 1.2.0
 license: MIT
 ---
 
 # Prune the attic
 
+First, in the same shell command as anything below, locate the script:
+
 ```bash
-attic prune $ARGUMENTS
+ATTIC_JS=$(ls -d "${CODEX_HOME:-$HOME/.codex}"/plugins/cache/attic/attic/*/skills/attic/scripts/attic.js "${CODEX_HOME:-$HOME/.codex}"/skills/attic/scripts/attic.js "$HOME"/.agents/skills/attic/scripts/attic.js .agents/skills/attic/scripts/attic.js 2>/dev/null | sort -V | tail -1)
+```
+
+```bash
+node "$ATTIC_JS" prune $ARGUMENTS
 ```
 
 **Dry run is the default.** The command lists candidates and moves nothing

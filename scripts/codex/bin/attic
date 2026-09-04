@@ -2,8 +2,12 @@
 # Attic launcher for Codex. Finds attic.js wherever the skills were installed
 # and runs it, so skill commands are a plain `attic ...` from any directory.
 set -e
+# The native plugin install lands in the plugin cache under a version dir;
+# take the newest version present.
+PLUGIN_JS=$(ls -d "${CODEX_HOME:-$HOME/.codex}"/plugins/cache/attic/attic/*/skills/attic/scripts/attic.js 2>/dev/null | sort -V | tail -1)
 for c in \
   "${ATTIC_HOME:-}/skills/attic/scripts/attic.js" \
+  "${PLUGIN_JS:-}" \
   "${CODEX_HOME:-$HOME/.codex}/skills/attic/scripts/attic.js" \
   "$HOME/.agents/skills/attic/scripts/attic.js" \
   "$HOME/.codex/skills/attic/scripts/attic.js" \

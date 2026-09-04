@@ -151,8 +151,8 @@ than a silent failure in someone's session.
 | `attic` | Active |
 | `attic-stash`, `attic-recall`, `attic-index`, `attic-sweep` | Active |
 | `attic-doctor`, `attic-help` | Active |
-| `attic-pin`, `attic-prune` | Active (1.1.0) |
-| `attic-stats`, `attic-git` | Active (1.1.0) |
+| `attic-pin`, `attic-prune` | Active, since 1.1.0 |
+| `attic-stats`, `attic-git` | Active, since 1.1.0 |
 
 `attic-init-team` was renamed to `attic-git` before release, never shipped
 under the old name, so no deprecation window was needed. The lesson is

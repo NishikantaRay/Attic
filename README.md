@@ -1,8 +1,15 @@
 # Attic
 
+[![version](https://img.shields.io/badge/version-1.2.0-2ea44f)](CHANGELOG.md)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-plugin-7c3aed)](#install)
+[![Codex CLI](https://img.shields.io/badge/Codex%20CLI-plugin-10a37f)](docs/CODEX.md)
+[![activation evals](https://img.shields.io/badge/activation%20evals-22%2F22-2ea44f)](skills/attic/evals/results/)
+[![no telemetry](https://img.shields.io/badge/telemetry-none-lightgrey)](SECURITY.md)
+[![license](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
+
 **Offload context.** A plugin for [Claude Code](https://claude.com/claude-code) and [Codex CLI](https://developers.openai.com/codex) that stashes findings, decisions and long outputs into a project-local `.attic/` folder and keeps only a one-line index in the conversation. The live context stays lean, and what matters survives `/compact`, `/clear` and new sessions.
 
-![Attic in action: a finding is stashed, the context is compacted, and Claude still knows](assets/demo.gif)
+![Attic in action: a finding is stashed, the context is compacted, the agent still knows, and the same attic works on Codex](assets/demo.gif)
 
 Most token-saving tools shorten what Claude writes. Attic targets a different sink: the knowledge Claude keeps re-reading and re-explaining because it lives nowhere but the chat.
 
@@ -29,14 +36,14 @@ claude plugin install attic@attic
 **Codex CLI**
 
 ```sh
-git clone https://github.com/NishikantaRay/Attic
-sh Attic/codex/install.sh
+codex plugin marketplace add NishikantaRay/Attic
+codex plugin add attic@attic
 ```
 
-Same skills, same script, same hooks. The installer registers the hooks and
-enables the feature flag for you. Skills-only alternative, without automatic
-activation: `npx skills add NishikantaRay/Attic --skill 'attic*' -a codex`.
-See [docs/CODEX.md](docs/CODEX.md).
+Then run `/hooks` once in an interactive session to trust the attic hooks;
+Codex does not run hooks it has not reviewed. Same skills, same script, same
+hooks as the Claude Code build. Details, alternatives and exactly what was
+verified: [docs/CODEX.md](docs/CODEX.md).
 
 Requires Node.js on `PATH` for the hooks. Without Node the skills and commands still work; only the automatic session-start injection is lost.
 
@@ -143,6 +150,8 @@ The ruleset itself lives in [skills/attic/SKILL.md](skills/attic/SKILL.md). The 
 Attic is built as a versioned, testable, enforceable component rather than a
 Markdown prompt. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full
 layer map.
+
+![Layers: router, skill hub, script, enforcement, evaluation](assets/architecture.svg)
 
 ```
 skills/attic/
@@ -259,14 +268,16 @@ returns. See [docs/HONEST-NUMBERS.md](docs/HONEST-NUMBERS.md).
 skills/            the skills, shared by both hosts
 hooks/             session hooks, shared by both hosts
 scripts/           tooling; scripts/codex/ holds the Codex launcher and installer
-codex/             GENERATED Codex build — do not edit, run npm run build:codex
+codex/             GENERATED Codex plugin — do not edit, run npm run build:codex
+.agents/plugins/   Codex marketplace manifest; makes this repo installable with codex plugin add
 benchmarks/        the two-arm benchmark and its recorded results
 docs/              architecture, honest numbers, team workflow, Codex notes
 ```
 
-Claude Code loads `skills/` and `hooks/` directly through the plugin
+Claude Code loads `skills/` and `hooks/` directly through its plugin
 manifest. Codex gets the same content via the generated `codex/` build, which
-carries no plugin or marketplace manifest of its own.
+carries a `.codex-plugin/plugin.json` of its own; `.agents/plugins/` makes
+the repository a Codex marketplace.
 
 ## Development
 
@@ -275,6 +286,7 @@ npm test                          # unit tests: hooks, script, eval suite integr
 claude plugin validate . --strict # manifest and component checks
 claude --plugin-dir .             # load this checkout into a session
 npm run build:codex               # regenerate codex/ after changing a skill
+npm run bump -- 1.2.0             # move every version string together, then rebuild
 npm run bench                     # the two-arm token benchmark
 npm run make:assets               # regenerate the README diagrams
 ```

@@ -5,14 +5,20 @@ description: >
   transcripts. Use when the user asks "is the attic worth it", "attic stats",
   "how many tokens is this saving", "how big is the attic", or questions the
   plugin's value.
-version: 1.1.0
+version: 1.2.0
 license: MIT
 ---
 
 # Attic stats
 
+First, in the same shell command as anything below, locate the script:
+
 ```bash
-attic stats
+ATTIC_JS=$(ls -d "${CODEX_HOME:-$HOME/.codex}"/plugins/cache/attic/attic/*/skills/attic/scripts/attic.js "${CODEX_HOME:-$HOME/.codex}"/skills/attic/scripts/attic.js "$HOME"/.agents/skills/attic/scripts/attic.js .agents/skills/attic/scripts/attic.js 2>/dev/null | sort -V | tail -1)
+```
+
+```bash
+node "$(dirname "$ATTIC_JS")/../../../scripts/attic-stats.js"
 ```
 
 Print what it reports. Then follow these rules when discussing it:

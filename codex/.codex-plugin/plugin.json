@@ -1,0 +1,32 @@
+{
+  "name": "attic",
+  "version": "1.2.0",
+  "description": "Offloads context. Stashes findings, decisions and long outputs into a project-local .attic/ folder and keeps only a one-line index in the conversation, so context stays lean and survives /compact.",
+  "author": {
+    "name": "Nishikanta Ray",
+    "url": "https://github.com/NishikantaRay"
+  },
+  "homepage": "https://github.com/NishikantaRay/Attic",
+  "repository": "https://github.com/NishikantaRay/Attic",
+  "license": "MIT",
+  "keywords": [
+    "context",
+    "memory",
+    "tokens",
+    "compaction",
+    "notes"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Attic",
+    "shortDescription": "Offload context into .attic/ so it survives compaction and new sessions",
+    "longDescription": "Stashes findings, decisions and long outputs into a project-local .attic/ folder and keeps only a one-line index in the conversation. The live context stays lean and what matters survives /compact, /clear and new sessions.",
+    "developerName": "Nishikanta Ray",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/NishikantaRay/Attic"
+  }
+}

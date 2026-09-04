@@ -184,3 +184,12 @@ test('hooks never hang on empty stdin', () => {
   }
   assert.ok(Date.now() - started < 4000, 'hooks took too long');
 });
+
+test('mode: the namespaced plugin form /attic:attic <level> is recognised', () => {
+  // Installed Claude Code plugins are namespaced; the short form is only an alias.
+  const state = tmpDir('attic-state-');
+  const out = runHook('attic-mode.js', { user_input: '/attic:attic ultra' }, { CLAUDE_PLUGIN_DATA: state });
+  assert.ok(out, 'namespaced command produced no output');
+  assert.match(out.hookSpecificOutput.additionalContext, /-> ultra/);
+  assert.equal(fs.readFileSync(path.join(state, 'mode'), 'utf8').trim(), 'ultra');
+});

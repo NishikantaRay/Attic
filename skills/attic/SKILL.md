@@ -13,8 +13,8 @@ description: >
   forgot something after compaction. Do NOT use for one-line answers, typo
   fixes, or non-coding chat.
 argument-hint: "[lite|full|ultra|off]"
-allowed-tools: Bash(node:*attic.js*)
-version: 1.1.0
+allowed-tools: Bash(node "${CLAUDE_SKILL_DIR}/scripts/attic.js" *) Bash(node "${CLAUDE_SKILL_DIR}/scripts/attic.js"*)
+version: 1.2.0
 license: MIT
 ---
 

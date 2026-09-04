@@ -53,3 +53,43 @@ test('plugin version matches the core skill version', () => {
   const core = fs.readFileSync(path.join(SKILLS, 'attic', 'SKILL.md'), 'utf8').match(/\nversion: ([\d.]+)/)[1];
   assert.equal(plugin.version, core, 'plugin.json version and skills/attic version must move together');
 });
+
+// ---------- regressions found by a real plugin install ----------
+
+test('the manifest does not redeclare the auto-discovered hooks file', () => {
+  // hooks/hooks.json is loaded automatically. Naming it in the manifest makes
+  // the plugin fail to load with "Duplicate hooks file detected".
+  // `claude plugin validate` does not catch this; only a real install does.
+  const p = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '.claude-plugin', 'plugin.json'), 'utf8'));
+  if (typeof p.hooks === 'string') {
+    assert.notEqual(p.hooks.replace('./', ''), 'hooks/hooks.json',
+      'remove the hooks field: hooks/hooks.json is discovered automatically');
+  }
+});
+
+test('allowed-tools use the documented ${CLAUDE_SKILL_DIR} form', () => {
+  // Bash(node:*script.js*) does not match a real invocation with a quoted
+  // absolute path; the skill then falls back to hand-writing files, which
+  // silently bypasses the credential scan.
+  const skillsDir = path.join(__dirname, '..', 'skills');
+  for (const d of fs.readdirSync(skillsDir)) {
+    const f = path.join(skillsDir, d, 'SKILL.md');
+    if (!fs.existsSync(f)) continue;
+    const m = fs.readFileSync(f, 'utf8').match(/^allowed-tools: (.*)$/m);
+    if (!m) continue;
+    assert.doesNotMatch(m[1], /Bash\(node:/, `${d}: the node: prefix form does not match a quoted path`);
+    assert.match(m[1], /\$\{CLAUDE_SKILL_DIR\}/, `${d}: grants must use the skill-dir variable`);
+  }
+});
+
+test('every skill that runs the script declares a grant for it', () => {
+  const skillsDir = path.join(__dirname, '..', 'skills');
+  for (const d of fs.readdirSync(skillsDir)) {
+    const f = path.join(skillsDir, d, 'SKILL.md');
+    if (!fs.existsSync(f)) continue;
+    const raw = fs.readFileSync(f, 'utf8');
+    const body = raw.split(/^---$/m).slice(2).join('---');
+    if (!/node "\$\{CLAUDE_SKILL_DIR\}[^"]*\.js"/.test(body)) continue;
+    assert.match(raw, /^allowed-tools:/m, `${d}: runs a script but declares no grant, so it will prompt`);
+  }
+});

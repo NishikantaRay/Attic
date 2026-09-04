@@ -5,50 +5,84 @@ only the packaging differs.
 
 ## Install
 
-### Full install, with hooks (recommended)
+Attic is a native Codex plugin. Two commands:
 
 ```sh
-git clone https://github.com/NishikantaRay/Attic
-sh Attic/codex/install.sh          # user-wide, into $CODEX_HOME (default ~/.codex)
+codex plugin marketplace add NishikantaRay/Attic
+codex plugin add attic@attic
+```
+
+That installs all eleven skills into the plugin cache. Skills work
+immediately: `$attic-stash`, `$attic-recall` and the rest, and the model can
+pick them from their descriptions.
+
+### The one-time trust step for hooks
+
+Automatic activation, meaning the index injected at every session start and
+after every compaction, runs through hooks. **Codex does not run a hook until
+you have reviewed and trusted it.** This applies to plugin-bundled hooks too,
+and there is no command-line way to grant it.
+
+Open an interactive session and run:
+
+```
+/hooks
+```
+
+Review the three attic hooks (`SessionStart`, `UserPromptSubmit`,
+`SubagentStart`) and trust them. Trust is recorded against the hook's hash,
+so a changed hook asks again after an upgrade.
+
+Until you do this, the attic still works, but the index is not injected on
+its own: the skill tells the model to read `.attic/INDEX.md` when none
+appears in context, so nothing is lost, just less automatic.
+
+### If plugin hooks do not fire for you
+
+On `codex-cli 0.153.2` I could not observe plugin-bundled hooks executing in
+non-interactive `codex exec`, even with trust bypassed, while the same hooks
+registered at user level did. If `/hooks` shows the attic hooks as trusted
+and the index still does not appear, register them at user level instead:
+
+```sh
+sh Attic/codex/install.sh --hooks-only
+```
+
+That writes the hooks to `$CODEX_HOME/hooks.json` (merging with anything
+already there, backing it up first), enables `[features] hooks = true`, and
+leaves the plugin's skills untouched. Run `/hooks` once more to trust them.
+
+### Without the plugin system
+
+```sh
+sh Attic/codex/install.sh          # skills + hooks + launcher, user-wide
 sh Attic/codex/install.sh --repo   # this repository only
+npx skills add NishikantaRay/Attic --skill 'attic*' -a codex   # skills only
 ```
 
-The installer copies the skills, registers the three hooks in
-`$CODEX_HOME/hooks.json` (merging with anything already there and backing it
-up first), sets `[features] hooks = true` if your config does not already,
-and installs the `attic` launcher. Re-running it does not duplicate entries.
+The first two install skills into `$CODEX_HOME/skills` and register user-level
+hooks. The last installs skills only, to `.agents/skills/`, with no
+automatic activation.
 
-One step it cannot do for you: putting `~/.local/bin` on your PATH. The
-installer tells you whether that is already the case.
+### What was verified, and how
 
-Verify:
-
-```sh
-attic --where      # prints the resolved attic.js path
-attic validate     # exits 0 on a healthy or absent attic
-```
-
-### Skills only, no hooks
-
-If you use the standard agent-skills installer:
-
-```sh
-npx skills add NishikantaRay/Attic --skill 'attic*' -a codex
-```
-
-This installs the skills to `.agents/skills/` and works, but **without the
-hooks you lose automatic activation**: nothing injects the index at session
-start, so you invoke the skill yourself (`$attic`) and the model reads
-`.attic/INDEX.md` when it needs it. The launcher finds the script at this
-path too. Use the full install if you want the attic to load on its own.
+| Claim | Evidence |
+|---|---|
+| Plugin installs from the marketplace | `codex plugin add attic@attic` on 0.153.2, cache at `~/.codex/plugins/cache/attic/attic/1.2.0` |
+| All 11 skills load from the plugin | the model listed all eleven `attic:*` skills |
+| `$attic-stash` writes through the script | item has script-rendered frontmatter; `attic validate` passes |
+| User-level hooks deliver the index | with trust bypassed, the model quoted the injected index line verbatim without running a command |
+| `off` suppresses injection | same run with `ATTIC_DEFAULT_MODE=off` reported nothing in context |
+| Plugin-bundled hooks fire in `codex exec` | **not observed**, see above |
+| `/hooks` trust flow | **not verifiable headlessly**; it is interactive by design |
 
 ## What differs from the Claude Code build
 
 | | Claude Code | Codex |
 |---|---|---|
-| Packaging | plugin marketplace, `plugin.json` | `install.sh`, no manifest |
+| Packaging | `.claude-plugin/plugin.json`, Claude marketplace | `.codex-plugin/plugin.json`, Codex marketplace |
 | Skill invocation | `/attic-stash` | `$attic-stash`, or the model picks it from the description |
-| Script path | `${CLAUDE_SKILL_DIR}` | `attic` on PATH |
+| Script path | `${CLAUDE_SKILL_DIR}` | a resolver line in each skill locates `attic.js` in the plugin cache, user skills, or `.agents/skills` |
 | State directory | plugin data dir | `$CODEX_HOME/attic` |
 | Frontmatter | `allowed-tools`, `argument-hint`, `disable-model-invocation` | stripped, Codex reads `name` and `description` |
 
@@ -126,8 +160,10 @@ A test fails if the committed `codex/` drifts from the source, and others
 assert that no Claude-only variable or frontmatter field leaks into it. That
 is what stops the two builds diverging silently.
 
-There is no marketplace or plugin manifest in the Codex build. Those are
-Claude Code concepts; Codex installs from the filesystem.
+The Codex build carries its own manifest, `.codex-plugin/plugin.json`, and
+the repository root carries `.agents/plugins/marketplace.json` so the repo
+itself is a Codex marketplace. Both are generated from the Claude manifest
+and a test keeps their versions in step.
 
 ## Uninstall
 

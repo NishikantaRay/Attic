@@ -6,14 +6,20 @@ description: >
   stashed", "list stashed items", "show the index", "how many items are in
   the attic". A question about a specific topic goes to attic-recall instead;
   this skill answers "what is in there", not "what did we find about X".
-version: 1.1.0
+version: 1.2.0
 license: MIT
 ---
 
 # Attic index
 
+First, in the same shell command as anything below, locate the script:
+
 ```bash
-attic index
+ATTIC_JS=$(ls -d "${CODEX_HOME:-$HOME/.codex}"/plugins/cache/attic/attic/*/skills/attic/scripts/attic.js "${CODEX_HOME:-$HOME/.codex}"/skills/attic/scripts/attic.js "$HOME"/.agents/skills/attic/scripts/attic.js .agents/skills/attic/scripts/attic.js 2>/dev/null | sort -V | tail -1)
+```
+
+```bash
+node "$ATTIC_JS" index
 ```
 
 Print the output as-is. If the script reports no `.attic/`, reply "Attic is

@@ -34,29 +34,29 @@ ${body}
 
 // ---------- 1. how it works ----------
 function howItWorks() {
-  const w = 880, h = 300;
+  const w = 880, h = 318;
   const box = (x, y, bw, bh, title, lines, stroke) => `
   <rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="8" fill="${C.panel}" stroke="${stroke || C.line}" stroke-width="1.5"/>
   <text x="${x + 14}" y="${y + 26}" font-family="${C.sans}" font-size="14" font-weight="600" fill="${C.text}">${esc(title)}</text>
   ${lines.map((l, i) => `<text x="${x + 14}" y="${y + 50 + i * 19}" font-family="${C.mono}" font-size="12" fill="${C.dim}">${esc(l)}</text>`).join('\n  ')}`;
-
   const arrow = (x1, y1, x2, y2, label) => `
   <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${C.accent}" stroke-width="2" marker-end="url(#a)"/>
   ${label ? `<text x="${(x1 + x2) / 2}" y="${y1 - 8}" text-anchor="middle" font-family="${C.sans}" font-size="11" fill="${C.accent}">${esc(label)}</text>` : ''}`;
-
+  const Y = 74;
   return svg(w, h, `
 <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
 <path d="M0,0 L10,5 L0,10 z" fill="${C.accent}"/></marker></defs>
 <text x="24" y="34" font-family="${C.sans}" font-size="17" font-weight="700" fill="${C.text}">How Attic works</text>
-${box(24, 56, 240, 108, 'You work', ['read 5 files', 'trace the bug', 'find the cause'])}
-${arrow(272, 110, 320, 110, 'stash')}
-${box(328, 56, 236, 108, '.attic/', ['items/redis-bug.md', 'INDEX.md  +1 line', 'DECISIONS.md'], C.good)}
-${arrow(572, 110, 620, 110, 'inject')}
-${box(628, 56, 228, 108, 'Next session', ['index in context', 'after /compact too', 'answers, no re-read'], C.accent)}
-<rect x="24" y="188" width="832" height="86" rx="8" fill="${C.panel}" stroke="${C.line}"/>
-<text x="40" y="214" font-family="${C.mono}" font-size="12.5" fill="${C.dim}">you:    why are users logged out at random?</text>
-<text x="40" y="238" font-family="${C.mono}" font-size="12.5" fill="${C.text}">claude: <tspan fill="${C.good}">attic:redis-eviction-bug</tspan> · maxmemory-policy is allkeys-lru, session keys get evicted.</text>
-<text x="40" y="260" font-family="${C.mono}" font-size="12.5" fill="${C.dim}">        fix is volatile-lru. <tspan fill="${C.warn}">no files read</tspan></text>`);
+<text x="24" y="56" font-family="${C.sans}" font-size="12.5" fill="${C.dim}">Claude Code · Codex CLI — same skills, same script, same hooks</text>
+${box(24, Y, 240, 108, 'You work', ['read 5 files', 'trace the bug', 'find the cause'])}
+${arrow(272, Y + 54, 320, Y + 54, 'stash')}
+${box(328, Y, 236, 108, '.attic/', ['items/redis-bug.md', 'INDEX.md  +1 line', 'DECISIONS.md'], C.good)}
+${arrow(572, Y + 54, 620, Y + 54, 'inject')}
+${box(628, Y, 228, 108, 'Next session', ['index in context', 'after /compact too', 'answers, no re-read'], C.accent)}
+<rect x="24" y="${Y + 132}" width="832" height="86" rx="8" fill="${C.panel}" stroke="${C.line}"/>
+<text x="40" y="${Y + 158}" font-family="${C.mono}" font-size="12.5" fill="${C.dim}">you:    why are users logged out at random?</text>
+<text x="40" y="${Y + 182}" font-family="${C.mono}" font-size="12.5" fill="${C.text}">claude: <tspan fill="${C.good}">attic:redis-eviction-bug</tspan> · maxmemory-policy is allkeys-lru, session keys get evicted.</text>
+<text x="40" y="${Y + 204}" font-family="${C.mono}" font-size="12.5" fill="${C.dim}">        fix is volatile-lru. <tspan fill="${C.warn}">no files read</tspan></text>`);
 }
 
 // ---------- 2. the scale fix ----------
@@ -84,37 +84,80 @@ ${bar(24, 176, arr, (i) => i === 3 || i >= 20, 'After: pinned + newest survive, 
 
 // ---------- 3. benchmark chart, from real data ----------
 function benchmark() {
-  // Chart the Codex run: its spread is 14 tokens across three runs, so it is
-  // the honest one to put a bar chart against.
-  const file = path.join(__dirname, '..', 'benchmarks', 'results', '2026-09-04-codex.json');
-  let data;
-  try { data = JSON.parse(fs.readFileSync(file, 'utf8')); }
-  catch (e) { return null; }
-  const c = data.cases.find((x) => x.id === 'cache-ttl');
-  if (!c) return null;
+  const load = (f) => { try { return JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'benchmarks', 'results', f), 'utf8')); } catch (e) { return null; } };
+  const codex = load('2026-09-04-codex.json'), claude = load('2026-09-04-run2.json'), claude1 = load('2026-09-04-run1.json');
+  if (!codex || !claude) return null;
+  const pick = (d) => { const c = d.cases.find((x) => x.id === 'cache-ttl'); return { no: c.noAttic.input.median, yes: c.attic.input.median, delta: c.inputDeltaPct }; };
+  const cold = (d) => { const c = d && d.cases.find((x) => x.id === 'cold-attic'); return c ? c.inputDeltaPct : null; };
+  const pct = (n) => `${n > 0 ? '+' : ''}${n}%`;
+  // The counter-case note must not call a measured win "overhead". Codex has
+  // one run; Claude Code has two that disagree, and that disagreement is the
+  // honest thing to show.
+  const coldNote = (deltas) => {
+    const ds = deltas.filter((d) => d !== null);
+    if (!ds.length) return null;
+    if (ds.length === 1) return `nothing relevant stashed: ${pct(ds[0])}  (${ds[0] > 0 ? 'the attic is overhead here' : 'noise; expect overhead'})`;
+    return `nothing relevant stashed: ${ds.map(pct).join(' and ')} across two runs  (noise dominates; expect overhead)`;
+  };
+  const groups = [['Codex CLI', pick(codex), coldNote([cold(codex)])], ['Claude Code', pick(claude), coldNote([cold(claude1), cold(claude)])]];
 
-  const w = 880, h = 268;
-  const noA = c.noAttic.input.median, wi = c.attic.input.median;
-  const BAR_X = 150, BAR_MAX = 380;           // leaves room for the label text
-  const scale = BAR_MAX / Math.max(noA, wi);
-  const row = (y, label, val, colour, extra) => {
+  const w = 880, h = 352;
+  const BAR_X = 150, BAR_MAX = 420;
+  const max = Math.max(...groups.flatMap((g) => [g[1].no, g[1].yes]));
+  const scale = BAR_MAX / max;
+  const bar = (y, label, val, colour, tag) => {
     const bw = Math.max(4, Math.round(val * scale));
     return `
-  <text x="24" y="${y + 18}" font-family="${C.sans}" font-size="13.5" fill="${C.text}">${esc(label)}</text>
-  <rect x="${BAR_X}" y="${y}" width="${bw}" height="26" rx="4" fill="${colour}"/>
-  <text x="${BAR_X + bw + 12}" y="${y + 18}" font-family="${C.mono}" font-size="12.5" fill="${C.text}">${val.toLocaleString()}</text>
-  <text x="${BAR_X + bw + 90}" y="${y + 18}" font-family="${C.sans}" font-size="12" fill="${C.dim}">${esc(extra || '')}</text>`;
+  <text x="24" y="${y + 17}" font-family="${C.sans}" font-size="13" fill="${C.text}">${esc(label)}</text>
+  <rect x="${BAR_X}" y="${y}" width="${bw}" height="24" rx="4" fill="${colour}"/>
+  <text x="${BAR_X + bw + 10}" y="${y + 17}" font-family="${C.mono}" font-size="12.5" fill="${C.text}">${val.toLocaleString()}</text>
+  ${tag ? `<text x="${BAR_X + bw + 92}" y="${y + 17}" font-family="${C.sans}" font-size="12.5" font-weight="700" fill="${colour}">${esc(tag)}</text>` : ''}`;
   };
-
+  let y = 82; const parts = [];
+  for (const [name, r, coldDelta] of groups) {
+    parts.push(`<text x="24" y="${y}" font-family="${C.sans}" font-size="13.5" font-weight="700" fill="${C.accent}">${esc(name)}</text>`);
+    parts.push(bar(y + 12, 'without attic', r.no, C.bad));
+    parts.push(bar(y + 44, 'with attic', r.yes, C.good, `${r.delta}%`));
+    if (coldDelta) parts.push(`<text x="${BAR_X}" y="${y + 90}" font-family="${C.sans}" font-size="11.5" fill="${C.dim}">${esc(coldDelta)}</text>`);
+    y += 118;
+  }
   return svg(w, h, `
 <text x="24" y="34" font-family="${C.sans}" font-size="17" font-weight="700" fill="${C.text}">Input tokens to answer one question about known code</text>
-<text x="24" y="56" font-family="${C.sans}" font-size="12.5" fill="${C.dim}">Codex CLI · 26-file fixture · median of 3 runs · both arms correct 3/3</text>
-${row(88, 'without attic', noA, C.bad, 'reads the repo')}
-${row(134, 'with attic', wi, C.good, 'answer already stashed')}
-<line x1="24" y1="188" x2="856" y2="188" stroke="${C.line}"/>
-<text x="24" y="212" font-family="${C.sans}" font-size="12.5" fill="${C.dim}">Across three runs the attic arm varied by 14 tokens. It ran zero shell commands;</text>
-<text x="24" y="232" font-family="${C.sans}" font-size="12.5" fill="${C.dim}">the other arm ran two to find the same answer. Claude Code shows the same</text>
-<text x="24" y="252" font-family="${C.sans}" font-size="12.5" fill="${C.warn}">direction. With nothing relevant stashed, Attic costs more: +2.5%.</text>`);
+<text x="24" y="56" font-family="${C.sans}" font-size="12.5" fill="${C.dim}">26-file fixture · median of 3 runs · every run on both hosts answered correctly</text>
+${parts.join('\n')}
+<line x1="24" y1="${y - 14}" x2="856" y2="${y - 14}" stroke="${C.line}"/>
+<text x="24" y="${y + 8}" font-family="${C.sans}" font-size="12" fill="${C.dim}">Same direction on two different agents and models. Codex varied by 14 tokens across runs; Claude Code</text>
+<text x="24" y="${y + 26}" font-family="${C.sans}" font-size="12" fill="${C.warn}">swung 30 points between runs, so read its bar as a range. Method and raw samples: benchmarks/README.md</text>`);
+}
+
+// ---------- 3b. architecture layers ----------
+function architecture() {
+  const w = 880, h = 420;
+  const layers = [
+    ['User intent', 'a question, a task, a "stash this"', C.dim],
+    ['Router', 'skill descriptions decide which attic skill fires, or none', C.accent],
+    ['Skill hub', 'SKILL.md rules · references/ loaded on demand · templates/', C.accent],
+    ['Script', 'attic.js: slugs, frontmatter, index, atomic writes, secret scan', C.good],
+    ['Enforcement', 'session hooks · pre-commit · CI · merge driver', C.good],
+    ['Evaluation', 'activation suite · behaviour suite · two-host benchmark', C.warn],
+  ];
+  const X = 24, W = 560, H = 44, GAP = 14; let y = 62; const out = [];
+  layers.forEach(([t, d, col], i) => {
+    out.push(`<rect x="${X}" y="${y}" width="${W}" height="${H}" rx="7" fill="${C.panel}" stroke="${col}" stroke-width="1.5"/>
+<text x="${X + 14}" y="${y + 19}" font-family="${C.sans}" font-size="13" font-weight="700" fill="${C.text}">${esc(t)}</text>
+<text x="${X + 14}" y="${y + 35}" font-family="${C.mono}" font-size="11" fill="${C.dim}">${esc(d)}</text>`);
+    if (i < layers.length - 1) out.push(`<line x1="${X + W / 2}" y1="${y + H}" x2="${X + W / 2}" y2="${y + H + GAP}" stroke="${C.line}" stroke-width="2"/>`);
+    y += H + GAP;
+  });
+  const side = (y1, y2, title, lines, col) => `
+<rect x="614" y="${y1}" width="242" height="${y2 - y1}" rx="7" fill="none" stroke="${col}" stroke-dasharray="4 3"/>
+<text x="628" y="${y1 + 22}" font-family="${C.sans}" font-size="13" font-weight="700" fill="${col}">${esc(title)}</text>
+${lines.map((l, i) => `<text x="628" y="${y1 + 44 + i * 18}" font-family="${C.sans}" font-size="11.5" fill="${C.dim}">${esc(l)}</text>`).join('\n')}`;
+  return svg(w, h, `
+<text x="24" y="34" font-family="${C.sans}" font-size="17" font-weight="700" fill="${C.text}">Use the model for judgement, software for certainty</text>
+${out.join('\n')}
+${side(62, 62 + 3 * H + 2 * GAP, 'Model decides', ['is this worth keeping?', 'what does the item say?', 'which slug, which kind?'], C.accent)}
+${side(62 + 3 * (H + GAP), 62 + 6 * H + 5 * GAP, 'Software decides', ['valid frontmatter, no dupes', 'no credential reaches disk', 'index survives merge + compact', 'did the skill actually fire?'], C.good)}`);
 }
 
 // ---------- 4. GIF frames ----------
@@ -124,7 +167,7 @@ function frames() {
   fs.mkdirSync(dir, { recursive: true });
 
   const W = 800, H = 360;
-  const term = (lines, caption) => {
+  const term = (lines, caption, host) => {
     const rows = lines.map((l, i) => {
       const y = 92 + i * 22;
       const fill = l.c || C.text;
@@ -133,7 +176,7 @@ function frames() {
     return svg(W, H, `
 <rect x="16" y="16" width="${W - 32}" height="${H - 72}" rx="9" fill="${C.panel}" stroke="${C.line}"/>
 <circle cx="40" cy="42" r="6" fill="#ff5f56"/><circle cx="60" cy="42" r="6" fill="#ffbd2e"/><circle cx="80" cy="42" r="6" fill="#27c93f"/>
-<text x="104" y="47" font-family="${C.sans}" font-size="12" fill="${C.dim}">claude code</text>
+<text x="104" y="47" font-family="${C.sans}" font-size="12" fill="${C.dim}">${esc(host || 'claude code')}</text>
 <line x1="16" y1="64" x2="${W - 16}" y2="64" stroke="${C.line}"/>
 ${rows}
 <text x="16" y="${H - 26}" font-family="${C.sans}" font-size="14" font-weight="600" fill="${C.accent}">${esc(caption)}</text>`);
@@ -174,12 +217,20 @@ ${rows}
     { t: 'Fix: compare Date.now() - at against a TTL.', c: C.text },
     { t: '' },
     { t: 'no files read', c: C.warn },
-  ], '4. It still knows. The attic survived.'));
+  ], '4. It still knows. The attic survived /compact.'));
+  S.push(term([
+    { t: '$attic-recall cache', c: C.accent },
+    { t: '' },
+    { t: 'attic:cache-no-ttl · get() ignores the stored', c: C.good },
+    { t: 'timestamp, so entries are served forever.', c: C.text },
+    { t: '' },
+    { t: 'same .attic/, different agent', c: C.warn },
+  ], '5. Same attic on Codex CLI.', 'codex'));
 
   // One file per scene. Duration is applied at assembly time, so the frames
   // stay cheap to rasterise.
   S.forEach((s, i) => fs.writeFileSync(path.join(dir, `scene${i}.svg`), s));
-  fs.writeFileSync(path.join(dir, 'holds.json'), JSON.stringify([1.5, 1.7, 2.6, 2.2, 3.2]));
+  fs.writeFileSync(path.join(dir, 'holds.json'), JSON.stringify([1.5, 1.7, 2.6, 2.2, 3.0, 3.0]));
   return { dir, count: S.length };
 }
 
@@ -187,6 +238,7 @@ const files = {
   'how-it-works.svg': howItWorks(),
   'scale-fix.svg': scaleFix(),
   'benchmark.svg': benchmark(),
+  'architecture.svg': architecture(),
 };
 for (const [name, content] of Object.entries(files)) {
   if (!content) { console.log(`skipped ${name} (no data)`); continue; }

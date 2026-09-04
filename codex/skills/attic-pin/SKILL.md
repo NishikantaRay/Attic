@@ -6,14 +6,20 @@ description: >
   this", "always remember this", "keep this in context", or when an item is
   a long-lived architectural decision or constraint that must survive.
   Use --unpin to reverse it.
-version: 1.1.0
+version: 1.2.0
 license: MIT
 ---
 
 # Pin an attic item
 
+First, in the same shell command as anything below, locate the script:
+
 ```bash
-attic pin $ARGUMENTS
+ATTIC_JS=$(ls -d "${CODEX_HOME:-$HOME/.codex}"/plugins/cache/attic/attic/*/skills/attic/scripts/attic.js "${CODEX_HOME:-$HOME/.codex}"/skills/attic/scripts/attic.js "$HOME"/.agents/skills/attic/scripts/attic.js .agents/skills/attic/scripts/attic.js 2>/dev/null | sort -V | tail -1)
+```
+
+```bash
+node "$ATTIC_JS" pin $ARGUMENTS
 ```
 
 Pinned items occupy a reserved share of the injected index, so they survive

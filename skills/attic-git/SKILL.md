@@ -7,7 +7,7 @@ description: >
   problem: "merge conflicts in INDEX.md", "the attic keeps conflicting",
   "conflict in DECISIONS.md", "share the attic with my team", "commit the
   attic", "onboard someone to our attic".
-version: 1.1.0
+version: 1.2.0
 license: MIT
 ---
 

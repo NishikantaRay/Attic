@@ -6,8 +6,8 @@ description: >
   "how many tokens is this saving", "how big is the attic", or questions the
   plugin's value.
 disable-model-invocation: true
-allowed-tools: Bash(node:*attic-stats.js*)
-version: 1.1.0
+allowed-tools: Bash(node "${CLAUDE_SKILL_DIR}/../../scripts/attic-stats.js" *)
+version: 1.2.0
 license: MIT
 ---
 

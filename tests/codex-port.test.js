@@ -48,10 +48,14 @@ test('no Claude-only frontmatter or variables survive the port', () => {
   }
 });
 
-test('ported skills invoke the launcher, not a node path', () => {
+test('ported skills locate their own script; Codex gives the model no skill path', () => {
   const stash = fs.readFileSync(path.join(CODEX, 'skills', 'attic-stash', 'SKILL.md'), 'utf8');
-  assert.match(stash, /^attic stash/m, 'should call the attic launcher');
-  assert.doesNotMatch(stash, /node "\$\{/, 'no variable-laden node invocation should remain');
+  assert.match(stash, /ATTIC_JS=\$\(ls -d/, 'the resolver line must be present');
+  assert.match(stash, /plugins\/cache\/attic\/attic\/\*/, 'resolver must cover the plugin cache');
+  assert.match(stash, /node "\$ATTIC_JS" stash/m, 'commands go through the resolved path');
+  assert.doesNotMatch(stash, /CLAUDE_SKILL_DIR/);
+  const idx = stash.indexOf('ATTIC_JS=$(');
+  assert.ok(idx > 0 && idx < stash.indexOf('node "$ATTIC_JS"'), 'resolver must precede its first use');
 });
 
 test('portFrontmatter drops folded continuation lines with their key', () => {
@@ -208,4 +212,66 @@ test('everything the skill actually references does ship', () => {
     assert.ok(fs.existsSync(path.join(atticDir, d)), `${d}/ is referenced by the skill and must ship`);
   }
   assert.ok(fs.existsSync(path.join(atticDir, 'scripts', 'attic.js')));
+});
+
+test('the installer does not create a duplicate [features] table', () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'attic-toml-'));
+  const codexHome = path.join(home, '.codex');
+  fs.mkdirSync(codexHome, { recursive: true });
+  fs.writeFileSync(path.join(codexHome, 'config.toml'), '[features]\nother = true\n\n[model]\nname = "x"\n');
+  const r = spawnSync('sh', [path.join(CODEX, 'install.sh')], {
+    encoding: 'utf8', env: Object.assign({}, process.env, { HOME: home, CODEX_HOME: codexHome }),
+  });
+  assert.equal(r.status, 0, r.stderr);
+  const cfg = fs.readFileSync(path.join(codexHome, 'config.toml'), 'utf8');
+  assert.equal((cfg.match(/^\[features\]/gm) || []).length, 1, 'TOML forbids a duplicate table');
+  assert.match(cfg, /hooks = true/);
+  assert.match(cfg, /other = true/, 'existing keys must survive');
+});
+
+test('the Codex build is a native plugin: manifest, plugin-root hooks, marketplace', () => {
+  const m = JSON.parse(fs.readFileSync(path.join(CODEX, '.codex-plugin', 'plugin.json'), 'utf8'));
+  assert.equal(m.name, 'attic');
+  assert.equal(m.skills, './skills/');
+  const claude = JSON.parse(fs.readFileSync(path.join(ROOT, '.claude-plugin', 'plugin.json'), 'utf8'));
+  assert.equal(m.version, claude.version, 'both manifests must carry the same version');
+  assert.doesNotMatch(m.description, /\bClaude\b/, 'the Codex manifest must not say Claude');
+
+  // Plugin hooks resolve relative to the plugin root: no ${ATTIC_HOME}.
+  const h = JSON.parse(fs.readFileSync(path.join(CODEX, 'hooks.json'), 'utf8'));
+  const cmds = JSON.stringify(h);
+  assert.doesNotMatch(cmds, /\$\{ATTIC_HOME\}|\$\{CLAUDE_PLUGIN_ROOT\}/);
+  assert.match(cmds, /node \\"\.\/hooks\/attic-activate\.js\\"/);
+  for (const ev of ['SessionStart', 'UserPromptSubmit', 'SubagentStart']) assert.ok(h.hooks[ev], `${ev} missing`);
+
+  const mk = JSON.parse(fs.readFileSync(path.join(ROOT, '.agents', 'plugins', 'marketplace.json'), 'utf8'));
+  assert.equal(mk.plugins[0].name, 'attic');
+  assert.equal(mk.plugins[0].source.path, './codex', 'the marketplace must point at the generated build');
+});
+
+test('the launcher finds attic.js in the Codex plugin cache', () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'attic-pc-'));
+  const codexHome = path.join(home, '.codex');
+  const dst = path.join(codexHome, 'plugins', 'cache', 'attic', 'attic', '1.2.0', 'skills');
+  fs.cpSync(path.join(CODEX, 'skills'), dst, { recursive: true });
+  const proj = fs.mkdtempSync(path.join(os.tmpdir(), 'attic-pcp-'));
+  const r = spawnSync('sh', [path.join(CODEX, 'bin', 'attic'), '--where'], {
+    cwd: proj, encoding: 'utf8', env: Object.assign({}, process.env, { CODEX_HOME: codexHome, ATTIC_HOME: '' }),
+  });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout.trim(), /plugins\/cache\/attic\/attic\/1\.2\.0\/skills\/attic\/scripts\/attic\.js$/);
+});
+
+test('install.sh --hooks-only registers hooks without copying skills', () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'attic-ho-'));
+  const codexHome = path.join(home, '.codex');
+  const r = spawnSync('sh', [path.join(CODEX, 'install.sh'), '--hooks-only'], {
+    encoding: 'utf8', env: Object.assign({}, process.env, { HOME: home, CODEX_HOME: codexHome }),
+  });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(fs.existsSync(path.join(codexHome, 'skills')), false, 'skills must not be copied');
+  assert.ok(fs.existsSync(path.join(codexHome, 'hooks', 'attic-activate.js')));
+  const h = JSON.parse(fs.readFileSync(path.join(codexHome, 'hooks.json'), 'utf8'));
+  assert.ok(h.hooks.SessionStart, 'hooks registered');
+  assert.match(r.stdout, /\/hooks/, 'must tell the user about the one-time trust step');
 });

@@ -7,8 +7,8 @@ description: >
   attic:<slug> handle. A question with no topic that just asks what the attic
   contains goes to attic-index instead.
 argument-hint: "<slug or search words>"
-allowed-tools: Bash(node:*attic.js*)
-version: 1.1.0
+allowed-tools: Bash(node "${CLAUDE_SKILL_DIR}/../attic/scripts/attic.js" *) Bash(node "${CLAUDE_SKILL_DIR}/../attic/scripts/attic.js"*)
+version: 1.2.0
 license: MIT
 ---
 

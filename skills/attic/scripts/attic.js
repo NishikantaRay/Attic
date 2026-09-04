@@ -72,9 +72,11 @@ function withLock(file, fn) {
   const lock = file + '.lock';
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const deadline = Date.now() + 5000;
+  let acquired = false;
   for (;;) {
     try {
       fs.mkdirSync(lock);
+      acquired = true;
       break;
     } catch (e) {
       if (e.code !== 'EEXIST') throw e;
@@ -87,7 +89,8 @@ function withLock(file, fn) {
     }
   }
   try { return fn(); }
-  finally { try { fs.rmdirSync(lock); } catch (e) { /* already released */ } }
+  // Only release a lock we hold. On the timeout path someone else owns it.
+  finally { if (acquired) { try { fs.rmdirSync(lock); } catch (e) { /* already released */ } } }
 }
 
 // ---------- secret detection (mechanical, not model judgement) ----------
@@ -101,7 +104,11 @@ const SECRET_PATTERNS = [
   [/-----BEGIN (?:RSA |EC |OPENSSH |PGP )?PRIVATE KEY-----/, 'private key block'],
   [/\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/, 'JWT'],
   [/\b(?:postgres|postgresql|mysql|mongodb(?:\+srv)?|redis|amqp):\/\/[^\s:@/]+:[^\s@/]+@/, 'connection string with password'],
-  [/(?:password|passwd|secret|api[_-]?key|access[_-]?token|client[_-]?secret)\s*[:=]\s*["']?(?!\s*$)(?!(?:<|\$|\{|xxx|placeholder|redacted|your[_-]|example|changeme|\*+|\.\.\.))[^\s"'`,;]{8,}/i, 'assigned credential'],
+  // An assigned credential LITERAL. A finding that says how a secret is
+  // loaded ("api_key = process.env.API_KEY", "password = getPassword(user)")
+  // is exactly the kind of thing worth stashing, so code-shaped values are
+  // not flagged: only a quoted string, or a bare token with a digit in it.
+  [/(?:password|passwd|secret|api[_-]?key|access[_-]?token|client[_-]?secret)\s*[:=]\s*(?:["'](?!(?:<|\$|\{|xxx|placeholder|redacted|your[_-]|example|changeme|\*+|\.\.\.))[^"'\n]{8,}["']|(?![A-Za-z_][\w]*(?:[.(\[]))(?!(?:<|\$|\{|xxx|placeholder|redacted|your[_-]|example|changeme|\*+|\.\.\.))(?=[^\s"'`,;]*\d)[A-Za-z0-9_\-+/=]{8,})/i, 'assigned credential'],
 ];
 
 function scanSecrets(text) {
@@ -400,16 +407,20 @@ function cmdArchive(cwd, args) {
   fs.mkdirSync(path.dirname(to), { recursive: true });
   fs.renameSync(from, to);
 
-  // An archived item leaves the index; a restored one rejoins it.
-  const kept = readIndexLines(cwd).filter((l) => {
-    const e = parseIndexLine(l);
-    return e && e.slug !== slug;
+  // An archived item leaves the index; a restored one rejoins it. The read
+  // happens under the same lock as the write, or a concurrent stash between
+  // the two would be lost.
+  withLock(p.index, () => {
+    const kept = readIndexLines(cwd).filter((l) => {
+      const e = parseIndexLine(l);
+      return e && e.slug !== slug;
+    });
+    if (restore) {
+      const parsed = parseFrontmatter(fs.readFileSync(to, 'utf8'));
+      kept.push(`- [${slug}](items/${slug}.md) · ${parsed.meta.kind || 'note'} · ${truncateHook(parsed.meta.title || slug)}`);
+    }
+    writeAtomic(p.index, INDEX_HEADER + kept.join('\n') + (kept.length ? '\n' : ''));
   });
-  if (restore) {
-    const parsed = parseFrontmatter(fs.readFileSync(to, 'utf8'));
-    kept.push(`- [${slug}](items/${slug}.md) · ${parsed.meta.kind || 'note'} · ${truncateHook(parsed.meta.title || slug)}`);
-  }
-  withLock(p.index, () => writeAtomic(p.index, INDEX_HEADER + kept.join('\n') + (kept.length ? '\n' : '')));
   return { ok: true, slug, handle: `attic:${slug}`, archived: !restore, file: path.relative(cwd, to) };
 }
 

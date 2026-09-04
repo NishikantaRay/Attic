@@ -7,11 +7,17 @@ description: >
   problem: "merge conflicts in INDEX.md", "the attic keeps conflicting",
   "conflict in DECISIONS.md", "share the attic with my team", "commit the
   attic", "onboard someone to our attic".
-version: 1.1.0
+version: 1.2.0
 license: MIT
 ---
 
 # Attic and git
+
+First, in the same shell command as anything below, locate the script:
+
+```bash
+ATTIC_JS=$(ls -d "${CODEX_HOME:-$HOME/.codex}"/plugins/cache/attic/attic/*/skills/attic/scripts/attic.js "${CODEX_HOME:-$HOME/.codex}"/skills/attic/scripts/attic.js "$HOME"/.agents/skills/attic/scripts/attic.js .agents/skills/attic/scripts/attic.js 2>/dev/null | sort -V | tail -1)
+```
 
 `.attic/INDEX.md` and `DECISIONS.md` are append-only, so two branches that
 each stash something will conflict on every merge. The fix is a union merge
@@ -33,7 +39,7 @@ git config merge.attic.name "attic union merge"
 git config merge.attic.driver "node <path-to-plugin>/scripts/attic-merge.js %O %A %B %P"
 ```
 
-   Resolve `<path-to-plugin>` from `$(attic --skills-dir)/attic/../..` and show the
+   Resolve `<path-to-plugin>` from `$(dirname "$ATTIC_JS")/../../..` and show the
    real path in the command you print.
 
 3. Verify by describing the check, or running it in a scratch clone: two

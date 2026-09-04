@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="420" viewBox="0 0 880 420" role="img">
+<rect width="880" height="420" rx="10" fill="#0d1117"/>
+
+<text x="24" y="34" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="17" font-weight="700" fill="#e6edf3">Use the model for judgement, software for certainty</text>
+<rect x="24" y="62" width="560" height="44" rx="7" fill="#161b22" stroke="#8b949e" stroke-width="1.5"/>
+<text x="38" y="81" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="13" font-weight="700" fill="#e6edf3">User intent</text>
+<text x="38" y="97" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11" fill="#8b949e">a question, a task, a "stash this"</text>
+<line x1="304" y1="106" x2="304" y2="120" stroke="#30363d" stroke-width="2"/>
+<rect x="24" y="120" width="560" height="44" rx="7" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
+<text x="38" y="139" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="13" font-weight="700" fill="#e6edf3">Router</text>
+<text x="38" y="155" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11" fill="#8b949e">skill descriptions decide which attic skill fires, or none</text>
+<line x1="304" y1="164" x2="304" y2="178" stroke="#30363d" stroke-width="2"/>
+<rect x="24" y="178" width="560" height="44" rx="7" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
+<text x="38" y="197" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="13" font-weight="700" fill="#e6edf3">Skill hub</text>
+<text x="38" y="213" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11" fill="#8b949e">SKILL.md rules · references/ loaded on demand · templates/</text>
+<line x1="304" y1="222" x2="304" y2="236" stroke="#30363d" stroke-width="2"/>
+<rect x="24" y="236" width="560" height="44" rx="7" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+<text x="38" y="255" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="13" font-weight="700" fill="#e6edf3">Script</text>
+<text x="38" y="271" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11" fill="#8b949e">attic.js: slugs, frontmatter, index, atomic writes, secret scan</text>
+<line x1="304" y1="280" x2="304" y2="294" stroke="#30363d" stroke-width="2"/>
+<rect x="24" y="294" width="560" height="44" rx="7" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+<text x="38" y="313" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="13" font-weight="700" fill="#e6edf3">Enforcement</text>
+<text x="38" y="329" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11" fill="#8b949e">session hooks · pre-commit · CI · merge driver</text>
+<line x1="304" y1="338" x2="304" y2="352" stroke="#30363d" stroke-width="2"/>
+<rect x="24" y="352" width="560" height="44" rx="7" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+<text x="38" y="371" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="13" font-weight="700" fill="#e6edf3">Evaluation</text>
+<text x="38" y="387" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11" fill="#8b949e">activation suite · behaviour suite · two-host benchmark</text>
+
+<rect x="614" y="62" width="242" height="160" rx="7" fill="none" stroke="#58a6ff" stroke-dasharray="4 3"/>
+<text x="628" y="84" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="13" font-weight="700" fill="#58a6ff">Model decides</text>
+<text x="628" y="106" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11.5" fill="#8b949e">is this worth keeping?</text>
+<text x="628" y="124" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11.5" fill="#8b949e">what does the item say?</text>
+<text x="628" y="142" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11.5" fill="#8b949e">which slug, which kind?</text>
+
+<rect x="614" y="236" width="242" height="160" rx="7" fill="none" stroke="#3fb950" stroke-dasharray="4 3"/>
+<text x="628" y="258" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="13" font-weight="700" fill="#3fb950">Software decides</text>
+<text x="628" y="280" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11.5" fill="#8b949e">valid frontmatter, no dupes</text>
+<text x="628" y="298" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11.5" fill="#8b949e">no credential reaches disk</text>
+<text x="628" y="316" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11.5" fill="#8b949e">index survives merge + compact</text>
+<text x="628" y="334" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="11.5" fill="#8b949e">did the skill actually fire?</text>
+</svg>

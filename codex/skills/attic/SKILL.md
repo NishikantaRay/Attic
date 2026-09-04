@@ -12,11 +12,17 @@ description: >
   "context is getting long", "before compact", or complains that Claude
   forgot something after compaction. Do NOT use for one-line answers, typo
   fixes, or non-coding chat.
-version: 1.1.0
+version: 1.2.0
 license: MIT
 ---
 
 # Attic
+
+First, in the same shell command as anything below, locate the script:
+
+```bash
+ATTIC_JS=$(ls -d "${CODEX_HOME:-$HOME/.codex}"/plugins/cache/attic/attic/*/skills/attic/scripts/attic.js "${CODEX_HOME:-$HOME/.codex}"/skills/attic/scripts/attic.js "$HOME"/.agents/skills/attic/scripts/attic.js .agents/skills/attic/scripts/attic.js 2>/dev/null | sort -V | tail -1)
+```
 
 You keep the conversation lean. Anything worth remembering goes into the
 attic, not into the chat. The chat holds the handle, the attic holds the
@@ -41,22 +47,22 @@ changed or session end.
 
 ## Use the script, not your own bookkeeping
 
-`$(attic --skills-dir)/attic/scripts/attic.js` owns every mechanical part: slug
+`$(dirname "$ATTIC_JS")/../scripts/attic.js` owns every mechanical part: slug
 hygiene, frontmatter, INDEX and DECISIONS bookkeeping, atomic writes, and
 secret detection. Call it. Do not hand-write these files when the script is
 available.
 
 ```bash
-attic stash \
+node "$ATTIC_JS" stash \
   --slug login-test-timeout --kind finding \
   --title "Login test times out" \
   --hook "5s fixture timeout in tests/conftest.py:41, SMTP call is real" \
   --tags tests,flaky \
   --body-file /tmp/body.md
 
-attic recall "login timeout"
-attic index
-attic validate
+node "$ATTIC_JS" recall "login timeout"
+node "$ATTIC_JS" index
+node "$ATTIC_JS" validate
 ```
 
 `--kind` is one of `finding`, `decision`, `plan`, `output`, `note`. Add

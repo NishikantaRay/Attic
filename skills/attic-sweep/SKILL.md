@@ -8,8 +8,8 @@ description: >
   "checkpoint", "context is getting long", "summarise what we've done so
   far", "where are we", or "recap the session". A request to recap session
   progress IS a sweep: give the recap and persist it in the same pass.
-allowed-tools: Bash(node:*attic.js*)
-version: 1.1.0
+allowed-tools: Bash(node "${CLAUDE_SKILL_DIR}/../attic/scripts/attic.js" *) Bash(node "${CLAUDE_SKILL_DIR}/../attic/scripts/attic.js"*)
+version: 1.2.0
 license: MIT
 ---
 

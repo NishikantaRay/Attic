@@ -381,3 +381,54 @@ test('an empty .attic directory degrades gracefully', () => {
   const rt = require(path.join(__dirname, '..', 'hooks', 'attic-runtime.js'));
   assert.equal(rt.loadIndex(cwd), null, 'no index means nothing injected');
 });
+
+// ---------- regressions from the full review ----------
+
+test('secret scan does not refuse findings about how credentials are loaded', () => {
+  // These are exactly the security findings worth stashing. Refusing them
+  // made the plugin useless for auth work.
+  const legit = [
+    'the code reads api_key = process.env.API_KEY at startup',
+    'secret: config.jwtSecret is loaded from vault',
+    'password = getPassword(user) in auth.ts:40',
+    'access_token=req.headers.authorization.split(" ")[1]',
+    'client_secret: settings.OAUTH_CLIENT_SECRET',
+  ];
+  for (const s of legit) assert.deepEqual(lib.scanSecrets(s), [], `false positive on: ${s}`);
+  // and real literals are still caught
+  for (const s of ['api_key = "s3cr3tvalue1234"', 'client_secret: a8f3k2j9d0s1l4m7']) {
+    assert.ok(lib.scanSecrets(s).length, `missed: ${s}`);
+  }
+});
+
+test('archive does not lose a concurrent stash', async () => {
+  const cwd = proj();
+  for (let i = 0; i < 4; i++) run(cwd, ['stash', '--slug', `keep-${i}`, '--kind', 'note', '--hook', 'h', '--body', 'b']);
+  run(cwd, ['stash', '--slug', 'victim', '--kind', 'note', '--hook', 'h', '--body', 'b']);
+  const { spawn } = require('node:child_process');
+  // archive one item while four new stashes race it
+  await Promise.all([
+    new Promise((res) => spawn(process.execPath, [SCRIPT, 'archive', 'victim', '--cwd', cwd], { stdio: 'ignore' }).on('exit', res)),
+    ...[...Array(4)].map((_, i) => new Promise((res) =>
+      spawn(process.execPath, [SCRIPT, 'stash', '--slug', `race-${i}`, '--kind', 'note', '--hook', 'h', '--body', 'b', '--cwd', cwd], { stdio: 'ignore' }).on('exit', res))),
+  ]);
+  const idx = fs.readFileSync(path.join(cwd, '.attic', 'INDEX.md'), 'utf8');
+  for (let i = 0; i < 4; i++) assert.match(idx, new RegExp(`race-${i}\\]`), `race-${i} lost by a concurrent archive`);
+  assert.doesNotMatch(idx, /victim\]/);
+  assert.equal(run(cwd, ['validate']).status, 0);
+});
+
+test('withLock never releases a lock it did not acquire', () => {
+  const cwd = proj();
+  fs.mkdirSync(path.join(cwd, '.attic'), { recursive: true });
+  const file = path.join(cwd, '.attic', 'INDEX.md');
+  const lock = file + '.lock';
+  fs.mkdirSync(lock);                       // someone else holds it, fresh
+  const t0 = Date.now();
+  // Shorten the wait by making the stale check think the lock is brand new
+  // (it is). withLock gives up after its deadline and proceeds.
+  lib.withLock(file, () => {});
+  assert.ok(Date.now() - t0 >= 4500, 'should have waited for the deadline');
+  assert.ok(fs.existsSync(lock), 'the foreign lock must still be there afterwards');
+  fs.rmdirSync(lock);
+});

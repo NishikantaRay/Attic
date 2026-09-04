@@ -8,11 +8,17 @@ description: >
   "checkpoint", "context is getting long", "summarise what we've done so
   far", "where are we", or "recap the session". A request to recap session
   progress IS a sweep: give the recap and persist it in the same pass.
-version: 1.1.0
+version: 1.2.0
 license: MIT
 ---
 
 # Sweep the session into the attic
+
+First, in the same shell command as anything below, locate the script:
+
+```bash
+ATTIC_JS=$(ls -d "${CODEX_HOME:-$HOME/.codex}"/plugins/cache/attic/attic/*/skills/attic/scripts/attic.js "${CODEX_HOME:-$HOME/.codex}"/skills/attic/scripts/attic.js "$HOME"/.agents/skills/attic/scripts/attic.js .agents/skills/attic/scripts/attic.js 2>/dev/null | sort -V | tail -1)
+```
 
 Goal: after this runs, a fresh session that reads only `.attic/INDEX.md`
 could continue the work.
@@ -27,14 +33,14 @@ Pipeline:
    existing item where there is genuinely new detail.
 
 ```bash
-attic index
+node "$ATTIC_JS" index
 ```
 
 3. **Write.** One stash per finding or decision, following `/attic-stash`.
    Then one session item, using `templates/session.md` as the shape:
 
 ```bash
-attic stash \
+node "$ATTIC_JS" stash \
   --slug session-$(date +%F) --kind plan --title "Session $(date +%F)" \
   --hook "<what this session is doing, one line>" --body-file <tmpfile>
 ```
@@ -42,7 +48,7 @@ attic stash \
 4. **Verify.**
 
 ```bash
-attic validate
+node "$ATTIC_JS" validate
 ```
 
    Fix anything it reports before finishing.

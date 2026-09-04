@@ -4,7 +4,8 @@
 // level persists across turns, and confirm the change to Claude.
 const rt = require('./attic-runtime');
 
-const CMD = /^\s*[\/@$]attic(?:\s+(lite|full|ultra|off|default))?(?:\s+(lite|full|ultra|off))?\s*$/i;
+// Installed Claude Code plugins are namespaced: /attic:attic. Accept both forms.
+const CMD = /^\s*[\/@$](?:attic:)?attic(?:\s+(lite|full|ultra|off|default))?(?:\s+(lite|full|ultra|off))?\s*$/i;
 const STOP = /^\s*(stop attic|attic off|normal mode)\s*$/i;
 
 function detect(text) {

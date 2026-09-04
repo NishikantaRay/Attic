@@ -1,0 +1,19 @@
+{
+  "name": "attic",
+  "interface": {
+    "displayName": "Attic"
+  },
+  "plugins": [
+    {
+      "name": "attic",
+      "source": {
+        "source": "local",
+        "path": "./codex"
+      },
+      "policy": {
+        "installation": "AVAILABLE"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

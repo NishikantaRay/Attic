@@ -35,6 +35,21 @@ iterating and run the full suite once before submitting.
 Skill versions in frontmatter and `plugin.json` move together; a test
 enforces it.
 
+## Releasing
+
+The version lives in the Claude manifest, `package.json`, and the frontmatter
+of all eleven skills; the Codex manifest is generated from the Claude one. A
+test fails if any of them drift, so change them together:
+
+```bash
+npm run bump -- 1.3.0        # updates every file and regenerates codex/
+```
+
+Then add a `CHANGELOG.md` section, run `npm test`, reinstall the plugin on
+each host you can reach and confirm it loads, and tag the commit. Patch for
+wording and reference files, minor for new behaviour, major for any change
+to the on-disk `.attic/` format.
+
 ## Principles
 
 - **Software for certainty, AI for judgement.** If a rule can be enforced by
