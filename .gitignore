@@ -1,0 +1,4 @@
+node_modules/
+.DS_Store
+# This repo's own attic, if one is ever created while developing here
+.attic/

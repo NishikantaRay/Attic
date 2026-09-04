@@ -1,0 +1,40 @@
+{
+  "description": "Attic: inject the active level and .attic/INDEX.md at session start, track /attic level changes, brief subagents.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/attic-activate.js\"",
+            "timeout": 5,
+            "statusMessage": "Loading attic..."
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/attic-mode.js\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/attic-subagent.js\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

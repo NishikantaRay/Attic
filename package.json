@@ -1,0 +1,13 @@
+{
+  "name": "attic-claude",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Attic: a Claude Code plugin that offloads context into .attic/",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

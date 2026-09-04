@@ -1,0 +1,15 @@
+{
+  "name": "attic",
+  "displayName": "Attic",
+  "version": "0.1.0",
+  "description": "Offloads context. Claude stashes findings, decisions and long outputs into a project-local .attic/ folder and keeps only a one-line index in the conversation, so context stays lean and survives /compact.",
+  "author": {
+    "name": "Nishikanta Ray",
+    "url": "https://github.com/NishikantaRay"
+  },
+  "homepage": "https://github.com/NishikantaRay/Attic",
+  "repository": "https://github.com/NishikantaRay/Attic",
+  "license": "MIT",
+  "keywords": ["context", "memory", "tokens", "compaction", "notes"],
+  "hooks": "./hooks/hooks.json"
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "attic",
+  "description": "Attic: offload context for Claude Code. Stash findings and decisions in .attic/, keep the conversation lean, survive /compact.",
+  "owner": {
+    "name": "Nishikanta Ray",
+    "url": "https://github.com/NishikantaRay"
+  },
+  "plugins": [
+    {
+      "name": "attic",
+      "description": "Stashes findings, decisions and long outputs into .attic/ and keeps only a one-line index in context.",
+      "source": "./",
+      "category": "productivity"
+    }
+  ]
+}
