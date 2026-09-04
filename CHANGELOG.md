@@ -7,10 +7,15 @@ format is a public interface, so changing it is a major version.
 
 ### Added
 
-- A LinkedIn feed card, `assets/poster-linkedin.svg` and a 2x PNG. Light
-  ground for LinkedIn's white feed, no metrics, three steps saying what the
-  tool does. A feed image gets a second of attention, and a number there
+- A share card, `assets/social-card.svg` and a 2400x1254 PNG. The image is
+  the argument rather than a caption for it: the same finding appears twice,
+  dissolving mid-sentence on the left and filed with its handle on the right.
+  Warm paper ground, Charter for the headline, one reserved green. No
+  metrics: a feed image gets a second of attention, and a percentage there
   invites an argument about method rather than curiosity about the tool.
+- PNGs are rasterised with `rsvg-convert` at native size, replacing a
+  qlmanage workaround that fits every SVG into a square and silently cropped
+  the bottom of anything wider than tall.
 - A promotional poster. `scripts/make-poster.js` emits a 1200x1600 portrait
   and a 1200x630 social card, both reading their figures from
   `benchmarks/results/` and the eval results, so the poster cannot outlive

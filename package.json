@@ -11,7 +11,8 @@
     "bench": "node benchmarks/run.js --runs 3",
     "bump": "node scripts/bump-version.js",
     "make:logo": "node scripts/make-logo.js",
-    "make:poster": "node scripts/make-poster.js"
+    "make:poster": "node scripts/make-poster.js",
+    "make:social": "node scripts/make-social.js && rsvg-convert -w 2400 -h 1254 assets/social-card.svg -o assets/social-card.png"
   },
   "engines": {
     "node": ">=18"

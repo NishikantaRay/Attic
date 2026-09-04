@@ -294,7 +294,7 @@ returns. See [docs/HONEST-NUMBERS.md](docs/HONEST-NUMBERS.md).
 
 ## Project files
 
-[docs/QUICKSTART.md](docs/QUICKSTART.md) · [poster](assets/poster.svg) · [share card](assets/poster-linkedin.png) · [docs/COMMANDS.md](docs/COMMANDS.md) · [CHANGELOG.md](CHANGELOG.md) · [docs/CODEX.md](docs/CODEX.md) · [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) · [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/HONEST-NUMBERS.md](docs/HONEST-NUMBERS.md) · [docs/TEAM.md](docs/TEAM.md)
+[docs/QUICKSTART.md](docs/QUICKSTART.md) · [poster](assets/poster.svg) · [share card](assets/social-card.png) · [docs/COMMANDS.md](docs/COMMANDS.md) · [CHANGELOG.md](CHANGELOG.md) · [docs/CODEX.md](docs/CODEX.md) · [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) · [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/HONEST-NUMBERS.md](docs/HONEST-NUMBERS.md) · [docs/TEAM.md](docs/TEAM.md)
 
 ## Repository layout
 
@@ -325,7 +325,8 @@ sh scripts/publish-release.sh     # tag + publish a GitHub release (needs gh aut
 npm run bench                     # the two-arm token benchmark
 npm run make:assets               # regenerate the README diagrams
 npm run make:logo                 # regenerate the logo variants
-npm run make:poster               # regenerate the poster and social card
+npm run make:poster               # regenerate the poster (SVG)
+npm run make:social               # regenerate the share card (SVG + PNG)
 ```
 
 ## Uninstall
