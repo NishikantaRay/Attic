@@ -321,6 +321,7 @@ claude plugin validate . --strict # manifest and component checks
 claude --plugin-dir .             # load this checkout into a session
 npm run build:codex               # regenerate codex/ after changing a skill
 npm run bump -- 1.2.0             # move every version string together, then rebuild
+sh scripts/publish-release.sh     # tag + publish a GitHub release (needs gh auth login)
 npm run bench                     # the two-arm token benchmark
 npm run make:assets               # regenerate the README diagrams
 ```

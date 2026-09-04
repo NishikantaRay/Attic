@@ -46,7 +46,10 @@ npm run bump -- 1.3.0        # updates every file and regenerates codex/
 ```
 
 Then add a `CHANGELOG.md` section, run `npm test`, reinstall the plugin on
-each host you can reach and confirm it loads, and tag the commit. Patch for
+each host you can reach and confirm it loads. Update `docs/RELEASE-NOTES.md`
+and publish with `sh scripts/publish-release.sh`, which tags the commit and
+creates the GitHub release; it refuses to run on a dirty tree or an unpushed
+commit so the tag always matches what is on GitHub. Patch for
 wording and reference files, minor for new behaviour, major for any change
 to the on-disk `.attic/` format.
 
