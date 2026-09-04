@@ -93,3 +93,32 @@ test('every skill that runs the script declares a grant for it', () => {
     assert.match(raw, /^allowed-tools:/m, `${d}: runs a script but declares no grant, so it will prompt`);
   }
 });
+
+test('every skill appears in the command reference', () => {
+  // A command that exists but is undocumented is invisible to users.
+  const doc = fs.readFileSync(path.join(__dirname, '..', 'docs', 'COMMANDS.md'), 'utf8');
+  const skillsDir = path.join(__dirname, '..', 'skills');
+  for (const d of fs.readdirSync(skillsDir)) {
+    if (!fs.existsSync(path.join(skillsDir, d, 'SKILL.md'))) continue;
+    assert.ok(doc.includes('/' + d), `${d} is not documented in docs/COMMANDS.md`);
+  }
+});
+
+test('every attic.js subcommand appears in the command reference', () => {
+  const doc = fs.readFileSync(path.join(__dirname, '..', 'docs', 'COMMANDS.md'), 'utf8');
+  const src = fs.readFileSync(path.join(__dirname, '..', 'skills', 'attic', 'scripts', 'attic.js'), 'utf8');
+  const usage = src.match(/usage: attic\.js <([^>]+)>/);
+  assert.ok(usage, 'attic.js should print a usage line listing its subcommands');
+  for (const cmd of usage[1].split('|')) {
+    assert.match(doc, new RegExp(`\`${cmd}[ \`<]`), `attic.js ${cmd} is not documented`);
+  }
+});
+
+test('the try-attic demo script is present and executable', () => {
+  const p = path.join(__dirname, '..', 'scripts', 'try-attic.sh');
+  assert.ok(fs.existsSync(p), 'the demo script users are told to run must exist');
+  assert.ok(fs.statSync(p).mode & 0o111, 'try-attic.sh must be executable');
+  const src = fs.readFileSync(p, 'utf8');
+  assert.match(src, /mktemp -d/, 'the demo must work in a temp dir, not the user\'s project');
+  assert.match(src, /plugins\."attic@attic"\.enabled=false/, 'the Codex baseline must disable the installed plugin');
+});

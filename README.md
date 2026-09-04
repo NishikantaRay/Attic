@@ -1,11 +1,19 @@
-# Attic
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-wide.svg">
+    <source media="(prefers-color-scheme: light)" srcset="assets/logo-wide-light.svg">
+    <img src="assets/logo-wide-light.svg" alt="Attic — offload context. Keep the chat lean." width="480">
+  </picture>
+</p>
 
-[![version](https://img.shields.io/badge/version-1.2.0-2ea44f)](CHANGELOG.md)
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-plugin-7c3aed)](#install)
-[![Codex CLI](https://img.shields.io/badge/Codex%20CLI-plugin-10a37f)](docs/CODEX.md)
-[![activation evals](https://img.shields.io/badge/activation%20evals-22%2F22-2ea44f)](skills/attic/evals/results/)
-[![no telemetry](https://img.shields.io/badge/telemetry-none-lightgrey)](SECURITY.md)
-[![license](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
+<p align="center">
+  <a href="CHANGELOG.md"><img alt="version 1.2.0" src="https://img.shields.io/badge/version-1.2.0-2ea44f"></a>
+  <a href="#install"><img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-7c3aed"></a>
+  <a href="docs/CODEX.md"><img alt="Codex CLI plugin" src="https://img.shields.io/badge/Codex%20CLI-plugin-10a37f"></a>
+  <a href="skills/attic/evals/results/"><img alt="activation evals 22/22" src="https://img.shields.io/badge/activation%20evals-22%2F22-2ea44f"></a>
+  <a href="SECURITY.md"><img alt="no telemetry" src="https://img.shields.io/badge/telemetry-none-lightgrey"></a>
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-lightgrey"></a>
+</p>
 
 **Offload context.** A plugin for [Claude Code](https://claude.com/claude-code) and [Codex CLI](https://developers.openai.com/codex) that stashes findings, decisions and long outputs into a project-local `.attic/` folder and keeps only a one-line index in the conversation. The live context stays lean, and what matters survives `/compact`, `/clear` and new sessions.
 
@@ -45,6 +53,29 @@ Codex does not run hooks it has not reviewed. Same skills, same script, same
 hooks as the Claude Code build. Details, alternatives and exactly what was
 verified: [docs/CODEX.md](docs/CODEX.md).
 
+### Check it is on, then see the difference
+
+```
+/attic-help          # prints a card if the plugin is loaded
+/attic               # reports and sets the level
+```
+
+```sh
+sh scripts/try-attic.sh              # side by side, on a throwaway project
+sh scripts/try-attic.sh --host codex
+```
+
+It asks one question twice, with and without the answer stashed, and prints
+both answers and both token counts. Measured on 2026-09-04:
+
+| | Without attic | With attic |
+|---|---|---|
+| Claude Code | 92,976 tokens, 3 turns | 30,201 tokens, 1 turn |
+| Codex CLI | 85,434 tokens, 3 shell commands | 15,717 tokens, 0 commands |
+
+Both arms answered correctly. Full walkthrough, including how to watch a
+finding survive `/compact`: [docs/QUICKSTART.md](docs/QUICKSTART.md).
+
 Requires Node.js on `PATH` for the hooks. Without Node the skills and commands still work; only the automatic session-start injection is lost.
 
 Try it without installing:
@@ -74,6 +105,9 @@ If the index ever gets out of step with the items, it is derived data and can
 be regenerated: `node skills/attic/scripts/attic.js rebuild`. The item files
 are the source of truth, so nothing is lost.
 | `/attic-help` | One-screen reference. |
+
+Every command, every script flag and every exit code:
+[docs/COMMANDS.md](docs/COMMANDS.md).
 
 Installed plugins are namespaced, so the fully qualified form is `/attic:attic-help`; the short form works when no other plugin claims the name.
 
@@ -260,7 +294,7 @@ returns. See [docs/HONEST-NUMBERS.md](docs/HONEST-NUMBERS.md).
 
 ## Project files
 
-[CHANGELOG.md](CHANGELOG.md) · [docs/CODEX.md](docs/CODEX.md) · [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) · [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/HONEST-NUMBERS.md](docs/HONEST-NUMBERS.md) · [docs/TEAM.md](docs/TEAM.md)
+[docs/QUICKSTART.md](docs/QUICKSTART.md) · [docs/COMMANDS.md](docs/COMMANDS.md) · [CHANGELOG.md](CHANGELOG.md) · [docs/CODEX.md](docs/CODEX.md) · [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) · [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/HONEST-NUMBERS.md](docs/HONEST-NUMBERS.md) · [docs/TEAM.md](docs/TEAM.md)
 
 ## Repository layout
 

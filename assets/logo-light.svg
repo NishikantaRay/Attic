@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 100 100" role="img" aria-label="Attic">
+<title>Attic</title>
+
+  <path d="M 50.00,10.00 L 88.00,43.00 L 88.00,52.00 L 50.00,19.00 L 12.00,52.00 L 12.00,43.00 Z" fill="#0969da"/>
+  <path d="M 20.00,44.00 L 20.00,88.00 L 26.00,88.00 L 26.00,44.00 Z" fill="#0969da" opacity="0.55"/>
+  <path d="M 74.00,44.00 L 74.00,88.00 L 80.00,88.00 L 80.00,44.00 Z" fill="#0969da" opacity="0.55"/>
+  <rect x="30.00" y="56.00" width="40.00" height="9.00" rx="2.50" fill="#aecfb8" opacity="0.5"/>
+  <rect x="30.00" y="69.00" width="40.00" height="9.00" rx="2.50" fill="#aecfb8" opacity="0.8"/>
+  <rect x="30.00" y="82.00" width="40.00" height="9.00" rx="2.50" fill="#1a7f37"/>
+</svg>

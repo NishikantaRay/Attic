@@ -3,6 +3,29 @@
 All notable changes to Attic. Versions follow semver: the on-disk `.attic/`
 format is a public interface, so changing it is a major version.
 
+## [Unreleased]
+
+### Added
+
+- A logo. `scripts/make-logo.js` generates four variants from one source: a
+  square mark for avatars and favicons, and a wordmark for the README, each
+  in a light and a dark form. The README picks per theme with `<picture>`.
+  The mark is a gable roof and wall posts around three stacked bars, the
+  bottom one highlighted, because "the newest item always survives the trim"
+  is the behaviour that matters most.
+
+- `scripts/try-attic.sh` — a side-by-side demo. Builds a throwaway 26-file
+  project with one real bug, asks the same question with and without the
+  finding stashed, and prints both answers and both token counts. Works on
+  both hosts. The Codex arm disables the installed plugin per-invocation so
+  the baseline is not contaminated by its own skill listing.
+- `docs/QUICKSTART.md` — how to tell whether the plugin is active, how to see
+  the difference, and how to watch a finding survive `/compact`.
+- `docs/COMMANDS.md` — every command, level, script flag and exit code, plus
+  which phrases make each skill fire on its own.
+- A test that fails if a skill exists but is undocumented, so the reference
+  cannot drift from the plugin.
+
 ## [1.2.0] - 2026-09-04
 
 Codex CLI support, a benchmark that runs on both hosts, and the fixes from a
