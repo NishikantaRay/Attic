@@ -25,6 +25,7 @@
  *   node extract.js --project <substr>    filter by project path
  *   node extract.js --since 2026-09-01    only sessions after a date
  *   node extract.js --min-reads 5         skip sessions too small to score
+ *   node extract.js --include-scratch     include temp dirs and benchmark runs
  */
 const fs = require('fs');
 const os = require('os');
@@ -126,9 +127,17 @@ function summarise(rows) {
 
 function projectLabel(slug) {
   // Slugs are the absolute path with / . and _ replaced by -; the tail is the
-  // only readable part, so show that.
+  // only readable part. Keep the whole slug as the identity so distinct
+  // directories never collapse into one row — a shared label made 200
+  // unrelated temp projects look like a single busy project.
   return slug.replace(/^-+/, '').split('-').slice(-3).join('-');
 }
+
+// Scratch work: temp dirs, this tool's own benchmark and test fixtures. Real
+// projects live under a home directory, not /tmp or /var/folders.
+const SCRATCH = /^-?private-var-folders|^-?var-folders|^-?tmp-|scratchpad|attic-bench-|bench-(attic|baseline|noAttic)-|^-?T-tmp-|beh-a\d-/;
+
+function isScratch(slug) { return SCRATCH.test(slug); }
 
 function collect(opts = {}) {
   const rows = [];
@@ -141,6 +150,7 @@ function collect(opts = {}) {
     const s = summarise(readRows(file));
     if (!s) continue;
     if (opts.minReads && s.totalReads < opts.minReads) continue;
+    if (!opts.includeScratch && isScratch(project)) continue;
     rows.push(Object.assign({
       project, label: projectLabel(project),
       session: path.basename(file, '.jsonl'),
@@ -202,9 +212,10 @@ function main() {
     project: typeof args.project === 'string' ? args.project : null,
     since: args.since ? Date.parse(args.since) : null,
     minReads: args['min-reads'] ? parseInt(args['min-reads'], 10) : 0,
+    includeScratch: !!args['include-scratch'],
   });
   process.stdout.write((args.json ? JSON.stringify(rows, null, 2) : render(rows)) + '\n');
 }
 
 if (require.main === module) main();
-module.exports = { collect, summarise, readRows, listTranscripts, projectLabel, render };
+module.exports = { collect, summarise, readRows, listTranscripts, projectLabel, isScratch, render };

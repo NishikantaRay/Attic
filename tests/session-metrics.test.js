@@ -80,3 +80,67 @@ test('filters narrow the set without changing the numbers', () => {
 test('project labels stay readable', () => {
   assert.equal(projectLabel('-Users-nishikantaray-Desktop-Personal-Attic'), 'Desktop-Personal-Attic');
 });
+
+// ---------- layer 2/3: aggregation and trend ----------
+
+const { group, verdict, median, MIN_FOR_TREND } = require('../tools/session-metrics/report.js');
+const { isScratch } = require('../tools/session-metrics/extract.js');
+
+const sess = (slug, rate, day) => ({
+  project: '-Users-x-' + slug, label: slug, repeatRate: rate,
+  mtime: Date.parse('2026-09-' + String(day).padStart(2, '0')),
+  date: '2026-09-' + String(day).padStart(2, '0'),
+  turns: 40, inputTokens: 1e6, edits: 2,
+});
+
+test('a trend is refused until there are enough scored sessions', () => {
+  for (const n of [1, 2, 3]) {
+    const e = group([...Array(n)].map((_, i) => sess('demo', 0.5, i + 1)))[0];
+    assert.equal(e.trend, null, `${n} session(s) must not produce a trend`);
+    assert.match(verdict(e).join(' '), /not enough to call a trend/);
+  }
+  const ok = group([...Array(MIN_FOR_TREND)].map((_, i) => sess('demo', 0.5, i + 1)))[0];
+  assert.ok(ok.trend, `${MIN_FOR_TREND} sessions should produce a trend`);
+});
+
+test('improving, worsening and flat are each named correctly', () => {
+  const run = (rates) => verdict(group(rates.map((r, i) => sess('demo', r, i + 1)))[0]).join(' ');
+  assert.match(run([0.6, 0.6, 0.2, 0.2]), /IMPROVING/);
+  assert.match(run([0.2, 0.2, 0.6, 0.6]), /WORSENING/);
+  assert.match(run([0.4, 0.4, 0.42, 0.41]), /no meaningful change/);
+});
+
+test('a small move is called noise, not a trend', () => {
+  // 5 points apart, under the 10-point floor: must not be announced.
+  const said = verdict(group([0.40, 0.40, 0.45, 0.45].map((r, i) => sess('demo', r, i + 1)))[0]).join(' ');
+  assert.match(said, /noise/);
+  assert.doesNotMatch(said, /IMPROVING|WORSENING/);
+});
+
+test('single-day history is flagged as within-day variation', () => {
+  const rows = [0.6, 0.6, 0.2, 0.2].map((r) => sess('demo', r, 3));
+  rows.forEach((x, i) => { x.mtime += i; });   // same day, ordered
+  assert.match(verdict(group(rows)[0]).join(' '), /one day/);
+});
+
+test('projects sharing a short label are not merged', () => {
+  const a = sess('alpha', 0.5, 1); a.project = '-Users-x-one-alpha';
+  const b = sess('alpha', 0.5, 2); b.project = '-Users-x-two-alpha';
+  assert.equal(group([a, b]).length, 2, 'different directories must stay separate');
+});
+
+test('scratch directories are recognised so they do not drown the report', () => {
+  for (const s of ['-private-var-folders-cf-xyz-T-attic-bench-attic-123', '-tmp-foo',
+                   '-Users-x-scratchpad-beh', 'bench-baseline-1788690544010', 'beh-a1-8iiA5z']) {
+    assert.equal(isScratch(s), true, `${s} should be scratch`);
+  }
+  for (const s of ['-Users-nishikantaray-Desktop-Personal-Attic', '-Users-x-work-api']) {
+    assert.equal(isScratch(s), false, `${s} is a real project`);
+  }
+});
+
+test('median handles even and odd counts', () => {
+  assert.equal(median([1, 2, 3]), 2);
+  assert.equal(median([1, 2, 3, 4]), 2.5);
+  assert.equal(median([]), null);
+});

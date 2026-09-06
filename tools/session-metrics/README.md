@@ -7,11 +7,14 @@ sits in `~/.claude/projects/*.jsonl`, so this works retroactively — you get a
 baseline for the past without having instrumented anything.
 
 ```sh
-node extract.js --min-reads 5      # one row per session, newest first
-node extract.js --project attic    # filter by project
-node extract.js --since 2026-09-01
+node report.js                     # per-project baselines and trends
+node report.js --project attic     # one project
+node extract.js --min-reads 5      # the raw rows, one per session
 node extract.js --json             # machine-readable
 ```
+
+`report.js` is what you read week to week. `extract.js` is the per-session
+detail behind it.
 
 ## The metric
 
@@ -35,6 +38,25 @@ Four candidates, tested against 280 real sessions:
 
 That last number is the important one: the metric is not just measuring how
 long you worked. It varies because sessions genuinely differ.
+
+## When it will tell you something
+
+`report.js` refuses to call a trend until it can support one:
+
+- **4 scored sessions** in a project, with at least 2 on each side of the split
+- a move of **10 percentage points or more**; anything smaller is reported as
+  noise
+- single-day history is labelled as within-day variation, not a trend
+
+Below those thresholds it says how far short it is and stops. That is the
+point: a metric that always has an opinion is a metric that is guessing.
+
+Most projects will show "not enough to call a trend" for a while. Since this
+reads history you have already written, the answer arrives on its own as you
+keep working — there is nothing to switch on.
+
+Scratch directories (temp dirs, benchmark runs, test fixtures) are excluded
+by default, or they drown the real projects. `--include-scratch` shows them.
 
 ## Reading it honestly
 
