@@ -3,7 +3,11 @@
 All notable changes to Attic. Versions follow semver: the on-disk `.attic/`
 format is a public interface, so changing it is a major version.
 
-## [Unreleased]
+## [1.2.1] - 2026-09-06
+
+No change to how the plugin behaves. Documentation, assets, and the evidence
+behind the claims.
+
 
 ### Added
 

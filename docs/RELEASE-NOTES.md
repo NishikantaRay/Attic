@@ -1,6 +1,43 @@
-Attic keeps what you learn out of the chat and on disk, so it survives `/compact`, `/clear` and tomorrow.
+A documentation and evidence release. **Nothing about how the plugin behaves has changed** — if you are already on 1.2.0, upgrading changes nothing functional.
 
-Claude Code and Codex CLI run the same skills, the same script and the same hooks.
+## The benchmark that actually tests the idea
+
+The earlier benchmark proved something close to a tautology: if the answer is already in context, the agent does not go looking for it. So there is now a harder one.
+
+Three sessions against a real private monorepo with auth spread across a server, three clients and an Electron process. Investigate the auth flow; then, in a **fresh session told nothing about the first**, add account lockout; then, in another fresh session, add password change. The two arms differ in one thing: whether the plugin is loaded.
+
+| | No Attic | Attic | |
+|---|---:|---:|---:|
+| Input tokens | 5,935,224 | 3,938,927 | **−34%** |
+| Tool calls | 124 | 103 | −17% |
+| Cost | $6.35 | $5.02 | −21% |
+| Correctness | 13/13 | 13/13 | tie |
+
+The shape matters more than the total. Session 1 is a wash (−6%), session 2 saves 36%, session 3 saves 43%. The benefit compounds as sessions accumulate, which is what the idea predicts and what the old fixture benchmark could never show.
+
+**Both arms were correct.** This did not make the agent smarter; it made the same quality cheaper.
+
+**Limits, stated plainly.** One run of each arm, one repository, one model, no confidence interval. Tokens fell 34% while rediscovery fell only 18%, so "stopped re-reading the same files" does not fully explain the saving. The design was committed before either arm ran, so it could not be tuned to fit the result.
+
+Two measurement bugs were found and fixed first, both of which would have produced a plausible wrong answer rather than an error — recorded in the benchmark README so nobody repeats them.
+
+## A README you can actually read
+
+2,437 words down to 931, reordered so it opens with the problem rather than install instructions. Commands are described from your side: "Keep this finding" rather than "stash the latest finding, result or decision". Contributor material moved to `docs/`.
+
+New: [Quickstart](https://github.com/NishikantaRay/Attic/blob/main/docs/QUICKSTART.md) for checking it is on and seeing the difference, and [Commands](https://github.com/NishikantaRay/Attic/blob/main/docs/COMMANDS.md) for every flag and exit code.
+
+## See the difference yourself
+
+```sh
+sh scripts/try-attic.sh
+```
+
+Builds a throwaway project with one real bug, asks the same question with and without the finding stashed, prints both answers and both token counts. Nothing outside a temp folder is touched.
+
+## Also
+
+A logo, a share card, and a promotional poster — all generated from source, with the poster reading its figures from the recorded benchmark results so it cannot outlive the data it cites.
 
 ## Install
 
@@ -15,47 +52,5 @@ claude plugin install attic@attic
 codex plugin marketplace add NishikantaRay/Attic
 codex plugin add attic@attic
 ```
-Then run `/hooks` once in an interactive session to trust the three attic hooks. Codex does not run a hook it has not reviewed.
 
-## See the difference
-
-```
-sh scripts/try-attic.sh              # Claude Code
-sh scripts/try-attic.sh --host codex # Codex CLI
-```
-
-One question, asked twice against the same 26-file project, with and without the finding stashed. Measured 2026-09-04:
-
-| | Without attic | With attic |
-|---|---|---|
-| Claude Code | 92,976 input tokens, 3 turns | 30,201 tokens, 1 turn |
-| Codex CLI | 85,434 input tokens, 3 shell commands | 15,717 tokens, 0 commands |
-
-Both arms answered correctly. Numbers move run to run; the direction does not. Where the attic **costs** more than it returns is documented in `docs/HONEST-NUMBERS.md` — a small attic on a short session is pure overhead, and the benchmark ships a counter-case that shows it.
-
-## What is in this release
-
-**Codex CLI support.** A native plugin with its own manifest, generated from the same source as the Claude build so the two cannot drift. A test fails if the committed build is stale.
-
-**Index tiering.** Pinned items always survive, newest fill the rest, older ones collapse to one discoverable line. This fixed a real bug: the session hook used to keep the oldest entries and drop your newest work.
-
-**New commands.** `/attic-pin`, `/attic-prune` (dry run by default, never deletes), `/attic-stats`, `/attic-git`, plus `attic.js rebuild` to regenerate a damaged index from the item files.
-
-**Team workflow.** A union merge driver, because `INDEX.md` is append-only and conflicts on every parallel branch.
-
-**Measurement.** Activation evals at 22/22, an automated behaviour suite that runs real sessions and grades the files they write, and a two-host benchmark.
-
-## Fixed
-
-- The session hook dropped your newest findings instead of the oldest.
-- Concurrent stashes silently lost index lines.
-- `/attic-doctor` printed `error: undefined` instead of the problems it found.
-- The plugin failed to load when installed: the manifest redeclared an auto-discovered hooks file. `plugin validate --strict` passed; only a real install caught it.
-- Permission grants never matched, so skills silently hand-wrote files and bypassed the credential scan.
-- The secret scanner refused legitimate findings *about* credential handling, which made the plugin useless for auth work.
-
-Full list: [CHANGELOG.md](https://github.com/NishikantaRay/Attic/blob/main/CHANGELOG.md)
-
-## Privacy
-
-No network calls, no telemetry, no API keys. `.attic/` is plain Markdown in your project. The script refuses to write a detected credential.
+No network calls, no telemetry, no API keys.

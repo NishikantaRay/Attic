@@ -1,6 +1,6 @@
 {
   "name": "attic",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Offloads context. Stashes findings, decisions and long outputs into a project-local .attic/ folder and keeps only a one-line index in the conversation, so context stays lean and survives /compact.",
   "author": {
     "name": "Nishikanta Ray",
