@@ -211,50 +211,86 @@ node skills/attic/scripts/attic.js validate     # exit 3 on drift or a leaked cr
 
 ## Does it actually help?
 
-Sometimes. Here is the measurement, including where it does not.
+Honestly: partly proven, partly still being measured. Both are below.
+
+### What is proven
+
+If a finding is already in context, the agent does not go looking for it.
 
 ![Input tokens with and without the attic](assets/benchmark.svg)
 
-The benchmark asks one question about code whose answer is already stashed,
-against a 26-file fixture, and counts real input tokens from the CLI's own
-usage output. Both arms are graded for correctness, because a cheaper wrong
-answer is not a win. It runs on both supported hosts.
+One question about code whose answer is already stashed, against a 26-file
+fixture, counting real input tokens from the CLI's own usage output. Both
+arms graded for correctness, because a cheaper wrong answer is not a win.
 
-**Codex CLI**, three runs per arm:
-
-| Case | Without attic | With attic | Delta |
+| Host | Without attic | With attic | Delta |
 |---|---|---|---|
-| Answer is stashed | 43,357 | 14,569 | **-66.4%** |
-| Nothing relevant stashed | 28,654 | 29,363 | **+2.5%** |
+| Codex CLI | 43,357 | 14,569 | **−66.4%** |
+| Claude Code, run 1 | 90,263 | 30,163 | **−66.6%** |
+| Claude Code, run 2 | 90,272 | 60,687 | **−32.8%** |
+| Codex, nothing relevant stashed | 28,654 | 29,363 | **+2.5%** |
+| Claude Code, nothing relevant stashed | 57,698 | 60,428 | **+4.7%** |
 
-**Claude Code**, two independent runs of three:
+Correctness held at 18 of 18 across both hosts and both arms.
 
-| Case | Without attic | With attic | Delta |
-|---|---|---|---|
-| Answer is stashed, run 1 | 90,263 | 30,163 | **-66.6%** |
-| Answer is stashed, run 2 | 90,272 | 60,687 | **-32.8%** |
-| Nothing relevant stashed | 57,698 | 60,428 | **+4.7%** |
+**This proves less than it looks like.** It is close to a tautology: of
+course an agent that already has the answer does not search for it. The two
+rows where nothing relevant is stashed are the honest counterweight, and they
+are why the plugin ships an `off` level. Claude Code's two runs also differ by
+more than 30 points, so treat its figures as a range, not a number.
 
-Correctness held at 18 of 18 across both hosts, both arms and both cases.
+What it does establish is the direction, on two different agents and models,
+and that the attic arm's cost does not depend on how much the model decides
+to read.
 
-**Read that honestly.** On Claude Code, two runs of the same benchmark differ
-by more than 30 points, so no single percentage from that host is
-trustworthy. Codex is far steadier: its attic arm varied by 14 tokens across
-three runs. What both hosts agree on is the direction. When the answer is
-already stashed the attic arm costs fewer input tokens and fewer turns,
-because its cost does not depend on how much the model decides to read. On
-Codex the attic arm ran zero shell commands against two for the arm that had
-to search. When nothing relevant is stashed, the attic is pure overhead, and
-the last row of each table is what that looks like.
+### The harder test
+
+A fixture cannot show whether stashing happens at useful moments in real
+work. So there is a second benchmark against a real private monorepo with
+non-obvious auth spread across a server, three clients and an Electron main
+process.
+
+Three sessions per arm. Investigate the auth flow; then, in a **fresh session
+told nothing about the first**, add account lockout; then, in another fresh
+session, add password change. The arms differ in one thing: whether the
+plugin is loaded.
+
+| Metric | No Attic | Attic | Δ |
+|---|---:|---:|---:|
+| Total input tokens | 5,935,224 | 3,938,927 | **−33.6%** |
+| Tool calls | 124 | 103 | −16.9% |
+| Time | 854s | 768s | −10.0% |
+| Rediscovery (files re-read) | 17 | 14 | −17.6% |
+| Cost | $6.35 | $5.02 | −20.9% |
+| Correctness (rubric) | 13/13 | 13/13 | — |
+
+The gap widens as sessions accumulate: session 1 is a wash (1.21M vs 1.14M
+tokens), session 2 saves 36%, session 3 saves 43%. That shape is what the
+hypothesis predicts — the attic is worth more the longer the work runs.
+
+**Both arms were correct.** The baseline extracted a shared lockout module,
+used atomic updates so a bcrypt pre-save hook could not re-hash the password,
+and refused locked accounts *before* the password check so a lock cannot be
+extended by guessing. Attic matched it point for point. The difference is
+cost, not quality — which is the honest framing: this does not make an agent
+smarter, it stops it paying twice.
+
+**Caveats worth stating.** One run of each arm, one repository, one model.
+Rediscovery moved less than tokens did, so the saving is not purely explained
+by "did not re-read the same files". The design was committed before either
+arm ran, so it could not be tuned to fit the result.
+
+Method, prompts, rubric and raw results:
+[benchmarks/auth-investigation/](benchmarks/auth-investigation/).
 
 ```bash
-node benchmarks/run.js --runs 3                 # Claude Code
-node benchmarks/run.js --host codex --runs 3    # Codex CLI
+node benchmarks/run.js --runs 3                 # the fixture benchmark
+node benchmarks/run.js --host codex --runs 3
+node benchmarks/auth-investigation/run.js --repo <path>   # the multi-session one
 ```
 
-Full method, raw samples and the reasons not to quote a headline number:
-[benchmarks/README.md](benchmarks/README.md) and
-[docs/HONEST-NUMBERS.md](docs/HONEST-NUMBERS.md).
+Where the attic costs more than it returns, and why no headline percentage is
+quoted: [docs/HONEST-NUMBERS.md](docs/HONEST-NUMBERS.md).
 
 ## Evaluation
 

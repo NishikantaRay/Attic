@@ -1,0 +1,5 @@
+**attic:auth-investigation** — full report (flow, files, functions, state, security, non-obvious findings, pitfalls, reading order).
+
+Headline: stateless HS256 JWT, issued in `apps/server/routes/auth.js:8`, verified by the only middleware `requireAuth` at `apps/server/routes/recordings.js:17`; state is just `localStorage['screenflow-token']` — no cookies, no sessions, no revocation.
+
+Three things worth acting on now: `apps/server/.env` commits live Atlas credentials and the JWT secret and is **not** in `.gitignore` (rotate both); `PUT /api/recordings/chunk/:sessionId` authenticates but never checks ownership, so any user can write chunks into another user's session; and the authenticated upload path has no caller at all — `packages/cloud/index.js` has two `export default`s and an orphaned class body, and nothing imports it.

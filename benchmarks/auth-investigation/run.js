@@ -173,12 +173,23 @@ function runSession(bin, repo, prompt, useAttic) {
  * 1 already read. Computed from the transcript, not judged.
  */
 function readTranscript(projectDir, sessionId) {
-  const slug = path.resolve(projectDir).replace(/[/.]/g, '-');
-  const f = path.join(os.homedir(), '.claude', 'projects', slug, sessionId + '.jsonl');
-  try {
-    return fs.readFileSync(f, 'utf8').split('\n').filter(Boolean)
-      .map((l) => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(Boolean);
-  } catch (e) { return []; }
+  // Two traps here, both of which silently yield zero tool calls rather than
+  // an error: on macOS os.tmpdir() is /var/... while the CLI slugs the
+  // realpath (/private/var/...), and the slug replaces underscores as well
+  // as slashes and dots. Getting either wrong makes the headline metric read
+  // as a finding when it is really a measurement failure.
+  const candidates = new Set();
+  for (const base of [projectDir, (() => { try { return fs.realpathSync(projectDir); } catch (e) { return projectDir; } })()]) {
+    candidates.add(path.resolve(base).replace(/[/._]/g, '-'));
+  }
+  for (const slug of candidates) {
+    const f = path.join(os.homedir(), '.claude', 'projects', slug, sessionId + '.jsonl');
+    try {
+      return fs.readFileSync(f, 'utf8').split('\n').filter(Boolean)
+        .map((l) => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(Boolean);
+    } catch (e) { /* try the next candidate */ }
+  }
+  return [];
 }
 
 function toolUse(rows) {
@@ -198,7 +209,12 @@ function filesTouched(calls, repo) {
   const files = new Set();
   for (const c of calls) {
     const p = c.input.file_path || c.input.path || c.input.notebook_path;
-    if (p) files.add(path.relative(repo, path.resolve(repo, p)));
+    if (p) {
+      // Absolute paths from one arm must normalise to the same repo-relative
+      // form as the other, or the two sets can never intersect.
+      const rel = path.relative(repo, path.resolve(repo, p));
+      files.add(rel.replace(/^(\.\.\/)+/, '').replace(/^.*attic-bench-[a-z]+-\d+\//, ''));
+    }
     // Bash reads count too: cat/head/sed/grep against a path.
     if (c.name === 'Bash' && typeof c.input.command === 'string') {
       for (const m of c.input.command.matchAll(/(?:^|[\s"'])((?:\.\/)?[\w./-]+\.(?:js|ts|json|md))/g)) {
@@ -228,7 +244,7 @@ function main() {
     const useAttic = arm === 'attic';
     const outDir = path.join(HERE, arm);
     fs.mkdirSync(outDir, { recursive: true });
-    const work = path.join(os.tmpdir(), `attic-bench-${arm}-${Date.now()}`);
+    const work = path.join(fs.realpathSync(os.tmpdir()), `attic-bench-${arm}-${Date.now()}`);
     copyRepo(srcRepo, work);
     process.stderr.write(`\n=== ${arm} : ${work}\n`);
 
@@ -250,12 +266,14 @@ function main() {
     }
 
     // Rediscovery: files session 1 read that 2 or 3 read again.
-    const s1 = new Set((sessions[0] && sessions[0].files) || []);
+    const s1 = new Set(((sessions[0] && sessions[0].files) || []).filter((f) => !f.startsWith('.attic/')));
     const reread = {};
     for (const n of [1, 2]) {
       const s = sessions[n];
       if (!s || !s.files) continue;
-      reread[`session${n + 1}`] = s.files.filter((f) => s1.has(f));
+      // Reading .attic/ is the mechanism, not rediscovery — counting it would
+    // penalise the arm for using the thing being measured.
+    reread[`session${n + 1}`] = s.files.filter((f) => s1.has(f) && !f.startsWith('.attic/'));
     }
 
     const diff = spawnSync('git', ['-C', work, 'diff'], { encoding: 'utf8' });

@@ -1,0 +1,462 @@
+diff -ru --exclude=node_modules --exclude=.git --exclude=.attic /Users/nishikantaray/Desktop/Personal/screen-flow/README.md /private/var/folders/cf/q84r6xbs0qg766d_fpc62wk80000gn/T/attic-bench-attic-1788691475018/README.md
+--- /Users/nishikantaray/Desktop/Personal/screen-flow/README.md	2026-05-09 23:38:01
++++ /private/var/folders/cf/q84r6xbs0qg766d_fpc62wk80000gn/T/attic-bench-attic-1788691475018/README.md	2026-09-06 16:26:17
+@@ -250,6 +250,7 @@
+ | `POST` | `/api/auth/register` | Register with email + password |
+ | `POST` | `/api/auth/login` | Login → JWT token |
+ | `GET` | `/api/auth/me` | Get current user (Bearer token) |
++| `POST` | `/api/auth/change-password` | Change password with `currentPassword` + `newPassword` (Bearer token) |
+ 
+ ### Recordings
+ 
+diff -ru --exclude=node_modules --exclude=.git --exclude=.attic /Users/nishikantaray/Desktop/Personal/screen-flow/apps/chrome-extension/src/components/SettingsView.jsx /private/var/folders/cf/q84r6xbs0qg766d_fpc62wk80000gn/T/attic-bench-attic-1788691475018/apps/chrome-extension/src/components/SettingsView.jsx
+--- /Users/nishikantaray/Desktop/Personal/screen-flow/apps/chrome-extension/src/components/SettingsView.jsx	2026-04-12 19:28:38
++++ /private/var/folders/cf/q84r6xbs0qg766d_fpc62wk80000gn/T/attic-bench-attic-1788691475018/apps/chrome-extension/src/components/SettingsView.jsx	2026-09-06 16:25:32
+@@ -1,5 +1,6 @@
+ import React, { useState } from 'react';
+ import { motion } from 'framer-motion';
++import { changePassword, getStoredToken } from '@packages/ui/auth';
+ 
+ const pageVariants = {
+     initial: { opacity: 0, y: 20 },
+@@ -104,6 +105,76 @@
+                     </div>
+                 </div>
+             ))}
++
++            <div>
++                <p className="text-[11px] uppercase tracking-widest text-surface-200/40 font-medium mb-2">
++                    Account
++                </p>
++                <ChangePasswordForm />
++            </div>
+         </motion.div>
++    );
++}
++
++// The only setting on this screen backed by the server. Reads the token the same
++// way MainApp does rather than taking it as a prop.
++function ChangePasswordForm() {
++    const [currentPassword, setCurrentPassword] = useState('');
++    const [newPassword, setNewPassword] = useState('');
++    const [status, setStatus] = useState(null);
++    const [saving, setSaving] = useState(false);
++
++    const handleSubmit = async (e) => {
++        e.preventDefault();
++        setStatus(null);
++        setSaving(true);
++        try {
++            await changePassword(getStoredToken(), currentPassword, newPassword);
++            setCurrentPassword('');
++            setNewPassword('');
++            setStatus({ ok: true, message: 'Password updated' });
++        } catch (err) {
++            setStatus({ ok: false, message: err.message });
++        } finally {
++            setSaving(false);
++        }
++    };
++
++    const inputClass = 'w-full px-2.5 py-1.5 rounded-lg bg-surface-950 border border-surface-800/50 text-[11px] text-surface-200/80 placeholder:text-surface-200/25 focus:outline-none focus:border-brand-500 transition-colors';
++
++    return (
++        <form onSubmit={handleSubmit} className="py-2 px-3 rounded-xl bg-surface-900/50 border border-surface-800/50 space-y-2">
++            <span className="text-xs text-surface-200/70 block">Change Password</span>
++            <input
++                type="password"
++                placeholder="Current password"
++                value={currentPassword}
++                onChange={(e) => setCurrentPassword(e.target.value)}
++                required
++                autoComplete="current-password"
++                className={inputClass}
++            />
++            <input
++                type="password"
++                placeholder="New password"
++                value={newPassword}
++                onChange={(e) => setNewPassword(e.target.value)}
++                required
++                minLength={6}
++                autoComplete="new-password"
++                className={inputClass}
++            />
++            {status && (
++                <p className={`text-[11px] ${status.ok ? 'text-brand-500' : 'text-red-400'}`}>{status.message}</p>
++            )}
++            <motion.button
++                whileTap={{ scale: 0.95 }}
++                type="submit"
++                disabled={saving}
++                className="w-full py-1.5 rounded-lg bg-brand-500/15 border border-brand-500/30 text-brand-500 text-[11px] font-medium hover:bg-brand-500/25 transition-colors disabled:opacity-50"
++            >
++                {saving ? '...' : 'Update Password'}
++            </motion.button>
++        </form>
+     );
+ }
+diff -ru --exclude=node_modules --exclude=.git --exclude=.attic /Users/nishikantaray/Desktop/Personal/screen-flow/apps/desktop/src/components/SettingsPanel.jsx /private/var/folders/cf/q84r6xbs0qg766d_fpc62wk80000gn/T/attic-bench-attic-1788691475018/apps/desktop/src/components/SettingsPanel.jsx
+--- /Users/nishikantaray/Desktop/Personal/screen-flow/apps/desktop/src/components/SettingsPanel.jsx	2026-04-12 23:11:36
++++ /private/var/folders/cf/q84r6xbs0qg766d_fpc62wk80000gn/T/attic-bench-attic-1788691475018/apps/desktop/src/components/SettingsPanel.jsx	2026-09-06 16:25:16
+@@ -1,5 +1,6 @@
+ import React, { useState } from 'react';
+ import { motion } from 'framer-motion';
++import { changePassword, getStoredToken } from '@packages/ui/auth';
+ 
+ export default function SettingsPanel() {
+     const [settings, setSettings] = useState({
+@@ -50,6 +51,10 @@
+                 </div>
+             </Section>
+ 
++            <Section title="Account">
++                <ChangePasswordRow />
++            </Section>
++
+             <Section title="Shortcuts">
+                 <div className="flex items-center justify-between py-2">
+                     <span className="text-xs text-surface-200/60">Toggle Recording</span>
+@@ -57,6 +62,70 @@
+                 </div>
+             </Section>
+         </div>
++    );
++}
++
++// The only setting on this screen backed by the server. Reads the token the same
++// way MainApp does rather than taking it as a prop, so the panel keeps its
++// current zero-prop signature.
++function ChangePasswordRow() {
++    const [currentPassword, setCurrentPassword] = useState('');
++    const [newPassword, setNewPassword] = useState('');
++    const [status, setStatus] = useState(null);
++    const [saving, setSaving] = useState(false);
++
++    const handleSubmit = async (e) => {
++        e.preventDefault();
++        setStatus(null);
++        setSaving(true);
++        try {
++            await changePassword(getStoredToken(), currentPassword, newPassword);
++            setCurrentPassword('');
++            setNewPassword('');
++            setStatus({ ok: true, message: 'Password updated' });
++        } catch (err) {
++            setStatus({ ok: false, message: err.message });
++        } finally {
++            setSaving(false);
++        }
++    };
++
++    const inputClass = 'w-full px-3 py-2 rounded-lg bg-surface-950 border border-surface-800/50 text-xs text-surface-200/80 placeholder:text-surface-200/25 focus:outline-none focus:border-brand-500 transition-colors';
++
++    return (
++        <form onSubmit={handleSubmit} className="py-3 space-y-2">
++            <span className="text-xs text-surface-200/60">Change Password</span>
++            <input
++                type="password"
++                placeholder="Current password"
++                value={currentPassword}
++                onChange={(e) => setCurrentPassword(e.target.value)}
++                required
++                autoComplete="current-password"
++                className={inputClass}
++            />
++            <input
++                type="password"
++                placeholder="New password"
++                value={newPassword}
++                onChange={(e) => setNewPassword(e.target.value)}
++                required
++                minLength={6}
++                autoComplete="new-password"
++                className={inputClass}
++            />
++            {status && (
++                <p className={`text-[11px] ${status.ok ? 'text-brand-500' : 'text-red-400'}`}>{status.message}</p>
++            )}
++            <motion.button
++                whileTap={{ scale: 0.97 }}
++                type="submit"
++                disabled={saving}
++                className="w-full py-2 rounded-lg bg-brand-500/15 text-brand-500 text-[11px] font-medium hover:bg-brand-500/25 transition-colors disabled:opacity-50"
++            >
++                {saving ? '...' : 'Update Password'}
++            </motion.button>
++        </form>
+     );
+ }
+ 
+diff -ru --exclude=node_modules --exclude=.git --exclude=.attic /Users/nishikantaray/Desktop/Personal/screen-flow/apps/server/models/User.js /private/var/folders/cf/q84r6xbs0qg766d_fpc62wk80000gn/T/attic-bench-attic-1788691475018/apps/server/models/User.js
+--- /Users/nishikantaray/Desktop/Personal/screen-flow/apps/server/models/User.js	2026-04-12 19:28:38
++++ /private/var/folders/cf/q84r6xbs0qg766d_fpc62wk80000gn/T/attic-bench-attic-1788691475018/apps/server/models/User.js	2026-09-06 16:24:39
+@@ -1,6 +1,15 @@
+ const mongoose = require('mongoose');
+ const bcrypt = require('bcrypt');
+ 
++// Account lockout policy. Consecutive failed logins beyond the max lock the
++// account for the duration; the lock lifts on its own once it expires.
++const MAX_FAILED_LOGIN_ATTEMPTS = 5;
++const LOCK_DURATION_MS = 15 * 60 * 1000;
++
++// Password policy. Every route that accepts a password (signup, change-password)
++// goes through validatePassword, so the rule cannot drift between them.
++const MIN_PASSWORD_LENGTH = 6;
++
+ const userSchema = new mongoose.Schema({
+     email: {
+         type: String,
+@@ -13,12 +22,20 @@
+     password: {
+         type: String,
+         required: true,
+-        minlength: 6,
++        minlength: MIN_PASSWORD_LENGTH,
+     },
+     createdAt: {
+         type: Date,
+         default: Date.now,
+     },
++    failedLoginAttempts: {
++        type: Number,
++        default: 0,
++    },
++    lockedUntil: {
++        type: Date,
++        default: null,
++    },
+ });
+ 
+ userSchema.pre('save', async function (next) {
+@@ -30,5 +47,69 @@
+ userSchema.methods.comparePassword = function (candidate) {
+     return bcrypt.compare(candidate, this.password);
+ };
++
++// True while the account is locked. An expired lock reads as unlocked, so the
++// lock releases without any background job.
++userSchema.methods.isLocked = function () {
++    return !!(this.lockedUntil && this.lockedUntil.getTime() > Date.now());
++};
++
++// Seconds remaining on the lock, for the client to display. 0 when unlocked.
++userSchema.methods.lockRetryAfter = function () {
++    if (!this.isLocked()) return 0;
++    return Math.ceil((this.lockedUntil.getTime() - Date.now()) / 1000);
++};
++
++// Records one failed login and locks the account once the streak hits the max.
++// A previous lock that has already expired starts a fresh streak at 1.
++userSchema.methods.registerFailedLogin = function () {
++    const expired = this.lockedUntil && this.lockedUntil.getTime() <= Date.now();
++    const attempts = expired ? 1 : (this.failedLoginAttempts || 0) + 1;
++
++    this.failedLoginAttempts = attempts;
++    this.lockedUntil = attempts >= MAX_FAILED_LOGIN_ATTEMPTS
++        ? new Date(Date.now() + LOCK_DURATION_MS)
++        : null;
++
++    return this.save();
++};
++
++// Replaces the password and clears any lockout streak. Verifying the current
++// password is an authentication, so it releases the account exactly like a
++// successful login does — otherwise a user who locked themselves out and then
++// changed their password from an open session would still be locked out with a
++// password that no longer exists. Hashing is left to the pre('save') hook.
++userSchema.methods.setPassword = function (newPassword) {
++    this.password = newPassword;
++    this.failedLoginAttempts = 0;
++    this.lockedUntil = null;
++    return this.save();
++};
++
++// Clears the streak after a successful authentication.
++userSchema.methods.resetFailedLogins = function () {
++    if (!this.failedLoginAttempts && !this.lockedUntil) return Promise.resolve(this);
++    this.failedLoginAttempts = 0;
++    this.lockedUntil = null;
++    return this.save();
++};
++
++// The single source of truth for the password rules the API enforces. Returns
++// the error message to send back, or null when the password is acceptable. The
++// schema's `minlength` mirrors the same constant, so a password that passes here
++// also passes document validation on save.
++userSchema.statics.validatePassword = function (password) {
++    if (typeof password !== 'string' || password.length === 0) {
++        return 'Password is required';
++    }
++    if (password.length < MIN_PASSWORD_LENGTH) {
++        return `Password must be at least ${MIN_PASSWORD_LENGTH} characters`;
++    }
++    return null;
++};
++
++userSchema.statics.MAX_FAILED_LOGIN_ATTEMPTS = MAX_FAILED_LOGIN_ATTEMPTS;
++userSchema.statics.LOCK_DURATION_MS = LOCK_DURATION_MS;
++userSchema.statics.MIN_PASSWORD_LENGTH = MIN_PASSWORD_LENGTH;
+ 
+ module.exports = mongoose.model('User', userSchema);
+diff -ru --exclude=node_modules --exclude=.git --exclude=.attic /Users/nishikantaray/Desktop/Personal/screen-flow/apps/server/routes/auth.js /private/var/folders/cf/q84r6xbs0qg766d_fpc62wk80000gn/T/attic-bench-attic-1788691475018/apps/server/routes/auth.js
+--- /Users/nishikantaray/Desktop/Personal/screen-flow/apps/server/routes/auth.js	2026-04-12 19:28:38
++++ /private/var/folders/cf/q84r6xbs0qg766d_fpc62wk80000gn/T/attic-bench-attic-1788691475018/apps/server/routes/auth.js	2026-09-06 16:24:56
+@@ -9,6 +9,23 @@
+     return jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+ }
+ 
++// Pulls the raw JWT out of the Authorization header, or null when it is absent
++// or not a bearer header. requireAuth in routes/recordings.js is wired as express
++// middleware and does its own responding; the routes here verify by hand (see
++// /me), so they share this small reader instead.
++function readBearerToken(req) {
++    const auth = req.headers.authorization;
++    return auth?.startsWith('Bearer ') ? auth.slice(7) : null;
++}
++
++// 423 Locked, with the seconds left so the client can tell the user when to retry.
++function sendLocked(res, user) {
++    return res.status(423).json({
++        error: 'Account temporarily locked after too many failed login attempts. Try again later.',
++        retryAfter: user.lockRetryAfter(),
++    });
++}
++
+ // POST /api/auth/signup
+ router.post('/signup', async (req, res) => {
+     try {
+@@ -16,8 +33,9 @@
+         if (!email || !password) {
+             return res.status(400).json({ error: 'Email and password are required' });
+         }
+-        if (password.length < 6) {
+-            return res.status(400).json({ error: 'Password must be at least 6 characters' });
++        const invalidPassword = User.validatePassword(password);
++        if (invalidPassword) {
++            return res.status(400).json({ error: invalidPassword });
+         }
+ 
+         const exists = await User.findOne({ email: email.toLowerCase().trim() });
+@@ -42,10 +60,25 @@
+         }
+ 
+         const user = await User.findOne({ email: email.toLowerCase().trim() });
+-        if (!user || !(await user.comparePassword(password))) {
++        if (!user) {
+             return res.status(401).json({ error: 'Invalid email or password' });
+         }
+ 
++        // Refuse a locked account before touching the password, so attempts made
++        // while locked neither verify nor extend the lock.
++        if (user.isLocked()) {
++            return sendLocked(res, user);
++        }
++
++        if (!(await user.comparePassword(password))) {
++            await user.registerFailedLogin();
++            if (user.isLocked()) {
++                return sendLocked(res, user);
++            }
++            return res.status(401).json({ error: 'Invalid email or password' });
++        }
++
++        await user.resetFailedLogins();
+         const token = signToken(user);
+         res.json({ token, email: user.email });
+     } catch (err) {
+@@ -53,14 +86,65 @@
+     }
+ });
+ 
++// POST /api/auth/change-password  (authenticated)
++router.post('/change-password', async (req, res) => {
++    const token = readBearerToken(req);
++    if (!token) {
++        return res.status(401).json({ error: 'No token' });
++    }
++
++    let decoded;
++    try {
++        decoded = jwt.verify(token, JWT_SECRET);
++    } catch {
++        return res.status(401).json({ error: 'Invalid token' });
++    }
++
++    try {
++        const { currentPassword, newPassword } = req.body;
++        if (!currentPassword || !newPassword) {
++            return res.status(400).json({ error: 'Current and new password are required' });
++        }
++
++        // Same rule signup enforces — both go through User.validatePassword.
++        const invalidPassword = User.validatePassword(newPassword);
++        if (invalidPassword) {
++            return res.status(400).json({ error: invalidPassword });
++        }
++
++        if (newPassword === currentPassword) {
++            return res.status(400).json({ error: 'New password must be different from the current password' });
++        }
++
++        // Loaded without `.select('-password')`, unlike /me: the hash is exactly
++        // what this route needs to compare against.
++        const user = await User.findById(decoded.id);
++        if (!user) {
++            return res.status(401).json({ error: 'User not found' });
++        }
++
++        if (!(await user.comparePassword(currentPassword))) {
++            return res.status(401).json({ error: 'Current password is incorrect' });
++        }
++
++        await user.setPassword(newPassword);
++
++        // Tokens already issued stay valid: the JWT payload is { id, email } and
++        // carries no password state, so open sessions survive the change.
++        res.json({ email: user.email });
++    } catch (err) {
++        res.status(500).json({ error: 'Server error' });
++    }
++});
++
+ // GET /api/auth/me  (verify token)
+ router.get('/me', async (req, res) => {
+     try {
+-        const auth = req.headers.authorization;
+-        if (!auth?.startsWith('Bearer ')) {
++        const token = readBearerToken(req);
++        if (!token) {
+             return res.status(401).json({ error: 'No token' });
+         }
+-        const decoded = jwt.verify(auth.slice(7), JWT_SECRET);
++        const decoded = jwt.verify(token, JWT_SECRET);
+         const user = await User.findById(decoded.id).select('-password');
+         if (!user) return res.status(401).json({ error: 'User not found' });
+         res.json({ email: user.email, createdAt: user.createdAt });
+diff -ru --exclude=node_modules --exclude=.git --exclude=.attic /Users/nishikantaray/Desktop/Personal/screen-flow/packages/ui/auth.js /private/var/folders/cf/q84r6xbs0qg766d_fpc62wk80000gn/T/attic-bench-attic-1788691475018/packages/ui/auth.js
+--- /Users/nishikantaray/Desktop/Personal/screen-flow/packages/ui/auth.js	2026-04-12 19:28:38
++++ /private/var/folders/cf/q84r6xbs0qg766d_fpc62wk80000gn/T/attic-bench-attic-1788691475018/packages/ui/auth.js	2026-09-06 16:25:01
+@@ -31,6 +31,20 @@
+     return data;
+ }
+ 
++export async function changePassword(token, currentPassword, newPassword) {
++    const res = await fetch(`${API_URL}/change-password`, {
++        method: 'POST',
++        headers: {
++            'Content-Type': 'application/json',
++            Authorization: `Bearer ${token}`,
++        },
++        body: JSON.stringify({ currentPassword, newPassword }),
++    });
++    const data = await res.json();
++    if (!res.ok) throw new Error(data.error || 'Password change failed');
++    return data;
++}
++
+ export function getStoredToken() {
+     try { return localStorage.getItem('screenflow-token'); } catch { return null; }
+ }
+Only in /private/var/folders/cf/q84r6xbs0qg766d_fpc62wk80000gn/T/attic-bench-attic-1788691475018/tests/specs/shared: auth-lockout.spec.js
+Only in /private/var/folders/cf/q84r6xbs0qg766d_fpc62wk80000gn/T/attic-bench-attic-1788691475018/tests/specs/shared: auth-password-change.spec.js
