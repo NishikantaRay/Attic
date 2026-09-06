@@ -15,22 +15,34 @@
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-lightgrey"></a>
 </p>
 
-**Offload context.** A plugin for [Claude Code](https://claude.com/claude-code) and [Codex CLI](https://developers.openai.com/codex) that stashes findings, decisions and long outputs into a project-local `.attic/` folder and keeps only a one-line index in the conversation. The live context stays lean, and what matters survives `/compact`, `/clear` and new sessions.
+**Your coding agent forgets what it just figured out.** Attic writes it down,
+so tomorrow it already knows.
+
+A plugin for [Claude Code](https://claude.com/claude-code) and
+[Codex CLI](https://developers.openai.com/codex).
 
 ![Attic in action: a finding is stashed, the context is compacted, the agent still knows, and the same attic works on Codex](assets/demo.gif)
 
-Most token-saving tools shorten what Claude writes. Attic targets a different sink: the knowledge Claude keeps re-reading and re-explaining because it lives nowhere but the chat.
+## What it does
+
+You ask your agent to investigate something. It reads ten files, traces the
+flow, works out the answer. Then the context fills up, `/compact` runs, and
+that understanding is gone. Tomorrow it reads the same ten files again.
+
+Attic writes what the agent learns to a `.attic/` folder in your project, and
+keeps a one-line index in the conversation:
+
+```
+you:    why are users logged out at random?
+claude: attic:redis-eviction-bug · maxmemory-policy is allkeys-lru,
+        so session keys get evicted. Fix is volatile-lru.
+```
+
+The detail lives in `.attic/items/redis-eviction-bug.md`. The chat holds a
+handle. After a compaction, a new session, or a week away, the finding is
+still there.
 
 ![How Attic works](assets/how-it-works.svg)
-
-```
-you:    why does the login test time out?
-claude: `attic:login-test-timeout` · 5s fixture timeout in tests/conftest.py:41, SMTP call is real. Fixing now.
-```
-
-The full trace, the files it read and the reasoning are in
-`.attic/items/login-test-timeout.md`. Three hours and one `/compact` later,
-Claude still knows.
 
 ## Install
 
@@ -48,330 +60,133 @@ codex plugin marketplace add NishikantaRay/Attic
 codex plugin add attic@attic
 ```
 
-Then run `/hooks` once in an interactive session to trust the attic hooks;
-Codex does not run hooks it has not reviewed. Same skills, same script, same
-hooks as the Claude Code build. Details, alternatives and exactly what was
-verified: [docs/CODEX.md](docs/CODEX.md).
+On Codex, run `/hooks` once in an interactive session and trust the attic
+hooks — Codex will not run a hook it has not reviewed. Skills work without
+this; only the automatic loading needs it. [More on
+Codex](docs/CODEX.md).
 
-### Check it is on, then see the difference
+## Try it
+
+Check it is on:
 
 ```
-/attic-help          # prints a card if the plugin is loaded
-/attic               # reports and sets the level
+/attic-help
 ```
+
+If a reference card prints, you are set. Then just work normally. After the
+agent investigates something, look for a handle like `attic:some-finding` in
+its reply, and run `ls .attic/items/` to see what it kept.
+
+To see the difference for yourself:
 
 ```sh
-sh scripts/try-attic.sh              # side by side, on a throwaway project
-sh scripts/try-attic.sh --host codex
+sh scripts/try-attic.sh
 ```
 
-It asks one question twice, with and without the answer stashed, and prints
-both answers and both token counts. Measured on 2026-09-04:
+That builds a throwaway project with one real bug, asks the same question
+twice — once with the finding stashed, once without — and prints both
+answers with their token counts. Nothing outside a temp folder is touched.
 
-| | Without attic | With attic |
-|---|---|---|
-| Claude Code | 92,976 tokens, 3 turns | 30,201 tokens, 1 turn |
-| Codex CLI | 85,434 tokens, 3 shell commands | 15,717 tokens, 0 commands |
-
-Both arms answered correctly. Full walkthrough, including how to watch a
-finding survive `/compact`: [docs/QUICKSTART.md](docs/QUICKSTART.md).
-
-Requires Node.js on `PATH` for the hooks. Without Node the skills and commands still work; only the automatic session-start injection is lost.
-
-Try it without installing:
-
-```
-git clone https://github.com/NishikantaRay/Attic
-claude --plugin-dir ./Attic
-```
-
-## Commands
+## The commands you will actually use
 
 | Command | What it does |
 |---|---|
-| `/attic [lite\|full\|ultra\|off]` | Set the level. No argument means `full`. |
-| `/attic default <level>` | Make a level the default for new sessions. |
-| `/attic-stash [title]` | Stash the latest finding, result or decision and get its handle. |
-| `/attic-recall <slug or words>` | Pull an item back and summarise it. |
-| `/attic-index` | List everything stashed in this project. |
-| `/attic-sweep` | Save plan, open questions and in-progress state. Run before `/compact`. |
-| `/attic-pin <slug>` | Always inject this item, never trim it. |
-| `/attic-prune` | Archive stale items. Dry run by default, never deletes. |
-| `/attic-stats` | What the attic costs and holds, measured locally. |
-| `/attic-doctor` | Check `.attic/` for drift, orphans and leaked credentials. |
-| `/attic-git` | Fix `.attic/` merge conflicts and set up a shared team attic. |
+| `/attic-stash` | Keep this finding |
+| `/attic-recall <topic>` | What did we learn about X? |
+| `/attic-index` | Show everything kept in this project |
+| `/attic-sweep` | Save the session before `/compact` |
 
-If the index ever gets out of step with the items, it is derived data and can
-be regenerated: `node skills/attic/scripts/attic.js rebuild`. The item files
-are the source of truth, so nothing is lost.
-| `/attic-help` | One-screen reference. |
+Four more exist for pinning, pruning, health checks and git setup. Full list
+with every flag: [docs/COMMANDS.md](docs/COMMANDS.md).
 
-Every command, every script flag and every exit code:
-[docs/COMMANDS.md](docs/COMMANDS.md).
+## How much it keeps
 
-Installed plugins are namespaced, so the fully qualified form is `/attic:attic-help`; the short form works when no other plugin claims the name.
+`/attic off` turns it off. `/attic` turns it back on.
 
-Claude also stashes on its own at `full` and `ultra`, and reacts to phrases like "stash this", "remember this for later", "before compact" and "what did we find about X".
-
-## Levels
-
-| Level | What changes |
+| Level | Behaviour |
 |---|---|
-| `lite` | Stash only on `/attic-stash`, at the end of a task, or when asked to sweep. Normal replies otherwise. |
-| `full` | After every investigation, write the conclusion to the attic and reply with the handle plus three lines. Never re-explain what is in the attic. Decisions logged. Long output summarised and stashed, never pasted. Default. |
-| `ultra` | Everything non-trivial is stashed. Replies are handle plus three lines. Claude must check the index before re-reading anything it has already seen. |
-| `off` | Dormant. |
+| `lite` | Only keeps things when you ask |
+| `full` | Keeps findings after each investigation. **Default** |
+| `ultra` | Keeps everything non-trivial, replies get very short |
+| `off` | Dormant |
 
-`ATTIC_DEFAULT_MODE=lite|full|ultra|off` sets the starting level. `/attic default <level>` does the same and persists it to `~/.claude/attic/config.json` (or the plugin data dir).
+Start with `full`. If it feels chatty, drop to `lite`.
 
-## What ends up in `.attic/`
+## What ends up in your project
 
 ```
 .attic/
-  INDEX.md          one line per item:  - [slug](items/slug.md) · kind · one-line hook
-  DECISIONS.md      append-only:        - 2026-09-04 · use lru_cache · because one line beats a cache class
-  items/<slug>.md   frontmatter (title, kind, date, tags) + the content
-  archive/<slug>.md pruned items: still recallable, no longer injected
+  INDEX.md          one line per finding
+  DECISIONS.md      what was decided, and why
+  items/*.md        the findings themselves
 ```
 
-### How the index scales
+Plain Markdown you can read and edit. Commit it and your team shares the
+knowledge; add it to `.gitignore` and it stays personal.
 
-The index is injected at every session start, so it cannot grow without
-bound. Three tiers share a fixed budget:
+If you commit it, run `/attic-git` once. `INDEX.md` is append-only, so two
+branches both adding a finding will conflict every time; that command installs
+a merge driver that keeps both sides. [Team setup](docs/TEAM.md).
 
-| Tier | Rule |
-|---|---|
-| Pinned | `/attic-pin` marks these. Always injected, never trimmed. |
-| Recent | Newest items fill the remaining budget. |
-| Rest | Collapsed to one line naming the counts, so older knowledge stays discoverable via `/attic-recall`. |
-
-Trimming drops the oldest unpinned entries. Your newest finding is never the
-one that disappears.
-
-![Which items reach your next session](assets/scale-fix.svg)
-
-Kinds: `finding`, `decision`, `plan`, `output`, `note`. Handles look like `attic:<slug>`.
-
-**Always stashed verbatim:** code, commands, file paths, line numbers, error text.
-**Never stashed:** secrets, tokens, credentials, one-line answers, typo fixes.
-
-### Git
-
-`.attic/` is plain Markdown. Two sensible choices:
-
-- **Commit it** for shared team memory. New contributors (and new Claude sessions) start with the index.
-- **Ignore it** (`echo .attic/ >> .gitignore`) if you want it personal.
-
-If you commit it, run `/attic-git`. `INDEX.md` and `DECISIONS.md` are
-append-only, so two branches that each stash something conflict on every
-merge. The command installs a union merge driver that keeps both sides.
-See [docs/TEAM.md](docs/TEAM.md).
-
-## How it works
-
-Three hooks, all zero-dependency Node scripts in [hooks/](hooks/):
-
-| Event | Script | Effect |
-|---|---|---|
-| `SessionStart` (startup, resume, clear, compact) | `attic-activate.js` | Injects the rules for the active level plus `.attic/INDEX.md` (capped at 60 lines / 4 KB). This is what makes the attic survive `/compact`. |
-| `UserPromptSubmit` | `attic-mode.js` | Tracks `/attic <level>` and `/attic default <level>`, confirms the change. Silent on every other prompt. |
-| `SubagentStart` | `attic-subagent.js` | Briefs subagents so they stash instead of dumping into their report. |
-
-The ruleset itself lives in [skills/attic/SKILL.md](skills/attic/SKILL.md). The other skills are the slash commands.
-
-## Architecture
-
-Attic is built as a versioned, testable, enforceable component rather than a
-Markdown prompt. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full
-layer map.
-
-![Layers: router, skill hub, script, enforcement, evaluation](assets/architecture.svg)
-
-```
-skills/attic/
-├── SKILL.md          the hub: scope, rules, routing
-├── references/       domain knowledge, loaded on demand
-├── scripts/attic.js  deterministic file operations
-├── templates/        output shapes
-└── evals/            activation + behaviour suites
-```
-
-The split that matters: **the model decides what is worth stashing and writes
-the prose; the script owns everything mechanical.** Slug hygiene, frontmatter,
-index bookkeeping, atomic writes and credential detection are software
-concerns, so `scripts/attic.js` handles them and exits non-zero when something
-is wrong. "Never stash secrets" is still in the instructions, but it is no
-longer the only thing enforcing it.
-
-```bash
-node skills/attic/scripts/attic.js stash --slug x --kind finding --hook "..." --body "..."
-node skills/attic/scripts/attic.js recall "login timeout"
-node skills/attic/scripts/attic.js validate     # exit 3 on drift or a leaked credential
-```
+The index is injected into every session, so it cannot grow forever. Pinned
+items always survive, newest fill the remaining room, and older ones collapse
+to a single line you can still search. Your newest finding is never the one
+that disappears.
 
 ## Does it actually help?
 
-Honestly: partly proven, partly still being measured. Both are below.
+Sometimes. Here is the evidence, including where it does not.
 
-### What is proven
+**The real test**: three sessions on a private monorepo with auth spread
+across a server, three clients and an Electron process. Investigate the auth
+flow; then, in a **fresh session told nothing about the first**, add account
+lockout; then, in another fresh session, add password change.
 
-If a finding is already in context, the agent does not go looking for it.
-
-![Input tokens with and without the attic](assets/benchmark.svg)
-
-One question about code whose answer is already stashed, against a 26-file
-fixture, counting real input tokens from the CLI's own usage output. Both
-arms graded for correctness, because a cheaper wrong answer is not a win.
-
-| Host | Without attic | With attic | Delta |
-|---|---|---|---|
-| Codex CLI | 43,357 | 14,569 | **−66.4%** |
-| Claude Code, run 1 | 90,263 | 30,163 | **−66.6%** |
-| Claude Code, run 2 | 90,272 | 60,687 | **−32.8%** |
-| Codex, nothing relevant stashed | 28,654 | 29,363 | **+2.5%** |
-| Claude Code, nothing relevant stashed | 57,698 | 60,428 | **+4.7%** |
-
-Correctness held at 18 of 18 across both hosts and both arms.
-
-**This proves less than it looks like.** It is close to a tautology: of
-course an agent that already has the answer does not search for it. The two
-rows where nothing relevant is stashed are the honest counterweight, and they
-are why the plugin ships an `off` level. Claude Code's two runs also differ by
-more than 30 points, so treat its figures as a range, not a number.
-
-What it does establish is the direction, on two different agents and models,
-and that the attic arm's cost does not depend on how much the model decides
-to read.
-
-### The harder test
-
-A fixture cannot show whether stashing happens at useful moments in real
-work. So there is a second benchmark against a real private monorepo with
-non-obvious auth spread across a server, three clients and an Electron main
-process.
-
-Three sessions per arm. Investigate the auth flow; then, in a **fresh session
-told nothing about the first**, add account lockout; then, in another fresh
-session, add password change. The arms differ in one thing: whether the
-plugin is loaded.
-
-| Metric | No Attic | Attic | Δ |
+| | No Attic | Attic | |
 |---|---:|---:|---:|
-| Total input tokens | 5,935,224 | 3,938,927 | **−33.6%** |
-| Tool calls | 124 | 103 | −16.9% |
-| Time | 854s | 768s | −10.0% |
-| Rediscovery (files re-read) | 17 | 14 | −17.6% |
-| Cost | $6.35 | $5.02 | −20.9% |
-| Correctness (rubric) | 13/13 | 13/13 | — |
+| Input tokens | 5,935,224 | 3,938,927 | **−34%** |
+| Cost | $6.35 | $5.02 | −21% |
+| Correctness | 13/13 | 13/13 | tie |
 
-The gap widens as sessions accumulate: session 1 is a wash (1.21M vs 1.14M
-tokens), session 2 saves 36%, session 3 saves 43%. That shape is what the
-hypothesis predicts — the attic is worth more the longer the work runs.
+The shape matters more than the total. Session 1 is a wash (−6%), session 2
+saves 36%, session 3 saves 43%. The benefit compounds as sessions accumulate.
 
-**Both arms were correct.** The baseline extracted a shared lockout module,
-used atomic updates so a bcrypt pre-save hook could not re-hash the password,
-and refused locked accounts *before* the password check so a lock cannot be
-extended by guessing. Attic matched it point for point. The difference is
-cost, not quality — which is the honest framing: this does not make an agent
-smarter, it stops it paying twice.
+**Both arms were correct**, so this did not make the agent smarter. It made
+the same quality cheaper.
 
-**Caveats worth stating.** One run of each arm, one repository, one model.
-Rediscovery moved less than tokens did, so the saving is not purely explained
-by "did not re-read the same files". The design was committed before either
-arm ran, so it could not be tuned to fit the result.
+**Where it costs you.** On a short session, or a question you never ask
+twice, the index is overhead you pay for nothing — measured at +2.5% on one
+benchmark case. That is why `off` exists. No headline percentage is quoted
+because agent sessions are not reproducible enough to support one:
+[the full accounting](docs/HONEST-NUMBERS.md).
 
-Method, prompts, rubric and raw results:
+Method, prompts and raw results:
 [benchmarks/auth-investigation/](benchmarks/auth-investigation/).
 
-```bash
-node benchmarks/run.js --runs 3                 # the fixture benchmark
-node benchmarks/run.js --host codex --runs 3
-node benchmarks/auth-investigation/run.js --repo <path>   # the multi-session one
-```
+## Privacy
 
-Where the attic costs more than it returns, and why no headline percentage is
-quoted: [docs/HONEST-NUMBERS.md](docs/HONEST-NUMBERS.md).
+No network calls. No telemetry. No API keys. Everything stays in your project
+folder and on your machine. The script refuses to write anything that looks
+like a credential. [Security notes](SECURITY.md).
 
-## Evaluation
+## More
 
-Activation and behaviour are measured separately.
-
-```bash
-node scripts/run-evals.js --suite activation   # real headless sessions, scores the classifier
-node scripts/run-behavior.js                   # real sessions, graded on files + reply
-node scripts/run-evals.js --suite behavior     # the remaining judgement-call checklist
-node scripts/run-evals.js --case act-22        # a single case
-```
-
-Activation proves the right skill fires. Behaviour proves it then does its
-job: `run-behavior.js` seeds an attic, runs a real headless session, and
-asserts on what landed on disk and what the reply said. It is what catches a
-skill that activates correctly and then does nothing.
-
-The activation suite reports accuracy, coverage, false positive rate, false
-negative rate and wrong-skill rate over positive cases, negative cases, and
-collision cases. Current baseline: 100% across 22 cases, recorded in
-[skills/attic/evals/results/](skills/attic/evals/results/).
-
-Attic publishes no headline savings percentage, because a reproducible
-baseline for agent sessions does not exist. `/attic-stats` reports what is
-measurable on your machine and says where the attic costs more than it
-returns. See [docs/HONEST-NUMBERS.md](docs/HONEST-NUMBERS.md).
-
-## Enforcement
-
-| Layer | Mechanism |
-|---|---|
-| Session start | `hooks/attic-activate.js` injects the index, so the attic survives `/compact`. |
-| Write time | `scripts/attic.js` refuses credentials with exit code 2. |
-| Commit time | `scripts/attic-precommit.sh` blocks a commit with a malformed or leaking `.attic/`. |
-| CI | `.github/workflows/ci.yml` runs tests and manifest validation; `attic-guard.yml` validates `.attic/` on pull requests. |
-| Merge time | `scripts/attic-merge.js` resolves index conflicts instead of losing one side. |
-
-## Project files
-
-[docs/QUICKSTART.md](docs/QUICKSTART.md) · [poster](assets/poster.svg) · [share card](assets/social-card.png) · [docs/COMMANDS.md](docs/COMMANDS.md) · [CHANGELOG.md](CHANGELOG.md) · [docs/CODEX.md](docs/CODEX.md) · [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) · [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/HONEST-NUMBERS.md](docs/HONEST-NUMBERS.md) · [docs/TEAM.md](docs/TEAM.md)
-
-## Repository layout
-
-```
-skills/            the skills, shared by both hosts
-hooks/             session hooks, shared by both hosts
-scripts/           tooling; scripts/codex/ holds the Codex launcher and installer
-codex/             GENERATED Codex plugin — do not edit, run npm run build:codex
-.agents/plugins/   Codex marketplace manifest; makes this repo installable with codex plugin add
-benchmarks/        the two-arm benchmark and its recorded results
-docs/              architecture, honest numbers, team workflow, Codex notes
-```
-
-Claude Code loads `skills/` and `hooks/` directly through its plugin
-manifest. Codex gets the same content via the generated `codex/` build, which
-carries a `.codex-plugin/plugin.json` of its own; `.agents/plugins/` makes
-the repository a Codex marketplace.
-
-## Development
-
-```
-npm test                          # unit tests: hooks, script, eval suite integrity
-claude plugin validate . --strict # manifest and component checks
-claude --plugin-dir .             # load this checkout into a session
-npm run build:codex               # regenerate codex/ after changing a skill
-npm run bump -- 1.2.0             # move every version string together, then rebuild
-sh scripts/publish-release.sh     # tag + publish a GitHub release (needs gh auth login)
-npm run bench                     # the two-arm token benchmark
-npm run make:assets               # regenerate the README diagrams
-npm run make:logo                 # regenerate the logo variants
-npm run make:poster               # regenerate the poster (SVG)
-npm run make:social               # regenerate the share card (SVG + PNG)
-```
+[Quickstart](docs/QUICKSTART.md) ·
+[All commands](docs/COMMANDS.md) ·
+[Codex setup](docs/CODEX.md) ·
+[Team setup](docs/TEAM.md) ·
+[How it is built](docs/ARCHITECTURE.md) ·
+[Contributing](CONTRIBUTING.md) ·
+[Changelog](CHANGELOG.md)
 
 ## Uninstall
 
 ```
-claude plugin uninstall attic@attic
+claude plugin uninstall attic@attic     # Claude Code
+codex plugin remove attic               # Codex CLI
 ```
 
-`.attic/` folders in your projects stay where they are; delete them if you want.
+Your `.attic/` folders stay where they are. Delete them if you want.
 
 ## License
 
