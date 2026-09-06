@@ -21,8 +21,16 @@ const CHARS_PER_TOKEN = 4; // rough, and labelled as such wherever shown
 
 function transcriptDir(projectDir) {
   // Claude Code slugifies the project path: /Users/x/y -> -Users-x-y
-  const slug = path.resolve(projectDir).replace(/[/.]/g, '-');
-  return path.join(os.homedir(), '.claude', 'projects', slug);
+  // The slug replaces underscores as well as slashes and dots, and on macOS a
+  // /var path resolves to /private/var. Missing either yields "no transcripts
+  // found", which reads as "nothing to measure" rather than a lookup failure.
+  const real = (() => { try { return fs.realpathSync(projectDir); } catch (e) { return projectDir; } })();
+  const base = path.join(os.homedir(), '.claude', 'projects');
+  for (const p of [projectDir, real]) {
+    const d = path.join(base, path.resolve(p).replace(/[/._]/g, '-'));
+    if (fs.existsSync(d)) return d;
+  }
+  return path.join(base, path.resolve(real).replace(/[/._]/g, '-'));
 }
 
 function readSessions(projectDir, limit) {
@@ -45,15 +53,38 @@ function readSessions(projectDir, limit) {
     const usage = rows.filter((r) => r.message && r.message.usage).map((r) => r.message.usage);
     if (!usage.length) continue;
     const context = usage.map((u) => (u.input_tokens || 0) + (u.cache_read_input_tokens || 0));
-    const text = JSON.stringify(rows);
+
+    // A citation only counts when the model wrote it in its own prose. The
+    // script's output echoing back through a tool_result is the tool quoting
+    // itself, not the attic being used, and counting it inflates the figure
+    // roughly twentyfold.
+    let citations = 0;
+    const filesRead = new Set();
+    for (const r of rows) {
+      const content = r.message && r.message.content;
+      if (!Array.isArray(content)) continue;
+      for (const part of content) {
+        if (r.type === 'assistant' && part.type === 'text') {
+          citations += (String(part.text || '').match(/attic:[a-z0-9-]+/g) || []).length;
+        }
+        if (part.type === 'tool_use') {
+          const p = (part.input || {}).file_path;
+          // Reading .attic/ is the mechanism, not rediscovery.
+          if (p && !p.includes('/.attic/')) filesRead.add(path.resolve(p));
+        }
+      }
+    }
+
     sessions.push({
       file: path.basename(file),
+      mtime: fs.statSync(file).mtimeMs,
       turns: usage.length,
       output: usage.reduce((a, u) => a + (u.output_tokens || 0), 0),
       contextFirst: context[0],
       contextMax: Math.max(...context),
       contextMedian: context.slice().sort((a, b) => a - b)[Math.floor(context.length / 2)],
-      handleCitations: (text.match(/attic:[a-z0-9-]+/g) || []).length,
+      handleCitations: citations,
+      filesRead: [...filesRead],
       compactions: rows.filter((r) => r.type === 'summary' || /compact/i.test(r.subtype || '')).length,
     });
   }
@@ -102,29 +133,52 @@ function build(projectDir, limit) {
     citations: a.citations + s.handleCitations, compactions: a.compactions + s.compactions,
   }), { turns: 0, output: 0, citations: 0, compactions: 0 });
 
+  // Rediscovery: files a later session read that an earlier one already read.
+  // This is the thing the plugin claims to reduce, so it is the thing to show.
+  const byAge = sessions.slice().sort((a, b) => a.mtime - b.mtime);
+  let repeated = 0, totalReads = 0;
+  const seen = new Set();
+  for (const s of byAge) {
+    for (const f of s.filesRead || []) {
+      totalReads++;
+      if (seen.has(f)) repeated++;
+      else seen.add(f);
+    }
+  }
+  const rediscovery = { repeated, totalReads,
+    pct: totalReads ? +(100 * repeated / totalReads).toFixed(1) : 0 };
+
   const verdict = [];
   if (!attic) {
     verdict.push('No .attic/ in this project. Nothing to measure yet.');
   } else {
     const perSession = attic.injectedTokensApprox;
-    verdict.push(`The index costs about ${perSession} tokens at every session start (and after every compaction).`);
+    const cites = totals.citations;
+    verdict.push(`Costs about ${perSession} tokens at every session start, and again after every compaction.`);
+
     if (attic.items === 0) {
-      verdict.push('The attic is empty, so that cost is currently near zero and so is the benefit.');
-    } else if (sessions.length && perSession > 0 && totals.citations === 0) {
-      verdict.push('COSTING MORE THAN IT RETURNS: no handle was cited in the sessions read, so the index is being paid for and not used. Either the attic holds the wrong things, or the level is too low to consult it.');
+      verdict.push('The attic is empty, so both the cost and the benefit are near zero.');
     } else if (!sessions.length) {
-      verdict.push('No transcripts found for this project, so the return side is unmeasured. The cost figure above is still real.');
-    } else if (totals.citations > 0) {
-      verdict.push(`${totals.citations} handle citation(s) across ${sessions.length} session(s): the attic is being read back, not just written.`);
+      verdict.push('No transcripts for this project, so the return side is unmeasured. The cost above is still real.');
+    } else if (cites === 0 && totals.turns > 60) {
+      verdict.push(`NOT EARNING ITS KEEP: ${sessions.length} session(s) and ${totals.turns} turns, and the attic was never cited. You are paying the index cost and not reading it back. Either the wrong things are being kept, or this project does not need it — consider /attic off.`);
+    } else if (cites === 0) {
+      verdict.push('Not cited yet. Too early to judge: the return arrives on later sessions, not the one that writes.');
+    } else {
+      verdict.push(`Cited ${cites} time(s) across ${sessions.length} session(s) — the attic is being read back, not just written to.`);
+    }
+
+    if (rediscovery.totalReads > 20) {
+      verdict.push(`${rediscovery.pct}% of file reads were files an earlier session had already read (${rediscovery.repeated} of ${rediscovery.totalReads}). Lower is better; this is the number the plugin exists to reduce.`);
     }
     if (attic.indexHidden > 0) {
       verdict.push(`${attic.indexHidden} item(s) are past the injection budget and reachable only via /attic-recall. Pin what must always be present, or prune.`);
     }
     if (attic.items < 5 && totals.turns < 40) {
-      verdict.push('On a short session with a small attic, this is overhead. The return arrives on long sessions, after compaction, and in later sessions.');
+      verdict.push('Short session, small attic: this is overhead so far. The return arrives on long sessions, after compaction, and in later sessions.');
     }
   }
-  return { projectDir, transcriptDir: dir, sessionsRead: sessions.length, totals, attic, sessions, verdict };
+  return { projectDir, transcriptDir: dir, sessionsRead: sessions.length, totals, attic, sessions, rediscovery, verdict };
 }
 
 function render(r) {
@@ -145,7 +199,10 @@ function render(r) {
   if (r.sessionsRead) {
     L.push(`  Sessions read: ${r.sessionsRead}`);
     L.push(`    turns ${r.totals.turns}   output tokens ${r.totals.output.toLocaleString()}`);
-    L.push(`    handle citations ${r.totals.citations}   compactions ${r.totals.compactions}`);
+    L.push(`    cited in replies ${r.totals.citations}   compactions ${r.totals.compactions}`);
+    if (r.rediscovery && r.rediscovery.totalReads) {
+      L.push(`    repeat file reads ${r.rediscovery.repeated} of ${r.rediscovery.totalReads}  (${r.rediscovery.pct}%)`);
+    }
     L.push('');
     L.push('    session            turns   ctx first    ctx max   cites');
     for (const s of r.sessions.slice(0, 8)) {

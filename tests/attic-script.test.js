@@ -432,3 +432,83 @@ test('withLock never releases a lock it did not acquire', () => {
   assert.ok(fs.existsSync(lock), 'the foreign lock must still be there afterwards');
   fs.rmdirSync(lock);
 });
+
+// ---------- /attic-stats must be able to say "this is not working" ----------
+
+test('stats counts only citations the model wrote, not the script echoing itself', () => {
+  const stats = require(path.join(__dirname, '..', 'scripts', 'attic-stats.js'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'attic-st-'));
+  const proj = fs.mkdtempSync(path.join(os.tmpdir(), 'attic-sp-'));
+  const dir = path.join(home, '.claude', 'projects', path.resolve(proj).replace(/[/._]/g, '-'));
+  fs.mkdirSync(dir, { recursive: true });
+
+  const rows = [
+    // one genuine citation, in assistant prose
+    { type: 'assistant', message: { usage: { input_tokens: 100, output_tokens: 10 },
+      content: [{ type: 'text', text: 'per attic:real-finding the cause is X' }] } },
+    // twenty echoes of the script's own output — must NOT count
+    ...[...Array(20)].map(() => ({ type: 'user', message: { content: [
+      { type: 'tool_result', content: 'Stashed `attic:noise` -> .attic/items/noise.md' }] } })),
+  ];
+  fs.writeFileSync(path.join(dir, 'sess.jsonl'), rows.map((r) => JSON.stringify(r)).join('\n'));
+
+  const prevHome = process.env.HOME;
+  process.env.HOME = home;
+  try {
+    const r = stats.build(proj, 20);
+    assert.equal(r.totals.citations, 1, 'tool_result echoes must not inflate the count');
+  } finally { process.env.HOME = prevHome; }
+});
+
+test('stats says plainly when the attic is not earning its keep', () => {
+  const stats = require(path.join(__dirname, '..', 'scripts', 'attic-stats.js'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'attic-st2-'));
+  const proj = fs.mkdtempSync(path.join(os.tmpdir(), 'attic-sp2-'));
+
+  // a real attic that is never cited
+  spawnSync(process.execPath, [SCRIPT, 'stash', '--cwd', proj, '--slug', 'unused',
+    '--kind', 'note', '--hook', 'never read back', '--body', 'b'], { encoding: 'utf8' });
+
+  const dir = path.join(home, '.claude', 'projects', path.resolve(proj).replace(/[/._]/g, '-'));
+  fs.mkdirSync(dir, { recursive: true });
+  const rows = [...Array(70)].map(() => ({ type: 'assistant',
+    message: { usage: { input_tokens: 100, output_tokens: 10 }, content: [{ type: 'text', text: 'no handle here' }] } }));
+  fs.writeFileSync(path.join(dir, 'sess.jsonl'), rows.map((r) => JSON.stringify(r)).join('\n'));
+
+  const prevHome = process.env.HOME;
+  process.env.HOME = home;
+  try {
+    const r = stats.build(proj, 20);
+    assert.equal(r.totals.citations, 0);
+    const said = r.verdict.join(' ');
+    assert.match(said, /NOT EARNING ITS KEEP/, 'must tell the user when it is not working');
+    assert.match(said, /attic off/, 'must suggest turning it off');
+  } finally { process.env.HOME = prevHome; }
+});
+
+test('stats reports rediscovery and ignores reads of .attic itself', () => {
+  const stats = require(path.join(__dirname, '..', 'scripts', 'attic-stats.js'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'attic-st3-'));
+  const proj = fs.mkdtempSync(path.join(os.tmpdir(), 'attic-sp3-'));
+  const dir = path.join(home, '.claude', 'projects', path.resolve(proj).replace(/[/._]/g, '-'));
+  fs.mkdirSync(dir, { recursive: true });
+
+  const read = (p) => ({ type: 'assistant', message: { usage: { input_tokens: 10, output_tokens: 1 },
+    content: [{ type: 'tool_use', name: 'Read', input: { file_path: p } }] } });
+  const mk = (name, parts, age) => {
+    const f = path.join(dir, name);
+    fs.writeFileSync(f, parts.map((r) => JSON.stringify(r)).join('\n'));
+    fs.utimesSync(f, age, age);
+  };
+  // session 1 reads two files; session 2 re-reads one of them plus the attic
+  mk('s1.jsonl', [read('/p/a.js'), read('/p/b.js')], 1000);
+  mk('s2.jsonl', [read('/p/a.js'), read('/p/.attic/INDEX.md'), read('/p/c.js')], 2000);
+
+  const prevHome = process.env.HOME;
+  process.env.HOME = home;
+  try {
+    const r = stats.build(proj, 20);
+    assert.equal(r.rediscovery.totalReads, 4, '.attic/ reads must be excluded');
+    assert.equal(r.rediscovery.repeated, 1, 'only a.js was read twice');
+  } finally { process.env.HOME = prevHome; }
+});

@@ -3,6 +3,31 @@
 All notable changes to Attic. Versions follow semver: the on-disk `.attic/`
 format is a public interface, so changing it is a major version.
 
+## [Unreleased]
+
+### Fixed
+
+- **`/attic-stats` was counting its own output as evidence.** Citations were
+  matched anywhere in a transcript, so the script's own `Stashed attic:x`
+  lines echoing back through tool results inflated the figure roughly
+  twentyfold — 130 reported where 2 were real. Only prose the model wrote
+  counts now.
+- **Transcripts were not found for any project whose path contains an
+  underscore.** The lookup slug replaces `_` as well as `/` and `.`, and on
+  macOS a `/var` path resolves to `/private/var`. Both cases reported "no
+  transcripts found", which reads as "nothing to measure" rather than a
+  lookup failure.
+
+### Added
+
+- `/attic-stats` now measures the return side, not just the cost. It reports
+  how often the attic was cited in replies, and what share of file reads
+  repeated a read from an earlier session — the number the plugin exists to
+  reduce.
+- It will now tell you the plugin is not working: after enough turns with no
+  citation it says NOT EARNING ITS KEEP and suggests `/attic off`. A tool
+  that cannot report its own failure is asking for trust it has not earned.
+
 ## [1.2.1] - 2026-09-06
 
 No change to how the plugin behaves. Documentation, assets, and the evidence
