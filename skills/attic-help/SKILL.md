@@ -2,7 +2,7 @@
 name: attic-help
 description: One-screen reference for the attic commands and levels.
 disable-model-invocation: true
-version: 1.2.1
+version: 1.3.0
 license: MIT
 ---
 

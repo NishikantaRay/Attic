@@ -3,7 +3,11 @@
 All notable changes to Attic. Versions follow semver: the on-disk `.attic/`
 format is a public interface, so changing it is a major version.
 
-## [Unreleased]
+## [1.3.0] - 2026-09-06
+
+`/attic-stats` can now tell you the plugin is not working, and a separate
+tool measures whether your setup is improving at all.
+
 
 ### Fixed
 

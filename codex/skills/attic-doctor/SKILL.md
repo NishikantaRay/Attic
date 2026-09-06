@@ -7,7 +7,7 @@ description: >
   healthy", or "did anything leak into the attic". Never use this for git,
   merge or conflict problems, even though they sound like breakage: every
   merge conflict goes to attic-git.
-version: 1.2.1
+version: 1.3.0
 license: MIT
 ---
 

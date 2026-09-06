@@ -6,7 +6,7 @@ description: >
   this", "always remember this", "keep this in context", or when an item is
   a long-lived architectural decision or constraint that must survive.
   Use --unpin to reverse it.
-version: 1.2.1
+version: 1.3.0
 license: MIT
 ---
 
