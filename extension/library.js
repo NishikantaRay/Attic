@@ -15,7 +15,10 @@ async function boot() {
     const s = await settings();
     if (s.token && s.root) {
       const p = await api.ping();
-      if (p.ok) return open();
+      // awaited, not returned: `return open()` handed the promise back before
+      // the catch could see it, so a failure inside open() was unhandled and
+      // left whatever was on screen exactly where it was.
+      if (p.ok) { await open(); return; }
     }
   } catch (e) { /* fall through to setup, which reports properly */ }
   showSetup();

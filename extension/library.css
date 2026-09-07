@@ -1,3 +1,9 @@
+/* The `hidden` attribute is only display:none in the UA sheet, so ANY author
+   `display` rule beats it — .setup{display:grid} and .app{display:flex} did
+   exactly that, leaving the setup card painted over a working app forever.
+   This has to come first and stay !important. */
+[hidden] { display: none !important; }
+
 :root {
   --bg: #ffffff;
   --panel: #fbfbfd;
