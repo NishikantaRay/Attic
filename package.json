@@ -6,6 +6,7 @@
   "license": "MIT",
   "scripts": {
     "test": "node --test",
+    "attic:serve": "node extension/server/server.js",
     "build:codex": "node scripts/build-codex.js",
     "make:assets": "node scripts/make-assets.js",
     "bench": "node benchmarks/run.js --runs 3",
