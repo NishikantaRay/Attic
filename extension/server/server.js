@@ -186,8 +186,12 @@ async function handle(req, res, ctx) {
     // from the popup must not burn it.
     if (url.searchParams.get('pair') === '1' && pairOpen(ctx)) {
       out.token = ctx.token;
-      ctx.pairUntil = 0;
-      process.stdout.write('paired with the extension; window closed. To pair again: press Enter here, or run with --pair.\n');
+      // The window is left open for the rest of its time box on purpose: see
+      // the note above. Repeated pairs within it are expected, not an attack.
+      if (!ctx.announcedPair) {
+        ctx.announcedPair = true;
+        process.stdout.write('paired with the extension\n');
+      }
     }
     return send(res, 200, out, allowOrigin);
   }

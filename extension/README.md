@@ -60,8 +60,10 @@ the token to the extension. That endpoint is unauthenticated, so the window
 around it is what keeps this honest:
 
 - it is open for **5 minutes** from companion start,
-- it closes on the first successful pair,
-- a plain status ping does **not** consume it,
+- a plain status ping does **not** claim the token; only `?pair=1` does,
+- it is **not** single-use: a token already issued stays valid, so closing on
+  the first read would protect nothing and would strand the real client behind
+  any other reader (a reload, a health check, a stray `curl`),
 - **reopen it any time with `npm run attic:pair`**, or by pressing Enter in the
   companion's terminal — both prove control of the account, and neither
   requires restarting a running companion,

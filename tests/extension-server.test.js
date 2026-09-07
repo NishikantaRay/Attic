@@ -192,9 +192,12 @@ test('pairing hands over the token, then refuses to do it twice', async (t) => {
   assert.equal(first.json.token, TOKEN, 'the first pair request gets the token');
   assert.equal(first.json.pairing, 'open');
 
+  // Deliberately still open: a token already issued stays valid, so closing on
+  // the first read would only strand the real client behind an unrelated
+  // reader (a reload, a health check, a diagnostic curl).
   const second = await req(port, '/ping?pair=1', { token: null });
-  assert.equal(second.json.token, undefined, 'the window closed after the first pair');
-  assert.equal(second.json.pairing, 'closed');
+  assert.equal(second.json.token, TOKEN, 'a second read inside the window still works');
+  assert.equal(second.json.pairing, 'open');
 });
 
 test('a closed window can be reopened without restarting the server', async (t) => {
@@ -202,7 +205,7 @@ test('a closed window can be reopened without restarting the server', async (t) 
   const { server, port } = await boot([cwd]);
   t.after(() => server.close());
 
-  await req(port, '/ping?pair=1', { token: null });
+  server.atticCtx.pairUntil = 0; // as if the time box had elapsed
   assert.equal((await req(port, '/ping', { token: null })).json.pairing, 'closed');
 
   // What the Enter keypress does. A long-lived companion must not require a
@@ -269,7 +272,7 @@ test('pairing can be reopened with no TTY, via the request file', async (t) => {
   t.after(() => server.close());
   t.after(() => { try { fs.unlinkSync(srv.PAIR_REQUEST_FILE); } catch (e) {} });
 
-  await req(port, '/ping?pair=1', { token: null });
+  server.atticCtx.pairUntil = 0; // as if the time box had elapsed
   assert.equal((await req(port, '/ping', { token: null })).json.pairing, 'closed');
 
   // What `--pair` does. A backgrounded companion has no keystroke available,
@@ -288,7 +291,7 @@ test('a stale pair request is ignored', async (t) => {
   t.after(() => server.close());
   t.after(() => { try { fs.unlinkSync(srv.PAIR_REQUEST_FILE); } catch (e) {} });
 
-  await req(port, '/ping?pair=1', { token: null });
+  server.atticCtx.pairUntil = 0;
 
   // An old file left behind by a previous run must not silently reopen the
   // window later.
