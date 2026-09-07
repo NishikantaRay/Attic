@@ -12,7 +12,8 @@
     "bump": "node scripts/bump-version.js",
     "make:logo": "node scripts/make-logo.js",
     "make:poster": "node scripts/make-poster.js",
-    "make:social": "node scripts/make-social.js && rsvg-convert -w 2400 -h 1254 assets/social-card.svg -o assets/social-card.png"
+    "make:social": "node scripts/make-social.js && rsvg-convert -w 2400 -h 1254 assets/social-card.svg -o assets/social-card.png",
+    "make:social-set": "node scripts/make-social-set.js && cd assets/social && for f in compounding correctness-tie problem; do rsvg-convert -w 2400 -h 1254 $f.svg -o $f.png; done && rsvg-convert -w 2160 -h 2160 square.svg -o square.png"
   },
   "engines": {
     "node": ">=18"

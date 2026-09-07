@@ -171,6 +171,8 @@ like a credential. [Security notes](SECURITY.md).
 
 ## More
 
+[Why your AI keeps forgetting](blog/why-your-ai-keeps-forgetting.md) ·
+[Measuring agent memory](blog/measuring-agent-memory.md) ·
 [Quickstart](docs/QUICKSTART.md) ·
 [All commands](docs/COMMANDS.md) ·
 [Codex setup](docs/CODEX.md) ·

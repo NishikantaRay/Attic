@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="627" viewBox="0 0 1200 627" role="img">
+<rect width="1200" height="627" fill="#FBF9F5"/>
+<rect x="0" y="0" width="1200" height="9" fill="#0B5D3B"/>
+
+
+  <path d="M 93.00,50.20 L 108.96,64.06 L 108.96,67.84 L 93.00,53.98 L 77.04,67.84 L 77.04,64.06 Z" fill="#1A1815"/>
+  <path d="M 80.40,64.48 L 80.40,82.96 L 82.92,82.96 L 82.92,64.48 Z" fill="#1A1815" opacity="0.35"/>
+  <path d="M 103.08,64.48 L 103.08,82.96 L 105.60,82.96 L 105.60,64.48 Z" fill="#1A1815" opacity="0.35"/>
+  <rect x="84.60" y="69.52" width="16.80" height="3.78" rx="0.84" fill="#0B5D3B" opacity="0.3"/><rect x="84.60" y="74.98" width="16.80" height="3.78" rx="0.84" fill="#0B5D3B" opacity="0.6"/><rect x="84.60" y="80.44" width="16.80" height="3.78" rx="0.84" fill="#0B5D3B" opacity="1"/>
+<text x="122" y="80" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="26" font-weight="700" fill="#1A1815">Attic</text>
+<text x="1128" y="80" text-anchor="end" font-family="Futura, 'Avenir Next', Avenir, sans-serif" font-size="15" letter-spacing="1.4" fill="#6B6459">CLAUDE CODE · CODEX CLI</text>
+<text x="72" y="182" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="46" font-weight="700" fill="#1A1815">Your agent figured it out once.</text>
+<text x="72" y="234" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="46" font-weight="700" fill="#0B5D3B">Now it remembers.</text>
+<text x="72" y="300" font-family="Futura, 'Avenir Next', Avenir, sans-serif" font-size="15" letter-spacing="1.6" fill="#6B6459">WITHOUT ATTIC</text>
+<text x="72" y="344" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="20" fill="#1A1815" opacity="0.8">maxmemory-policy is allkeys-lru,</text>
+<text x="72" y="378" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="20" fill="#1A1815" opacity="0.45">so session keys get evicted…</text>
+<text x="72" y="412" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="20" fill="#1A1815" opacity="0.22">…something about volatile-</text>
+<text x="72" y="446" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="20" fill="#1A1815" opacity="0.1">…lru?</text>
+<text x="72" y="500" font-family="Menlo, 'SF Mono', monospace" font-size="16" fill="#6B6459">reads the same files again</text>
+<path d="M 612 292 L 612 508" stroke="#E2DCD0" stroke-width="1.5" stroke-dasharray="3 7"/>
+<text x="660" y="300" font-family="Futura, 'Avenir Next', Avenir, sans-serif" font-size="15" letter-spacing="1.6" fill="#0B5D3B">WITH ATTIC</text>
+<rect x="660" y="318" width="468" height="152" rx="4" fill="#FFFFFF" stroke="#E2DCD0"/>
+<rect x="660" y="318" width="7" height="152" rx="3" fill="#0B5D3B"/>
+<text x="688" y="352" font-family="Menlo, 'SF Mono', monospace" font-size="17" fill="#0B5D3B">attic:redis-eviction</text>
+<text x="688" y="386" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="20" fill="#1A1815">maxmemory-policy is allkeys-lru,</text>
+<text x="688" y="412" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="20" fill="#1A1815">so session keys get evicted.</text>
+<text x="688" y="446" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="20" fill="#6B6459">Fix: volatile-lru.</text>
+<text x="660" y="500" font-family="Menlo, 'SF Mono', monospace" font-size="16" fill="#0B5D3B">still there tomorrow</text>
+
+<line x1="72" y1="548" x2="1128" y2="548" stroke="#E2DCD0"/>
+<text x="72" y="578" font-family="Futura, 'Avenir Next', Avenir, sans-serif" font-size="16" letter-spacing="0.8" fill="#6B6459">OPEN SOURCE · MIT · NO TELEMETRY</text>
+<text x="1128" y="578" text-anchor="end" font-family="Menlo, 'SF Mono', monospace" font-size="16" fill="#0B5D3B">github.com/NishikantaRay/Attic</text></svg>

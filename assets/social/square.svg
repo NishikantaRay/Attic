@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080" role="img">
+<rect width="1080" height="1080" fill="#FBF9F5"/>
+<rect x="0" y="0" width="1080" height="9" fill="#0B5D3B"/>
+
+
+  <path d="M 110.00,66.00 L 132.80,85.80 L 132.80,91.20 L 110.00,71.40 L 87.20,91.20 L 87.20,85.80 Z" fill="#1A1815"/>
+  <path d="M 92.00,86.40 L 92.00,112.80 L 95.60,112.80 L 95.60,86.40 Z" fill="#1A1815" opacity="0.35"/>
+  <path d="M 124.40,86.40 L 124.40,112.80 L 128.00,112.80 L 128.00,86.40 Z" fill="#1A1815" opacity="0.35"/>
+  <rect x="98.00" y="93.60" width="24.00" height="5.40" rx="1.20" fill="#0B5D3B" opacity="0.3"/><rect x="98.00" y="101.40" width="24.00" height="5.40" rx="1.20" fill="#0B5D3B" opacity="0.6"/><rect x="98.00" y="109.20" width="24.00" height="5.40" rx="1.20" fill="#0B5D3B" opacity="1"/>
+<text x="152" y="112" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="34" font-weight="700" fill="#1A1815">Attic</text>
+<text x="80" y="270" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="52" font-weight="700" fill="#1A1815">Your agent forgets</text>
+<text x="80" y="330" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="52" font-weight="700" fill="#1A1815">what it figured out.</text>
+<text x="80" y="400" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="26" fill="#6B6459">Attic writes it down, so tomorrow</text>
+<text x="80" y="436" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="26" fill="#6B6459">it already knows.</text>
+<text x="80" y="512" font-family="Futura, 'Avenir Next', Avenir, sans-serif" font-size="17" letter-spacing="0.8" fill="#6B6459">INPUT TOKENS SAVED, PER SESSION</text>
+
+  <text x="80" y="592" font-family="Futura, 'Avenir Next', Avenir, sans-serif" font-size="19" fill="#6B6459">SESSION 1</text>
+  <rect x="248" y="560" width="67" height="46" rx="5" fill="#0B5D3B" opacity="0.45"/>
+  <text x="327" y="593" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="32" font-weight="700" fill="#0B5D3B">-6%</text>
+  <text x="80" y="688" font-family="Futura, 'Avenir Next', Avenir, sans-serif" font-size="19" fill="#6B6459">SESSION 2</text>
+  <rect x="248" y="656" width="403" height="46" rx="5" fill="#0B5D3B" opacity="0.7250000000000001"/>
+  <text x="663" y="689" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="32" font-weight="700" fill="#0B5D3B">-36%</text>
+  <text x="80" y="784" font-family="Futura, 'Avenir Next', Avenir, sans-serif" font-size="19" fill="#6B6459">SESSION 3</text>
+  <rect x="248" y="752" width="482" height="46" rx="5" fill="#0B5D3B" opacity="1"/>
+  <text x="742" y="785" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="32" font-weight="700" fill="#0B5D3B">-43%</text>
+<line x1="80" y1="900" x2="1000" y2="900" stroke="#E2DCD0"/>
+<text x="80" y="944" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="22" fill="#1A1815">Same correctness. A third fewer tokens.</text>
+<text x="80" y="990" font-family="Menlo, 'SF Mono', monospace" font-size="18" fill="#0B5D3B">github.com/NishikantaRay/Attic</text>
+<text x="1000" y="990" text-anchor="end" font-family="Futura, 'Avenir Next', Avenir, sans-serif" font-size="15" letter-spacing="0.8" fill="#6B6459">MIT · NO TELEMETRY</text></svg>
