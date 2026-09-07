@@ -31,6 +31,19 @@ function showSetup() {
 // the token during its pairing window, so this cannot be done behind the
 // user's back long after they started it.
 async function autoDiscover() {
+  // Last line of defence. If discovery neither resolves nor throws, the card
+  // would sit on "Looking for a companion…" forever; say so instead.
+  const watchdog = setTimeout(() => {
+    const msg = $('setup-msg');
+    if (!msg.textContent.startsWith('Looking')) return;
+    msg.className = 'setup-msg bad';
+    msg.textContent = 'Discovery timed out. Is the companion running?';
+    const btn = $('setup-btn');
+    btn.hidden = false;
+    btn.textContent = 'Try again';
+    btn.onclick = autoDiscover;
+  }, 6000);
+
   try { await autoDiscoverInner(); }
   catch (e) {
     // A silent throw here is what leaves the card stuck on "Looking for a
@@ -43,6 +56,7 @@ async function autoDiscover() {
     btn.textContent = 'Try again';
     btn.onclick = autoDiscover;
   }
+  finally { clearTimeout(watchdog); }
 }
 
 async function autoDiscoverInner() {
@@ -59,7 +73,15 @@ async function autoDiscoverInner() {
     msg.className = 'setup-msg bad';
     msg.textContent = 'No companion found.';
     detail.hidden = false;
-    detail.innerHTML = 'Start it in your project, then reload:<br><code>npm run attic:serve -- --root /path/to/project</code>';
+    // Brave (and similar) block extension pages from reaching 127.0.0.1 by
+    // default, which looks exactly like "nothing is running". Name it, because
+    // the user cannot guess it from a generic failure.
+    detail.innerHTML =
+      'Start it in your project, then reload:<br>' +
+      '<code>npm run attic:serve -- --root /path/to/project</code>' +
+      '<br><br>Already running? If this is <b>Brave</b>, open <code>brave://settings/shields</code> ' +
+      'and allow localhost access, or lower Shields for extension pages. ' +
+      'Some browsers block extensions from reaching <code>127.0.0.1</code>.';
     btn.hidden = false;
     btn.textContent = 'Look again';
     btn.onclick = autoDiscover;

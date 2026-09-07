@@ -5,8 +5,19 @@
  */
 const DEFAULTS = { port: 8787, token: '', root: '' };
 
+// Nothing in setup may hang: a promise that never settles leaves the card on
+// its loading text forever, which looks identical to a crash and is NOT caught
+// by try/catch. Every await in this file is bounded.
+function withTimeout(promise, ms, fallback) {
+  return Promise.race([
+    promise,
+    new Promise((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
+}
+
 export async function settings() {
-  return { ...DEFAULTS, ...(await chrome.storage.local.get(Object.keys(DEFAULTS))) };
+  const stored = await withTimeout(chrome.storage.local.get(Object.keys(DEFAULTS)), 1500, {});
+  return { ...DEFAULTS, ...(stored || {}) };
 }
 
 function base(s) { return `http://127.0.0.1:${s.port}`; }
@@ -63,7 +74,8 @@ export async function discover({ pair = true } = {}) {
       // The stored token may still be valid from an earlier pair — a closed
       // window does not invalidate it. Try it before asking the user for
       // anything.
-      const saved = (await chrome.storage.local.get('token')).token || '';
+      const stored = await withTimeout(chrome.storage.local.get('token'), 1500, {});
+      const saved = (stored && stored.token) || '';
       if (saved && await tokenWorks(port, saved)) token = saved;
     }
     return { ok: true, port, roots: d.roots || [], pairing: d.pairing, token };
@@ -75,7 +87,13 @@ export async function discover({ pair = true } = {}) {
 // still tells us 401 (bad token) apart from anything else.
 async function tokenWorks(port, token) {
   try {
-    const res = await fetch(`http://127.0.0.1:${port}/index`, { headers: { 'x-attic-token': token } });
+    const c = new AbortController();
+    const t = setTimeout(() => c.abort(), 1500);
+    const res = await fetch(`http://127.0.0.1:${port}/index`, {
+      headers: { 'x-attic-token': token },
+      signal: c.signal,
+    });
+    clearTimeout(t);
     return res.status !== 401;
   } catch (e) { return false; }
 }
