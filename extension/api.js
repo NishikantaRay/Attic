@@ -36,6 +36,30 @@ async function call(pathname, { method = 'GET', body, params } = {}) {
   return data;
 }
 
+// Ports to sweep when nothing is configured yet. Small and fixed: a real scan
+// of 65k ports from an extension would look exactly like malware.
+export const CANDIDATE_PORTS = [8787, 8788, 8789, 8790];
+
+// Find a companion and take its token, so setup is a button rather than a
+// copy-paste. The pairing window on the server side is what makes this safe
+// to do; if it has closed, the caller is told to restart or paste by hand.
+export async function discover() {
+  for (const port of CANDIDATE_PORTS) {
+    let res;
+    try {
+      const c = new AbortController();
+      const t = setTimeout(() => c.abort(), 400);
+      res = await fetch(`http://127.0.0.1:${port}/ping?pair=1`, { signal: c.signal });
+      clearTimeout(t);
+    } catch (e) { continue; }
+    let d;
+    try { d = await res.json(); } catch (e) { continue; }
+    if (!d || !d.ok) continue;
+    return { ok: true, port, roots: d.roots || [], pairing: d.pairing, token: d.token || '' };
+  }
+  return { ok: false, error: 'no companion found. Start it with: npm run attic:serve -- --root <project>' };
+}
+
 export const api = {
   ping: () => call('/ping'),
   index: (limit) => call('/index', { params: { limit } }),

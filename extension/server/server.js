@@ -11,8 +11,10 @@
  * Usage:
  *   node extension/server/server.js --root <project> [--root <project2>] [--port 8787]
  *
- * The server binds 127.0.0.1 only and requires a token that is printed on
- * first run and pasted into the extension's options page.
+ * The server binds 127.0.0.1 only and requires a token. To avoid making the
+ * user copy 48 hex characters, the token is also served from /ping during a
+ * short pairing window after start (see PAIR_WINDOW_MS). Pass --no-pair to
+ * disable that and paste the token by hand instead.
  */
 const http = require('http');
 const fs = require('fs');
@@ -25,6 +27,7 @@ const attic = require(path.join(__dirname, '..', '..', 'skills', 'attic', 'scrip
 const DEFAULT_PORT = 8787;
 const TOKEN_FILE = path.join(os.homedir(), '.attic-extension-token');
 const MAX_BODY = 1024 * 1024; // a clip is text; a megabyte is already generous
+const PAIR_WINDOW_MS = 5 * 60 * 1000;
 
 // ---------- token ----------
 // Persisted so the token survives restarts: otherwise every restart would
@@ -58,6 +61,23 @@ function rootAllowed(roots, candidate) {
   if (!candidate) return roots[0] || null;
   const want = normaliseRoot(candidate);
   return roots.find((r) => r === want) || null;
+}
+
+// ---------- pairing ----------
+// Handing the token to the extension removes the worst part of setup, but an
+// unauthenticated /ping that serves it forever would widen the exposure for
+// the whole life of the process. So the window is short, and it shuts for good
+// the moment a client actually takes the token.
+function pairOpen(ctx) {
+  if (!ctx.pairing) return false;
+  if (ctx.paired) return false;
+  return Date.now() - ctx.startedAt < PAIR_WINDOW_MS;
+}
+
+function pairState(ctx) {
+  if (!ctx.pairing) return 'disabled';
+  if (ctx.paired) return 'claimed';
+  return pairOpen(ctx) ? 'open' : 'expired';
 }
 
 // ---------- http helpers ----------
@@ -115,7 +135,16 @@ async function handle(req, res, ctx) {
   // Unauthenticated: lets the popup show "companion running, token wrong"
   // rather than a bare connection failure.
   if (url.pathname === '/ping') {
-    return send(res, 200, { ok: true, service: 'attic', version: ctx.version, roots: ctx.roots }, allowOrigin);
+    const state = pairState(ctx);
+    const out = { ok: true, service: 'attic', version: ctx.version, roots: ctx.roots, pairing: state };
+    // Only a deliberate pair request consumes the window: a plain status ping
+    // from the popup must not burn it.
+    if (url.searchParams.get('pair') === '1' && pairOpen(ctx)) {
+      out.token = ctx.token;
+      ctx.paired = true;
+      process.stdout.write('paired with the extension; pairing window is now closed\n');
+    }
+    return send(res, 200, out, allowOrigin);
   }
 
   if (!tokenOk(req.headers['x-attic-token'], ctx.token)) {
@@ -164,6 +193,7 @@ function parseArgv(argv) {
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--root') out.roots.push(argv[++i]);
     else if (argv[i] === '--port') out.port = parseInt(argv[++i], 10);
+    else if (argv[i] === '--no-pair') out.pairing = false;
   }
   return out;
 }
@@ -176,7 +206,14 @@ function start(opts) {
       process.exit(1);
     }
   }
-  const ctx = { roots, token: loadToken(), version: require('../../package.json').version };
+  const ctx = {
+    roots,
+    token: loadToken(),
+    version: require('../../package.json').version,
+    pairing: opts.pairing !== false,
+    paired: false,
+    startedAt: Date.now(),
+  };
   const server = http.createServer((req, res) => {
     handle(req, res, ctx).catch((e) => send(res, 400, { ok: false, error: e.message }));
   });
@@ -184,7 +221,10 @@ function start(opts) {
     process.stdout.write(
       `attic companion on http://127.0.0.1:${opts.port}\n` +
       `roots:\n${roots.map((r) => '  ' + r).join('\n')}\n` +
-      `token: ${ctx.token}\n  (also in ${TOKEN_FILE} — paste it into the extension options)\n`
+      (ctx.pairing
+        ? `pairing: open for ${PAIR_WINDOW_MS / 60000} min — open the extension and click Connect\n`
+        : `pairing: disabled (--no-pair)\n`) +
+      `token: ${ctx.token}\n  (also in ${TOKEN_FILE} — only needed if you pair by hand)\n`
     );
   });
   server.on('error', (e) => {
@@ -196,4 +236,4 @@ function start(opts) {
 }
 
 if (require.main === module) start(parseArgv(process.argv.slice(2)));
-module.exports = { start, normaliseRoot, rootAllowed, originOk, tokenOk, handle, loadToken };
+module.exports = { start, normaliseRoot, rootAllowed, originOk, tokenOk, handle, loadToken, pairOpen, pairState, PAIR_WINDOW_MS };

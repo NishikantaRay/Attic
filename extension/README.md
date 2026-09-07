@@ -18,36 +18,57 @@ DECISIONS bookkeeping, the same atomic writes — and the same secret scan.
 
 ## Install
 
-**1. Start the companion** in the repo:
+**1. Start the companion:**
 
 ```sh
 npm run attic:serve -- --root /path/to/your/project
 ```
 
 Pass `--root` once per project you want to clip into, and `--port` if 8787 is
-taken. It prints a token on first run and saves it to
-`~/.attic-extension-token`.
+taken.
 
 **2. Load the extension:** open `chrome://extensions`, turn on Developer mode,
 click **Load unpacked**, and select this `extension/` folder.
 
-**3. Configure it:** open the extension's options and paste the port, the
-token, and the project root (it must match a `--root` you passed).
-**Save & test** confirms the connection and shows how many items are already
-in that attic.
+**3. Click the toolbar icon and press Connect.** There is no token to copy:
+the library finds the companion on the usual ports and pairs with it. See
+[Pairing](#pairing) for what that costs.
 
 ## Using it
 
-**Clip** — click the toolbar icon. The popup pre-fills the title from the page
-and the body from your selection, or from the page's main text if nothing is
-selected. Adjust the title (the handle updates live), pick a kind, add tags,
-and stash. The source URL is prepended to the body.
+Clicking the toolbar icon opens the **library** in a full tab.
+
+**Browse** — items on the left, reading pane on the right. Filter by kind with
+the chips, search across titles, hooks and bodies (bodies load in the
+background the first time you focus the search box).
+
+**Switch projects** — start the companion with several `--root` flags and a
+project dropdown appears next to the search box.
+
+**Clip** — **+ Clip tab** pulls the title, URL and text from the last real page
+you were on (your selection if you made one, else the article text). Edit the
+title and the handle updates live; pick a kind, add tags, stash. The source URL
+is prepended to the body.
 
 **Right-click** — select text on any page and choose *Stash selection to
-attic*. No popup; a notification confirms the handle.
+attic*. No UI at all; a notification confirms the handle.
 
-**Browse** — the second tab lists the index and filters as you type. Click an
-entry to pull its full body through `recall`.
+## Pairing
+
+Copying 48 hex characters was the worst part of setup, so `/ping?pair=1` hands
+the token to the extension. That endpoint is unauthenticated, so the window
+around it is what keeps this honest:
+
+- it is open for **5 minutes** from companion start,
+- it closes **permanently** on the first successful pair,
+- a plain status ping does **not** consume it,
+- `--no-pair` turns it off entirely, and you paste the token by hand under
+  *Advanced*.
+
+The exposure is other local processes during those few minutes. That is
+already the trust boundary — a local process could read
+`~/.attic-extension-token`, or the project files, regardless. Web pages stay
+blocked by the origin check.
 
 ## What it refuses to do
 
@@ -68,7 +89,7 @@ same trust boundary as your shell.
 
 | Method | Path      | Notes                                     |
 | ------ | --------- | ----------------------------------------- |
-| GET    | `/ping`   | No token, so the popup can distinguish "down" from "wrong token" |
+| GET    | `/ping`   | No token, so the UI can distinguish "down" from "wrong token". `?pair=1` claims the token while the pairing window is open |
 | GET    | `/index`  | The index for a root                      |
 | GET    | `/recall` | `?q=<slug or words>`                      |
 | POST   | `/stash`  | 200 written · 422 refused · 400 failed    |
@@ -80,4 +101,5 @@ node --test tests/extension-server.test.js
 ```
 
 Covers the write path, both refusal paths, token and origin rejection, root
-allowlisting, and the body size cap.
+allowlisting, the body size cap, and every pairing transition (claimed once,
+not burned by a status ping, disabled by `--no-pair`, expired by time).

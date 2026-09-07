@@ -174,3 +174,71 @@ test('originOk accepts the extension and nothing else', () => {
   assert.equal(srv.originOk('https://evil.example'), false);
   assert.equal(srv.originOk('chrome-extension://short'), false);
 });
+
+// ---------- pairing ----------
+// Serving the token over an unauthenticated endpoint is the one place this
+// server gives something away, so the window around it is load-bearing.
+
+test('pairing hands over the token, then refuses to do it twice', async (t) => {
+  const cwd = proj();
+  const { server, port } = await boot([cwd]);
+  t.after(() => server.close());
+
+  const first = await req(port, '/ping?pair=1', { token: null });
+  assert.equal(first.json.token, TOKEN, 'the first pair request gets the token');
+  assert.equal(first.json.pairing, 'open');
+
+  const second = await req(port, '/ping?pair=1', { token: null });
+  assert.equal(second.json.token, undefined, 'the window closed after the first pair');
+  assert.equal(second.json.pairing, 'claimed');
+});
+
+test('a plain status ping does not burn the pairing window', async (t) => {
+  const cwd = proj();
+  const { server, port } = await boot([cwd]);
+  t.after(() => server.close());
+
+  const status = await req(port, '/ping', { token: null });
+  assert.equal(status.json.token, undefined, 'no token without an explicit pair request');
+  assert.equal(status.json.pairing, 'open', 'and the window is still available');
+
+  const paired = await req(port, '/ping?pair=1', { token: null });
+  assert.equal(paired.json.token, TOKEN);
+});
+
+test('--no-pair never gives the token out', async (t) => {
+  const cwd = proj();
+  const server = srv.start({ roots: [cwd], port: 0, pairing: false });
+  await new Promise((r) => server.on('listening', r));
+  const port = server.address().port;
+  t.after(() => server.close());
+
+  const r = await req(port, '/ping?pair=1', { token: null });
+  assert.equal(r.json.token, undefined);
+  assert.equal(r.json.pairing, 'disabled');
+});
+
+test('the pairing window expires on time', () => {
+  const fresh = { pairing: true, paired: false, startedAt: Date.now() };
+  assert.equal(srv.pairOpen(fresh), true);
+  const old = { pairing: true, paired: false, startedAt: Date.now() - srv.PAIR_WINDOW_MS - 1 };
+  assert.equal(srv.pairOpen(old), false);
+  assert.equal(srv.pairState(old), 'expired');
+});
+
+test('ping still reports roots so the switcher can be built', async (t) => {
+  const a = proj();
+  const b = proj();
+  const { server, port } = await boot([a, b]);
+  t.after(() => server.close());
+  const r = await req(port, '/ping', { token: null });
+  assert.deepEqual(r.json.roots, [a, b]);
+});
+
+test('pairing does not weaken the token check on real endpoints', async (t) => {
+  const cwd = proj();
+  const { server, port } = await boot([cwd]);
+  t.after(() => server.close());
+  // Even while the window is open, /index is not readable without the token.
+  assert.equal((await req(port, '/index', { token: null })).status, 401);
+});
