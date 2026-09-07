@@ -13,8 +13,9 @@
  *
  * The server binds 127.0.0.1 only and requires a token. To avoid making the
  * user copy 48 hex characters, the token is also served from /ping during a
- * short pairing window after start (see PAIR_WINDOW_MS). Pass --no-pair to
- * disable that and paste the token by hand instead.
+ * pairing window. The window opens at start and can be reopened at any time
+ * by pressing Enter in the terminal running the companion — proof that whoever
+ * is pairing controls this process. Pass --no-pair to disable it entirely.
  */
 const http = require('http');
 const fs = require('fs');
@@ -66,18 +67,38 @@ function rootAllowed(roots, candidate) {
 // ---------- pairing ----------
 // Handing the token to the extension removes the worst part of setup, but an
 // unauthenticated /ping that serves it forever would widen the exposure for
-// the whole life of the process. So the window is short, and it shuts for good
-// the moment a client actually takes the token.
+// the whole life of the process. So the window is short and closes as soon as
+// a client takes the token.
+//
+// It is deliberately REOPENABLE. A companion is left running for hours, so a
+// window that only ever opened at startup meant "restart the server" was the
+// answer to every pairing problem — which trains people to restart daemons to
+// get past security prompts. Pressing Enter in the companion's own terminal
+// reopens it, and that keystroke is the real proof of control: a process that
+// cannot reach your TTY cannot trigger it.
 function pairOpen(ctx) {
   if (!ctx.pairing) return false;
-  if (ctx.paired) return false;
-  return Date.now() - ctx.startedAt < PAIR_WINDOW_MS;
+  return Date.now() < ctx.pairUntil;
 }
 
 function pairState(ctx) {
   if (!ctx.pairing) return 'disabled';
-  if (ctx.paired) return 'claimed';
-  return pairOpen(ctx) ? 'open' : 'expired';
+  return pairOpen(ctx) ? 'open' : 'closed';
+}
+
+function openPairWindow(ctx, why) {
+  ctx.pairUntil = Date.now() + PAIR_WINDOW_MS;
+  process.stdout.write(`pairing window open for ${PAIR_WINDOW_MS / 60000} min (${why}) — press Connect in the extension\n`);
+}
+
+// Listening on stdin is what makes reopening safe, so only do it when there is
+// a real terminal to listen to; under a pipe or a service manager there is no
+// keystroke to prove anything.
+function watchForReopen(ctx) {
+  if (!ctx.pairing || !process.stdin.isTTY) return;
+  process.stdin.setEncoding('utf8');
+  process.stdin.resume();
+  process.stdin.on('data', () => openPairWindow(ctx, 'requested from the terminal'));
 }
 
 // ---------- http helpers ----------
@@ -141,8 +162,8 @@ async function handle(req, res, ctx) {
     // from the popup must not burn it.
     if (url.searchParams.get('pair') === '1' && pairOpen(ctx)) {
       out.token = ctx.token;
-      ctx.paired = true;
-      process.stdout.write('paired with the extension; pairing window is now closed\n');
+      ctx.pairUntil = 0;
+      process.stdout.write('paired with the extension; window closed. Press Enter here to pair again.\n');
     }
     return send(res, 200, out, allowOrigin);
   }
@@ -211,8 +232,8 @@ function start(opts) {
     token: loadToken(),
     version: require('../../package.json').version,
     pairing: opts.pairing !== false,
-    paired: false,
     startedAt: Date.now(),
+    pairUntil: opts.pairing === false ? 0 : Date.now() + PAIR_WINDOW_MS,
   };
   const server = http.createServer((req, res) => {
     handle(req, res, ctx).catch((e) => send(res, 400, { ok: false, error: e.message }));
@@ -222,11 +243,15 @@ function start(opts) {
       `attic companion on http://127.0.0.1:${opts.port}\n` +
       `roots:\n${roots.map((r) => '  ' + r).join('\n')}\n` +
       (ctx.pairing
-        ? `pairing: open for ${PAIR_WINDOW_MS / 60000} min — open the extension and click Connect\n`
+        ? `pairing: open for ${PAIR_WINDOW_MS / 60000} min — open the extension and click Connect\n` +
+          `         (press Enter here any time to reopen it)\n`
         : `pairing: disabled (--no-pair)\n`) +
       `token: ${ctx.token}\n  (also in ${TOKEN_FILE} — only needed if you pair by hand)\n`
     );
   });
+  // Exposed so a caller (and the tests) can reopen pairing programmatically.
+  server.atticCtx = ctx;
+  watchForReopen(ctx);
   server.on('error', (e) => {
     if (e.code === 'EADDRINUSE') process.stderr.write(`error: port ${opts.port} is already in use. Pass --port to pick another.\n`);
     else process.stderr.write(`error: ${e.message}\n`);
@@ -236,4 +261,4 @@ function start(opts) {
 }
 
 if (require.main === module) start(parseArgv(process.argv.slice(2)));
-module.exports = { start, normaliseRoot, rootAllowed, originOk, tokenOk, handle, loadToken, pairOpen, pairState, PAIR_WINDOW_MS };
+module.exports = { start, normaliseRoot, rootAllowed, originOk, tokenOk, handle, loadToken, pairOpen, pairState, openPairWindow, PAIR_WINDOW_MS };

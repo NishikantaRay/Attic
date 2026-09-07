@@ -50,15 +50,16 @@ async function autoDiscover() {
   }
 
   if (!d.token) {
-    // Found it, but the window shut. Say exactly what to do about it.
-    msg.className = 'setup-msg bad';
-    msg.textContent = d.pairing === 'claimed'
-      ? 'That companion is already paired with another browser profile.'
-      : 'Pairing window has closed.';
+    // Found it, but the window is shut. Restarting a running daemon is a bad
+    // habit to teach, so lead with the keystroke that reopens it.
+    msg.className = 'setup-msg';
+    msg.textContent = `Found a companion on port ${d.port}, but pairing is closed.`;
     detail.hidden = false;
-    detail.innerHTML = 'Restart the companion to reopen it, or paste the token under Advanced.';
+    detail.innerHTML = d.pairing === 'disabled'
+      ? 'It was started with <code>--no-pair</code>. Paste the token under Advanced.'
+      : 'Press <b>Enter</b> in the terminal running the companion to reopen pairing, then click below.';
     btn.hidden = false;
-    btn.textContent = 'Look again';
+    btn.textContent = 'Try again';
     btn.onclick = autoDiscover;
     return;
   }

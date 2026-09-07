@@ -60,10 +60,17 @@ the token to the extension. That endpoint is unauthenticated, so the window
 around it is what keeps this honest:
 
 - it is open for **5 minutes** from companion start,
-- it closes **permanently** on the first successful pair,
+- it closes on the first successful pair,
 - a plain status ping does **not** consume it,
+- **press Enter in the companion's terminal to reopen it** — that keystroke is
+  the proof of control, and it means a closed window never requires restarting
+  a running companion,
 - `--no-pair` turns it off entirely, and you paste the token by hand under
   *Advanced*.
+
+Reopening only works when the companion has a real terminal (`isTTY`); under a
+pipe or a service manager there is no keystroke to prove anything, so pair
+by hand there.
 
 The exposure is other local processes during those few minutes. That is
 already the trust boundary — a local process could read

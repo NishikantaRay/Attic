@@ -190,7 +190,24 @@ test('pairing hands over the token, then refuses to do it twice', async (t) => {
 
   const second = await req(port, '/ping?pair=1', { token: null });
   assert.equal(second.json.token, undefined, 'the window closed after the first pair');
-  assert.equal(second.json.pairing, 'claimed');
+  assert.equal(second.json.pairing, 'closed');
+});
+
+test('a closed window can be reopened without restarting the server', async (t) => {
+  const cwd = proj();
+  const { server, port } = await boot([cwd]);
+  t.after(() => server.close());
+
+  await req(port, '/ping?pair=1', { token: null });
+  assert.equal((await req(port, '/ping', { token: null })).json.pairing, 'closed');
+
+  // What the Enter keypress does. A long-lived companion must not require a
+  // restart to pair again: restarting daemons to clear a security prompt is
+  // exactly the habit this avoids.
+  srv.openPairWindow(server.atticCtx, 'test');
+
+  const again = await req(port, '/ping?pair=1', { token: null });
+  assert.equal(again.json.token, TOKEN, 'pairing works again after reopening');
 });
 
 test('a plain status ping does not burn the pairing window', async (t) => {
@@ -219,11 +236,10 @@ test('--no-pair never gives the token out', async (t) => {
 });
 
 test('the pairing window expires on time', () => {
-  const fresh = { pairing: true, paired: false, startedAt: Date.now() };
-  assert.equal(srv.pairOpen(fresh), true);
-  const old = { pairing: true, paired: false, startedAt: Date.now() - srv.PAIR_WINDOW_MS - 1 };
-  assert.equal(srv.pairOpen(old), false);
-  assert.equal(srv.pairState(old), 'expired');
+  assert.equal(srv.pairOpen({ pairing: true, pairUntil: Date.now() + 1000 }), true);
+  const lapsed = { pairing: true, pairUntil: Date.now() - 1 };
+  assert.equal(srv.pairOpen(lapsed), false);
+  assert.equal(srv.pairState(lapsed), 'closed');
 });
 
 test('ping still reports roots so the switcher can be built', async (t) => {
