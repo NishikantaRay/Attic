@@ -74,7 +74,8 @@ async function autoDiscoverInner() {
     detail.hidden = false;
     detail.innerHTML = d.pairing === 'disabled'
       ? 'It was started with <code>--no-pair</code>. Paste the token under Advanced.'
-      : 'Press <b>Enter</b> in the terminal running the companion to reopen pairing, then click below.';
+      : 'Reopen pairing by running<br><code>npm run attic:pair</code><br>' +
+        'or by pressing <b>Enter</b> in the companion\'s terminal. Then click below.';
     btn.hidden = false;
     btn.textContent = 'Try again';
     btn.onclick = autoDiscover;

@@ -7,6 +7,7 @@
   "scripts": {
     "test": "node --test",
     "attic:serve": "node extension/server/server.js",
+    "attic:pair": "node extension/server/server.js --pair",
     "build:codex": "node scripts/build-codex.js",
     "make:assets": "node scripts/make-assets.js",
     "bench": "node benchmarks/run.js --runs 3",

@@ -12,10 +12,12 @@
  *   node extension/server/server.js --root <project> [--root <project2>] [--port 8787]
  *
  * The server binds 127.0.0.1 only and requires a token. To avoid making the
- * user copy 48 hex characters, the token is also served from /ping during a
- * pairing window. The window opens at start and can be reopened at any time
- * by pressing Enter in the terminal running the companion — proof that whoever
- * is pairing controls this process. Pass --no-pair to disable it entirely.
+ * user copy 48 hex characters, the token is served from /ping during a pairing
+ * window, and a closed window can always be reopened WITHOUT restarting:
+ * pressing Enter in the companion's terminal works when there is one, and
+ * `attic-serve --pair` (or touching the pair-request file) works when there is
+ * not — both prove filesystem-level control of the machine. Pass --no-pair to
+ * disable token serving entirely.
  */
 const http = require('http');
 const fs = require('fs');
@@ -27,6 +29,10 @@ const attic = require(path.join(__dirname, '..', '..', 'skills', 'attic', 'scrip
 
 const DEFAULT_PORT = 8787;
 const TOKEN_FILE = path.join(os.homedir(), '.attic-extension-token');
+// Overridable so tests, and a second companion on another port, do not fight
+// over one shared path: whoever polls first would eat everyone's requests.
+const PAIR_REQUEST_FILE = process.env.ATTIC_PAIR_REQUEST_FILE
+  || path.join(os.homedir(), '.attic-pair-request');
 const MAX_BODY = 1024 * 1024; // a clip is text; a megabyte is already generous
 const PAIR_WINDOW_MS = 5 * 60 * 1000;
 
@@ -91,14 +97,32 @@ function openPairWindow(ctx, why) {
   process.stdout.write(`pairing window open for ${PAIR_WINDOW_MS / 60000} min (${why}) — press Connect in the extension\n`);
 }
 
-// Listening on stdin is what makes reopening safe, so only do it when there is
-// a real terminal to listen to; under a pipe or a service manager there is no
-// keystroke to prove anything.
+// Two ways to ask for a window, because a companion is not always attached to
+// a terminal. A keystroke proves control of the TTY; creating a file in $HOME
+// proves control of the account. Both are things a web page cannot do.
 function watchForReopen(ctx) {
-  if (!ctx.pairing || !process.stdin.isTTY) return;
-  process.stdin.setEncoding('utf8');
-  process.stdin.resume();
-  process.stdin.on('data', () => openPairWindow(ctx, 'requested from the terminal'));
+  if (!ctx.pairing) return null;
+
+  if (process.stdin.isTTY) {
+    process.stdin.setEncoding('utf8');
+    process.stdin.resume();
+    process.stdin.on('data', () => openPairWindow(ctx, 'requested from the terminal'));
+  }
+
+  // Backgrounded companions (and anything under a service manager) have no
+  // keystroke available, so watch for a request file instead. Polling beats
+  // fs.watch here: it survives the file being created, deleted and recreated.
+  const timer = setInterval(() => {
+    let st;
+    try { st = fs.statSync(PAIR_REQUEST_FILE); } catch (e) { return; }
+    try { fs.unlinkSync(PAIR_REQUEST_FILE); } catch (e) { /* best effort */ }
+    if (Date.now() - st.mtimeMs < 60 * 1000) openPairWindow(ctx, 'requested via ' + PAIR_REQUEST_FILE);
+  }, 1000);
+  // Deliberately NOT unref'd. An unref'd timer is not guaranteed to be
+  // scheduled, which silently disabled file-based pairing entirely; the
+  // server's own listener is what keeps the process alive, and close()
+  // clears this timer, so nothing is kept up longer than it should be.
+  return timer;
 }
 
 // ---------- http helpers ----------
@@ -163,7 +187,7 @@ async function handle(req, res, ctx) {
     if (url.searchParams.get('pair') === '1' && pairOpen(ctx)) {
       out.token = ctx.token;
       ctx.pairUntil = 0;
-      process.stdout.write('paired with the extension; window closed. Press Enter here to pair again.\n');
+      process.stdout.write('paired with the extension; window closed. To pair again: press Enter here, or run with --pair.\n');
     }
     return send(res, 200, out, allowOrigin);
   }
@@ -209,12 +233,20 @@ async function handle(req, res, ctx) {
 }
 
 // ---------- main ----------
+// `attic-serve --pair` against an already-running companion: drop the request
+// file and exit, rather than trying to bind a port that is already taken.
+function requestPairing() {
+  fs.writeFileSync(PAIR_REQUEST_FILE, String(Date.now()) + '\n', { mode: 0o600 });
+  process.stdout.write('pairing requested — the running companion will reopen its window within a second.\n');
+}
+
 function parseArgv(argv) {
   const out = { roots: [], port: DEFAULT_PORT };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--root') out.roots.push(argv[++i]);
     else if (argv[i] === '--port') out.port = parseInt(argv[++i], 10);
     else if (argv[i] === '--no-pair') out.pairing = false;
+    else if (argv[i] === '--pair') out.pairRequest = true;
   }
   return out;
 }
@@ -244,14 +276,18 @@ function start(opts) {
       `roots:\n${roots.map((r) => '  ' + r).join('\n')}\n` +
       (ctx.pairing
         ? `pairing: open for ${PAIR_WINDOW_MS / 60000} min — open the extension and click Connect\n` +
-          `         (press Enter here any time to reopen it)\n`
+          `         to reopen later: press Enter here, or run\n` +
+          `         node ${path.relative(process.cwd(), __filename)} --pair\n`
         : `pairing: disabled (--no-pair)\n`) +
       `token: ${ctx.token}\n  (also in ${TOKEN_FILE} — only needed if you pair by hand)\n`
     );
   });
   // Exposed so a caller (and the tests) can reopen pairing programmatically.
   server.atticCtx = ctx;
-  watchForReopen(ctx);
+  const pairTimer = watchForReopen(ctx);
+  // A closed server must stop competing for the pair-request file; otherwise
+  // every companion ever started in this process keeps eating requests.
+  server.on('close', () => { if (pairTimer) clearInterval(pairTimer); });
   server.on('error', (e) => {
     if (e.code === 'EADDRINUSE') process.stderr.write(`error: port ${opts.port} is already in use. Pass --port to pick another.\n`);
     else process.stderr.write(`error: ${e.message}\n`);
@@ -260,5 +296,9 @@ function start(opts) {
   return server;
 }
 
-if (require.main === module) start(parseArgv(process.argv.slice(2)));
-module.exports = { start, normaliseRoot, rootAllowed, originOk, tokenOk, handle, loadToken, pairOpen, pairState, openPairWindow, PAIR_WINDOW_MS };
+if (require.main === module) {
+  const opts = parseArgv(process.argv.slice(2));
+  if (opts.pairRequest) requestPairing();
+  else start(opts);
+}
+module.exports = { start, normaliseRoot, rootAllowed, originOk, tokenOk, handle, loadToken, pairOpen, pairState, openPairWindow, requestPairing, PAIR_REQUEST_FILE, PAIR_WINDOW_MS };

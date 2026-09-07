@@ -9,6 +9,10 @@ const os = require('node:os');
 const path = require('node:path');
 
 const SERVER = path.join(__dirname, '..', 'extension', 'server', 'server.js');
+// A companion left running on this machine polls the default request path and
+// would eat the requests these tests make, so give the tests their own.
+process.env.ATTIC_PAIR_REQUEST_FILE = path.join(
+  fs.mkdtempSync(path.join(os.tmpdir(), 'attic-pair-')), 'request');
 const srv = require(SERVER);
 
 function proj() {
@@ -257,4 +261,41 @@ test('pairing does not weaken the token check on real endpoints', async (t) => {
   t.after(() => server.close());
   // Even while the window is open, /index is not readable without the token.
   assert.equal((await req(port, '/index', { token: null })).status, 401);
+});
+
+test('pairing can be reopened with no TTY, via the request file', async (t) => {
+  const cwd = proj();
+  const { server, port } = await boot([cwd]);
+  t.after(() => server.close());
+  t.after(() => { try { fs.unlinkSync(srv.PAIR_REQUEST_FILE); } catch (e) {} });
+
+  await req(port, '/ping?pair=1', { token: null });
+  assert.equal((await req(port, '/ping', { token: null })).json.pairing, 'closed');
+
+  // What `--pair` does. A backgrounded companion has no keystroke available,
+  // so this is the path that has to work for anyone not running it in a
+  // foreground terminal.
+  srv.requestPairing();
+  await new Promise((r) => setTimeout(r, 1400)); // the watcher polls once a second
+
+  assert.equal((await req(port, '/ping', { token: null })).json.pairing, 'open');
+  assert.equal((await req(port, '/ping?pair=1', { token: null })).json.token, TOKEN);
+});
+
+test('a stale pair request is ignored', async (t) => {
+  const cwd = proj();
+  const { server, port } = await boot([cwd]);
+  t.after(() => server.close());
+  t.after(() => { try { fs.unlinkSync(srv.PAIR_REQUEST_FILE); } catch (e) {} });
+
+  await req(port, '/ping?pair=1', { token: null });
+
+  // An old file left behind by a previous run must not silently reopen the
+  // window later.
+  fs.writeFileSync(srv.PAIR_REQUEST_FILE, 'stale\n');
+  const old = Date.now() / 1000 - 3600;
+  fs.utimesSync(srv.PAIR_REQUEST_FILE, old, old);
+  await new Promise((r) => setTimeout(r, 1400));
+
+  assert.equal((await req(port, '/ping', { token: null })).json.pairing, 'closed');
 });
