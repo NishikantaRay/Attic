@@ -42,6 +42,11 @@ Clicking the toolbar icon opens the **library** in a full tab.
 the chips, search across titles, hooks and bodies (bodies load in the
 background the first time you focus the search box).
 
+**Theme** — the ◐ button cycles system → light → dark. "System" is the default
+and follows the OS. The palette is Attic's own, read from `assets/logo.svg`,
+and the mark in the header is inline SVG painted with the theme's tokens, so
+one copy serves both modes.
+
 **Switch projects** — start the companion with several `--root` flags and a
 project dropdown appears next to the search box.
 

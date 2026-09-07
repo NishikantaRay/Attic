@@ -133,6 +133,36 @@ $('s-save').addEventListener('click', async () => {
 
 $('settings').addEventListener('click', showSetup);
 
+// ---------- theme ----------
+// Three states, not two: "system" is the default and must stay reachable, so
+// the toggle cycles rather than flips. An explicit choice stamps data-theme on
+// the root, which the CSS honours over prefers-color-scheme in both
+// directions.
+const THEMES = ['system', 'light', 'dark'];
+const THEME_ICON = { system: '◐', light: '☀', dark: '☾' };
+
+function applyTheme(t) {
+  if (t === 'system') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme', t);
+  const btn = $('theme');
+  if (btn) {
+    btn.textContent = THEME_ICON[t];
+    btn.title = `Theme: ${t} (click to change)`;
+  }
+}
+
+async function initTheme() {
+  const { theme } = await chrome.storage.local.get('theme');
+  applyTheme(THEMES.includes(theme) ? theme : 'system');
+}
+
+$('theme').addEventListener('click', async () => {
+  const { theme } = await chrome.storage.local.get('theme');
+  const next = THEMES[(THEMES.indexOf(THEMES.includes(theme) ? theme : 'system') + 1) % THEMES.length];
+  await chrome.storage.local.set({ theme: next });
+  applyTheme(next);
+});
+
 // ---------- app ----------
 async function open() {
   $('setup').hidden = true;
@@ -340,4 +370,5 @@ function esc(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+initTheme();
 boot();

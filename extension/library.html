@@ -4,7 +4,20 @@
 
 <div id="setup" class="setup" hidden>
   <div class="setup-card">
-    <div class="brand-lg">attic</div>
+    <div class="brand-lg">
+      <svg class="mark" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+      <path d="M50 10 L88 43 L88 52 L50 19 L12 52 L12 43 Z" fill="var(--brand)"/>
+      <path d="M20 44 L20 88 L26 88 L26 44 Z" fill="var(--brand)" opacity=".55"/>
+      <path d="M74 44 L74 88 L80 88 L80 44 Z" fill="var(--brand)" opacity=".55"/>
+      <rect x="30" y="56" width="40" height="9" rx="2.5" fill="var(--stack)" opacity=".5"/>
+      <rect x="30" y="69" width="40" height="9" rx="2.5" fill="var(--stack)" opacity=".8"/>
+      <rect x="30" y="82" width="40" height="9" rx="2.5" fill="var(--stack-top)"/>
+    </svg>
+      <div class="brand-lg-text">
+        <strong>Attic</strong>
+        <span>Offload context. Keep the chat lean.</span>
+      </div>
+    </div>
     <p id="setup-msg" class="setup-msg">Looking for a companion…</p>
     <div id="setup-detail" class="setup-detail" hidden></div>
     <button id="setup-btn" class="primary" hidden>Connect</button>
@@ -20,12 +33,20 @@
 
 <div id="app" class="app" hidden>
   <header class="top">
-    <span class="brand">attic</span>
+    <span class="brand"><svg class="mark mark-sm" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+      <path d="M50 10 L88 43 L88 52 L50 19 L12 52 L12 43 Z" fill="var(--brand)"/>
+      <path d="M20 44 L20 88 L26 88 L26 44 Z" fill="var(--brand)" opacity=".55"/>
+      <path d="M74 44 L74 88 L80 88 L80 44 Z" fill="var(--brand)" opacity=".55"/>
+      <rect x="30" y="56" width="40" height="9" rx="2.5" fill="var(--stack)" opacity=".5"/>
+      <rect x="30" y="69" width="40" height="9" rx="2.5" fill="var(--stack)" opacity=".8"/>
+      <rect x="30" y="82" width="40" height="9" rx="2.5" fill="var(--stack-top)"/>
+    </svg><b>Attic</b></span>
     <select id="root-picker" class="root-picker" title="project"></select>
     <input id="q" type="search" placeholder="Search titles, hooks, bodies…" autocomplete="off">
     <span id="count" class="count"></span>
     <button id="clip" class="clip-btn" title="Clip the current tab">+ Clip tab</button>
-    <button id="refresh" class="icon-btn" title="Refresh">⟳</button>
+    <button id="refresh" class="icon-btn" title="Refresh">↻</button>
+    <button id="theme" class="icon-btn" title="Theme">◐</button>
     <button id="settings" class="icon-btn" title="Connection">⚙</button>
   </header>
 

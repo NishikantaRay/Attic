@@ -44,3 +44,37 @@ test('boot awaits open() rather than returning it into the catch', () => {
   const code = js.replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
   assert.doesNotMatch(code, /return\s+open\(\)/, 'open() must be awaited inside the try block');
 });
+
+// ---------- theme ----------
+// The library must work in three states: system (no attribute), explicit
+// light, and explicit dark. Getting this wrong is invisible until someone
+// with the opposite OS setting opens it.
+
+test('light is the base and every token is defined on bare :root', () => {
+  const base = css.slice(css.indexOf(':root {'), css.indexOf('@media'));
+  const used = new Set([...css.matchAll(/var\((--[a-z-]+)\)/g)].map((m) => m[1]));
+  const missing = [...used].filter((t) => !base.includes(t + ':'));
+  assert.deepEqual(missing, [], 'a colour defined only inside a media/attr block breaks the other theme');
+});
+
+test('dark is applied both by preference and by explicit attribute', () => {
+  assert.match(css, /@media \(prefers-color-scheme: dark\)\s*\{\s*:root:not\(\[data-theme="light"\]\)/,
+    'the preference block must yield to an explicit light choice');
+  assert.match(css, /:root\[data-theme="dark"\]/,
+    'an explicit dark choice must win over a light system preference');
+});
+
+test('the palette is Attic\'s own, not an invented one', () => {
+  // These are the exact values in assets/logo.svg and logo-wide.svg.
+  for (const hex of ['#0969da', '#58a6ff', '#1a7f37', '#3fb950', '#0d1117']) {
+    assert.ok(css.includes(hex), `expected the brand colour ${hex} from assets/logo.svg`);
+  }
+  assert.ok(!/#7c3aed|#a78bfa/.test(css), 'the old purple is not an Attic colour');
+});
+
+test('the logo is inline SVG painted with theme tokens', () => {
+  // A PNG could not recolour between themes, and would need two files.
+  assert.match(html, /<svg class="mark"/, 'the mark should be inline SVG');
+  assert.match(html, /fill="var\(--brand\)"/, 'the mark must take the theme brand colour');
+  assert.match(html, /fill="var\(--stack-top\)"/);
+});

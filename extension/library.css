@@ -4,135 +4,241 @@
    This has to come first and stay !important. */
 [hidden] { display: none !important; }
 
+/* ---------------------------------------------------------------------------
+   Palette. These are Attic's own colours, taken from assets/logo.svg and
+   logo-wide.svg rather than invented here, so the extension reads as the same
+   product as the README: GitHub-flavoured blue, the green stack, and the
+   #0d1117 canvas.
+
+   Light is the base. Dark is applied in two places — a prefers-color-scheme
+   block guarded against an explicit light choice, and a [data-theme="dark"]
+   block — so the toggle wins in both directions.
+--------------------------------------------------------------------------- */
 :root {
+  --brand: #0969da;         /* roof / beams */
+  --brand-hover: #0860c4;
+  --stack: #aecfb8;         /* lower boxes */
+  --stack-top: #1a7f37;     /* the newest box */
+  --ok: #1a7f37;
+  --bad: #cf222e;
+
   --bg: #ffffff;
-  --panel: #fbfbfd;
-  --fg: #1c1c1e;
-  --muted: #6b7280;
-  --line: #e5e7eb;
-  --accent: #7c3aed;
-  --accent-soft: #f3eeff;
-  --ok: #2ea44f;
-  --bad: #d23b3b;
-  --sel: #f3eeff;
+  --panel: #f6f8fa;
+  --raised: #ffffff;
+  --fg: #1f2328;
+  --muted: #59636e;
+  --line: #d1d9e0;
+  --line-soft: #e4e8ed;
+  --sel: #ddf4ff;
+  --shadow: 0 1px 3px rgba(31, 35, 40, .08), 0 8px 24px rgba(31, 35, 40, .06);
 }
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #131316; --panel: #1b1b20; --fg: #ececf1; --muted: #9aa0aa;
-    --line: #2c2c33; --accent: #a78bfa; --accent-soft: #2a2440; --sel: #24202f;
+  :root:not([data-theme="light"]) {
+    --brand: #58a6ff;
+    --brand-hover: #79b8ff;
+    --stack: #2d6a3e;
+    --stack-top: #3fb950;
+    --ok: #3fb950;
+    --bad: #f85149;
+
+    --bg: #0d1117;
+    --panel: #161b22;
+    --raised: #161b22;
+    --fg: #e6edf3;
+    --muted: #8b949e;
+    --line: #30363d;
+    --line-soft: #21262d;
+    --sel: #0c2d6b;
+    --shadow: 0 1px 3px rgba(1, 4, 9, .4), 0 8px 24px rgba(1, 4, 9, .3);
   }
 }
+:root[data-theme="dark"] {
+  --brand: #58a6ff;
+  --brand-hover: #79b8ff;
+  --stack: #2d6a3e;
+  --stack-top: #3fb950;
+  --ok: #3fb950;
+  --bad: #f85149;
+
+  --bg: #0d1117;
+  --panel: #161b22;
+  --raised: #161b22;
+  --fg: #e6edf3;
+  --muted: #8b949e;
+  --line: #30363d;
+  --line-soft: #21262d;
+  --sel: #0c2d6b;
+  --shadow: 0 1px 3px rgba(1, 4, 9, .4), 0 8px 24px rgba(1, 4, 9, .3);
+}
+
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body {
-  margin: 0; background: var(--bg); color: var(--fg);
-  font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
+
+/* The mark is inline SVG painted with the theme tokens, so one copy serves
+   both modes instead of shipping a light and a dark PNG. Sized generously:
+   the logo is a roof over three stacked boxes, and below ~22px the boxes
+   collapse into a smudge and it stops reading as the Attic mark at all. */
+.mark { width: 36px; height: 36px; flex: none; display: block; }
+.mark-sm { width: 24px; height: 24px; }
 
 /* ---------- setup ---------- */
 .setup { height: 100%; display: grid; place-items: center; padding: 24px; }
 .setup-card {
-  width: 100%; max-width: 420px; background: var(--panel);
-  border: 1px solid var(--line); border-radius: 14px; padding: 28px;
+  width: 100%; max-width: 440px;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 28px;
+  box-shadow: var(--shadow);
 }
-.brand-lg { font-size: 22px; font-weight: 600; letter-spacing: .04em; margin-bottom: 14px; }
-.setup-msg { color: var(--muted); margin: 0 0 14px; }
+.brand-lg { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.brand-lg-text { display: flex; flex-direction: column; line-height: 1.3; }
+.brand-lg-text strong { font-size: 19px; font-weight: 600; letter-spacing: -.2px; }
+.brand-lg-text span { font-size: 12.5px; color: var(--muted); }
+
+.setup-msg { color: var(--muted); margin: 0 0 14px; font-size: 13.5px; }
 .setup-msg.ok { color: var(--ok); }
 .setup-msg.bad { color: var(--bad); }
 .setup-detail {
-  background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
-  padding: 10px 12px; margin-bottom: 14px; font-size: 13px;
+  background: var(--panel);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  padding: 12px 14px; margin-bottom: 16px;
+  font-size: 13px; line-height: 1.6; color: var(--muted);
 }
-.setup-detail code { color: var(--accent); font-size: 12px; word-break: break-all; }
-.adv { margin-top: 18px; }
-.adv summary { cursor: pointer; color: var(--muted); font-size: 13px; }
-.adv label { display: block; margin: 10px 0; font-size: 12px; color: var(--muted); }
+.setup-detail code {
+  color: var(--brand);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px; word-break: break-all;
+}
+.adv { margin-top: 18px; border-top: 1px solid var(--line-soft); padding-top: 14px; }
+.adv summary { cursor: pointer; color: var(--muted); font-size: 13px; user-select: none; }
+.adv summary:hover { color: var(--fg); }
+.adv label { display: block; margin: 12px 0; font-size: 12px; color: var(--muted); }
 
-input, select, button { font: inherit; }
-input[type=text], input[type=password], input[type=number], input[type=search], select {
-  width: 100%; margin-top: 4px; padding: 7px 10px;
+input, select, button, textarea { font: inherit; }
+input[type=text], input[type=password], input[type=number], input[type=search], select, textarea {
+  width: 100%; margin-top: 5px; padding: 7px 11px;
   background: var(--bg); color: var(--fg);
   border: 1px solid var(--line); border-radius: 7px;
+  transition: border-color .12s, box-shadow .12s;
 }
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 22%, transparent);
+}
+
 button.primary {
-  width: 100%; padding: 10px; border: 0; border-radius: 8px; cursor: pointer;
-  background: var(--accent); color: #fff; font-weight: 600;
+  width: 100%; padding: 10px; border: 0; border-radius: 7px; cursor: pointer;
+  background: var(--brand); color: #fff; font-weight: 600;
+  transition: background .12s;
 }
+button.primary:hover:not(:disabled) { background: var(--brand-hover); }
 button.primary:disabled { opacity: .55; cursor: default; }
 button.ghost {
-  margin-top: 6px; padding: 7px 12px; cursor: pointer;
-  background: none; color: var(--fg);
+  margin-top: 8px; padding: 7px 14px; cursor: pointer;
+  background: var(--panel); color: var(--fg);
   border: 1px solid var(--line); border-radius: 7px;
 }
+button.ghost:hover { border-color: var(--brand); color: var(--brand); }
 
 /* ---------- app ---------- */
 .app { height: 100%; display: flex; flex-direction: column; }
 .top {
   display: flex; align-items: center; gap: 12px;
-  padding: 12px 18px; border-bottom: 1px solid var(--line);
+  padding: 11px 18px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
 }
-.brand { font-weight: 600; letter-spacing: .04em; }
-.root-picker { width: auto; max-width: 300px; margin: 0; font-size: 13px; }
-.top #q { flex: 1; margin: 0; }
+.brand { display: flex; align-items: center; gap: 8px; font-size: 15px; letter-spacing: -.2px; }
+.brand b { font-weight: 600; }
+.root-picker { width: auto; max-width: 260px; margin: 0; font-size: 13px; }
+.top #q { flex: 1; margin: 0; max-width: 460px; }
 .count { color: var(--muted); font-size: 12px; white-space: nowrap; }
 .icon-btn {
-  background: none; border: 1px solid var(--line); border-radius: 7px;
-  color: var(--muted); cursor: pointer; padding: 6px 9px; line-height: 1;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 7px;
+  color: var(--muted); cursor: pointer; padding: 6px 10px; line-height: 1;
+  transition: color .12s, border-color .12s;
 }
-.icon-btn:hover { color: var(--fg); }
+.icon-btn:hover { color: var(--brand); border-color: var(--brand); }
+.clip-btn {
+  background: var(--brand); color: #fff; border: 0; border-radius: 7px;
+  padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
+  transition: background .12s;
+}
+.clip-btn:hover { background: var(--brand-hover); }
 
 .filters { display: flex; gap: 6px; padding: 10px 18px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
 .chip {
-  background: none; border: 1px solid var(--line); border-radius: 999px;
-  padding: 4px 12px; font-size: 12px; color: var(--muted); cursor: pointer;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 999px;
+  padding: 4px 13px; font-size: 12px; color: var(--muted); cursor: pointer;
+  transition: all .12s;
 }
-.chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.chip:hover { color: var(--fg); border-color: var(--muted); }
+.chip.on {
+  background: var(--brand); border-color: var(--brand);
+  color: #fff; font-weight: 600;
+}
 
-.cols { flex: 1; display: grid; grid-template-columns: minmax(260px, 340px) 1fr; min-height: 0; }
-.list { border-right: 1px solid var(--line); overflow-y: auto; }
+.cols { flex: 1; display: grid; grid-template-columns: minmax(280px, 360px) 1fr; min-height: 0; }
+.list { border-right: 1px solid var(--line); overflow-y: auto; background: var(--bg); }
 .card {
-  padding: 12px 16px; border-bottom: 1px solid var(--line); cursor: pointer;
+  padding: 13px 16px; border-bottom: 1px solid var(--line-soft); cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: background .1s;
 }
 .card:hover { background: var(--panel); }
-.card.on { background: var(--sel); box-shadow: inset 3px 0 0 var(--accent); }
-.card .slug { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; color: var(--accent); }
-.card .meta { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-top: 3px; }
-.card .hook { font-size: 12.5px; color: var(--muted); margin-top: 5px; }
-
-.reader { overflow-y: auto; padding: 26px 32px; }
-.reader-empty { color: var(--muted); display: grid; place-items: center; height: 100%; }
-.reader h1 { font-size: 20px; margin: 0 0 4px; }
-.reader .sub { color: var(--muted); font-size: 12px; margin-bottom: 20px; }
-.reader .sub code { color: var(--accent); }
-.reader .body {
-  white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12.5px; line-height: 1.65;
-  background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px;
+.card.on { background: var(--sel); border-left-color: var(--brand); }
+.card .slug {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px; color: var(--brand); font-weight: 500;
 }
-.reader .body a { color: var(--accent); }
-.empty { padding: 32px 18px; text-align: center; color: var(--muted); }
+.card .meta {
+  display: inline-block; margin-top: 5px;
+  font-size: 10px; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--muted);
+  border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px;
+}
+.card .hook { font-size: 12.5px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+
+.reader { overflow-y: auto; padding: 28px 34px; background: var(--bg); }
+.reader-empty { color: var(--muted); display: grid; place-items: center; height: 100%; font-size: 13px; }
+.reader h1 { font-size: 21px; margin: 0 0 6px; font-weight: 600; letter-spacing: -.3px; }
+.reader .sub { color: var(--muted); font-size: 12.5px; margin-bottom: 22px; }
+.reader .sub code { color: var(--brand); font-family: ui-monospace, Menlo, monospace; }
+.reader .body {
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px; line-height: 1.7;
+  background: var(--panel); border: 1px solid var(--line-soft);
+  border-radius: 10px; padding: 20px;
+}
+.reader .body a { color: var(--brand); }
+.empty { padding: 36px 18px; text-align: center; color: var(--muted); font-size: 13px; }
 
 /* ---------- clip ---------- */
-.clip-btn {
-  background: var(--accent); color: #fff; border: 0; border-radius: 7px;
-  padding: 7px 13px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
-}
-.clip-form { overflow-y: auto; padding: 26px 32px; }
-.clip-form h2 { font-size: 17px; margin: 0 0 18px; }
-.clip-form label { display: block; margin-bottom: 12px; font-size: 12px; color: var(--muted); }
+.clip-form { overflow-y: auto; padding: 28px 34px; background: var(--bg); }
+.clip-form h2 { font-size: 18px; margin: 0 0 20px; font-weight: 600; letter-spacing: -.2px; }
+.clip-form label { display: block; margin-bottom: 13px; font-size: 12px; color: var(--muted); }
 .clip-form .row { display: flex; gap: 10px; align-items: flex-end; }
 .clip-form .grow { flex: 1; }
 .clip-form textarea {
-  width: 100%; margin-top: 4px; padding: 10px;
-  background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 8px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; line-height: 1.6;
-  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px; line-height: 1.65; resize: vertical;
 }
-.clip-form .primary { width: auto; padding: 9px 20px; }
+.clip-form .primary { width: auto; padding: 9px 22px; }
 .clip-form .ghost { margin-top: 0; }
-.handle { font-size: 12px; color: var(--muted); margin: -6px 0 12px; }
-.handle code { color: var(--accent); }
+.handle { font-size: 12px; color: var(--muted); margin: -7px 0 13px; }
+.handle code { color: var(--brand); font-family: ui-monospace, Menlo, monospace; }
 .hint { font-weight: 400; opacity: .85; }
-.msg { margin: 12px 0 0; font-size: 13px; }
+.msg { margin: 13px 0 0; font-size: 13px; }
 .msg.ok { color: var(--ok); }
 .msg.bad { color: var(--bad); }
