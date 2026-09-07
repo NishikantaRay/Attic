@@ -43,21 +43,41 @@ export const CANDIDATE_PORTS = [8787, 8788, 8789, 8790];
 // Find a companion and take its token, so setup is a button rather than a
 // copy-paste. The pairing window on the server side is what makes this safe
 // to do; if it has closed, the caller is told to restart or paste by hand.
-export async function discover() {
+export async function discover({ pair = true } = {}) {
   for (const port of CANDIDATE_PORTS) {
-    let res;
+    let d;
     try {
       const c = new AbortController();
-      const t = setTimeout(() => c.abort(), 400);
-      res = await fetch(`http://127.0.0.1:${port}/ping?pair=1`, { signal: c.signal });
+      const t = setTimeout(() => c.abort(), 800);
+      const res = await fetch(`http://127.0.0.1:${port}/ping${pair ? '?pair=1' : ''}`, { signal: c.signal });
       clearTimeout(t);
-    } catch (e) { continue; }
-    let d;
-    try { d = await res.json(); } catch (e) { continue; }
+      d = await res.json();
+    } catch (e) { continue; } // nothing listening here, or it is not us
     if (!d || !d.ok) continue;
-    return { ok: true, port, roots: d.roots || [], pairing: d.pairing, token: d.token || '' };
+
+    // A companion whose window is shut still counts as found: the caller needs
+    // to say so, rather than reporting "no companion" and sending the user to
+    // start a second one.
+    let token = d.token || '';
+    if (!token) {
+      // The stored token may still be valid from an earlier pair — a closed
+      // window does not invalidate it. Try it before asking the user for
+      // anything.
+      const saved = (await chrome.storage.local.get('token')).token || '';
+      if (saved && await tokenWorks(port, saved)) token = saved;
+    }
+    return { ok: true, port, roots: d.roots || [], pairing: d.pairing, token };
   }
   return { ok: false, error: 'no companion found. Start it with: npm run attic:serve -- --root <project>' };
+}
+
+// Cheapest authenticated call there is: /index on a root we may not know yet
+// still tells us 401 (bad token) apart from anything else.
+async function tokenWorks(port, token) {
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/index`, { headers: { 'x-attic-token': token } });
+    return res.status !== 401;
+  } catch (e) { return false; }
 }
 
 export const api = {

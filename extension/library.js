@@ -11,11 +11,13 @@ let selected = null;
 
 // ---------- setup ----------
 async function boot() {
-  const s = await settings();
-  if (s.token && s.root) {
-    const p = await api.ping();
-    if (p.ok) return open();
-  }
+  try {
+    const s = await settings();
+    if (s.token && s.root) {
+      const p = await api.ping();
+      if (p.ok) return open();
+    }
+  } catch (e) { /* fall through to setup, which reports properly */ }
   showSetup();
 }
 
@@ -29,6 +31,21 @@ function showSetup() {
 // the token during its pairing window, so this cannot be done behind the
 // user's back long after they started it.
 async function autoDiscover() {
+  try { await autoDiscoverInner(); }
+  catch (e) {
+    // A silent throw here is what leaves the card stuck on "Looking for a
+    // companion…", which looks identical to a hang. Always land somewhere.
+    const msg = $('setup-msg');
+    msg.className = 'setup-msg bad';
+    msg.textContent = 'Discovery failed: ' + (e && e.message ? e.message : e);
+    const btn = $('setup-btn');
+    btn.hidden = false;
+    btn.textContent = 'Try again';
+    btn.onclick = autoDiscover;
+  }
+}
+
+async function autoDiscoverInner() {
   const msg = $('setup-msg');
   const detail = $('setup-detail');
   const btn = $('setup-btn');
