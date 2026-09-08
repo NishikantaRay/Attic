@@ -8,7 +8,7 @@ description: >
   contains goes to attic-index instead.
 argument-hint: "<slug or search words>"
 allowed-tools: Bash(node "${CLAUDE_SKILL_DIR}/../attic/scripts/attic.js" *) Bash(node "${CLAUDE_SKILL_DIR}/../attic/scripts/attic.js"*)
-version: 1.3.0
+version: 1.4.0
 license: MIT
 ---
 

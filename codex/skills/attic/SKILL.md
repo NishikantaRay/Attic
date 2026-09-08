@@ -12,7 +12,7 @@ description: >
   "context is getting long", "before compact", or complains that Claude
   forgot something after compaction. Do NOT use for one-line answers, typo
   fixes, or non-coding chat.
-version: 1.3.0
+version: 1.4.0
 license: MIT
 ---
 

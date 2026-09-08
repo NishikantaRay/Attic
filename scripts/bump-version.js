@@ -3,9 +3,10 @@
 /**
  * bump-version.js — move every version string together.
  *
- * The version lives in the Claude manifest, package.json and the frontmatter
- * of every skill; the Codex manifest is generated from the Claude one. A test
- * fails if these drift, so this is the only sanctioned way to change them.
+ * The version lives in the Claude manifest, package.json, the browser
+ * extension's manifest and the frontmatter of every skill; the Codex manifest
+ * is generated from the Claude one. A test fails if these drift, so this is
+ * the only sanctioned way to change them.
  *
  * Usage: node scripts/bump-version.js <x.y.z>
  */
@@ -21,7 +22,7 @@ if (!/^\d+\.\d+\.\d+$/.test(v || '')) {
 }
 
 const touched = [];
-for (const f of ['.claude-plugin/plugin.json', 'package.json']) {
+for (const f of ['.claude-plugin/plugin.json', 'package.json', 'extension/manifest.json']) {
   const p = path.join(ROOT, f);
   const j = JSON.parse(fs.readFileSync(p, 'utf8'));
   if (j.version !== v) { j.version = v; fs.writeFileSync(p, JSON.stringify(j, null, 2) + '\n'); touched.push(f); }
@@ -34,6 +35,16 @@ for (const d of fs.readdirSync(skills)) {
   const out = s.replace(/^version: \d+\.\d+\.\d+$/m, `version: ${v}`);
   if (out !== s) { fs.writeFileSync(p, out); touched.push(`skills/${d}/SKILL.md`); }
 }
+// The README badge is a version string too. It was left at 1.2.0 through the
+// 1.3.0 release precisely because nothing moved it automatically.
+{
+  const p = path.join(ROOT, 'README.md');
+  const s = fs.readFileSync(p, 'utf8');
+  const out = s.replace(/version-\d+\.\d+\.\d+-2ea44f/g, `version-${v}-2ea44f`)
+               .replace(/alt="version \d+\.\d+\.\d+"/g, `alt="version ${v}"`);
+  if (out !== s) { fs.writeFileSync(p, out); touched.push('README.md'); }
+}
+
 const build = spawnSync(process.execPath, [path.join(ROOT, 'scripts', 'build-codex.js')], { encoding: 'utf8' });
 if (build.status !== 0) { process.stderr.write(build.stderr); process.exit(1); }
 

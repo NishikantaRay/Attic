@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img alt="version 1.2.0" src="https://img.shields.io/badge/version-1.2.0-2ea44f"></a>
+  <a href="CHANGELOG.md"><img alt="version 1.4.0" src="https://img.shields.io/badge/version-1.4.0-2ea44f"></a>
   <a href="#install"><img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-7c3aed"></a>
   <a href="docs/CODEX.md"><img alt="Codex CLI plugin" src="https://img.shields.io/badge/Codex%20CLI-plugin-10a37f"></a>
   <a href="skills/attic/evals/results/"><img alt="activation evals 22/22" src="https://img.shields.io/badge/activation%20evals-22%2F22-2ea44f"></a>
@@ -163,11 +163,32 @@ because agent sessions are not reproducible enough to support one:
 Method, prompts and raw results:
 [benchmarks/auth-investigation/](benchmarks/auth-investigation/).
 
+## Clip from your browser
+
+The answer is often in a tab: an MDN page, an issue thread, a changelog. The
+[Chrome extension](extension/) puts it in the same attic your agent writes to.
+
+```
+npm run attic:serve -- --root /path/to/project
+```
+
+Then load `extension/` unpacked at `chrome://extensions` and press Connect.
+Clicking the toolbar icon opens a library over your `.attic/` — search, filter
+by kind, read an item, or clip the page you are on. It is not on the Chrome
+Web Store: it writes to your filesystem through a companion you start
+yourself, which is not something a store install can offer.
+
+[Setup, security model and endpoints](extension/README.md).
+
 ## Privacy
 
-No network calls. No telemetry. No API keys. Everything stays in your project
-folder and on your machine. The script refuses to write anything that looks
-like a credential. [Security notes](SECURITY.md).
+No telemetry. No API keys. Nothing leaves your machine. Everything stays in
+your project folder. The script refuses to write anything that looks like a
+credential. [Security notes](SECURITY.md).
+
+The plugin itself makes no network calls at all. The optional browser
+extension talks to a companion on `127.0.0.1` that you start yourself — bound
+to loopback, token-authenticated, and limited to the project roots you name.
 
 ## More
 
@@ -176,6 +197,7 @@ like a credential. [Security notes](SECURITY.md).
 [Quickstart](docs/QUICKSTART.md) ·
 [All commands](docs/COMMANDS.md) ·
 [Codex setup](docs/CODEX.md) ·
+[Browser extension](extension/README.md) ·
 [Team setup](docs/TEAM.md) ·
 [How it is built](docs/ARCHITECTURE.md) ·
 [Contributing](CONTRIBUTING.md) ·

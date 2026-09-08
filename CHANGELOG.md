@@ -3,6 +3,39 @@
 All notable changes to Attic. Versions follow semver: the on-disk `.attic/`
 format is a public interface, so changing it is a major version.
 
+## [1.4.0] - 2026-09-08
+
+Clip from your browser into the same attic your agent writes to.
+
+### Added
+
+- **A Chrome extension** (`extension/`). Clicking its toolbar icon opens a
+  library over your `.attic/`: search across titles, hooks and bodies, filter
+  by kind, read an item, switch between projects, or clip the page you are on.
+  Right-clicking a selection stashes it with no UI at all.
+- **A companion server** (`npm run attic:serve`). A browser cannot write to
+  your filesystem, so this bridges it on `127.0.0.1`. It `require()`s
+  `skills/attic/scripts/attic.js` and calls the same functions the CLI does,
+  rather than reimplementing any of it — so a clip gets the same frontmatter,
+  slug rules, index bookkeeping, atomic writes and secret scan. A clip that
+  contains a credential is refused exactly as the CLI refuses one, and
+  `--force` is never forwarded from the browser.
+- **Pairing without copying a token.** `/ping?pair=1` hands the token to the
+  extension inside a time-boxed window, reopenable with `npm run attic:pair`
+  or by pressing Enter in the companion's terminal. `--no-pair` disables it
+  and you paste the token by hand.
+
+### Notes
+
+- The extension is **not** on the Chrome Web Store, and is not intended for
+  it: it works by talking to a companion you start yourself from this repo,
+  which is not something a store install can offer.
+- The plugin still makes no network calls. The extension is optional, and its
+  companion is bound to loopback, token-authenticated, and limited to the
+  project roots you name on the command line.
+- `scripts/bump-version.js` now moves `extension/manifest.json` too, so the
+  extension cannot drift from the plugin version.
+
 ## [1.3.0] - 2026-09-06
 
 `/attic-stats` can now tell you the plugin is not working, and a separate

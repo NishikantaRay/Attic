@@ -5,7 +5,7 @@ description: >
   transcripts. Use when the user asks "is the attic worth it", "attic stats",
   "how many tokens is this saving", "how big is the attic", or questions the
   plugin's value.
-version: 1.3.0
+version: 1.4.0
 license: MIT
 ---
 
