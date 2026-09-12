@@ -170,7 +170,8 @@ Method, prompts and raw results:
 ## Clip from your browser
 
 The answer is often in a tab: an MDN page, an issue thread, a changelog. The
-[Chrome extension](extension/) puts it in the same attic your agent writes to.
+[browser extension](extension/) puts it in the same attic your agent writes to.
+It works on Chrome, Brave, Edge and other Chromium browsers.
 
 ### Select it, stash it
 
@@ -201,7 +202,10 @@ as markdown, `[[slug]]` links between them with backlinks, full-body search,
 npm run attic:serve -- --root /path/to/project
 ```
 
-Then load `extension/` unpacked at `chrome://extensions` and press Connect.
+Then load `extension/` unpacked at `chrome://extensions` (or
+`brave://extensions`) and press Connect. On Brave, allow localhost access in
+Shields — it blocks extension pages from reaching `127.0.0.1`, which looks
+exactly like a companion that is not running.
 
 It is not on the Chrome Web Store: it writes to your filesystem through a
 companion you start yourself, which is not something a store install can

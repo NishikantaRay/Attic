@@ -1,6 +1,10 @@
-# Attic for Chrome
+# Attic for Chrome, Brave and other Chromium browsers
 
 Clip a page into your project's `.attic/`, and browse what's already there.
+
+Works on **Chrome, Brave, Edge, Vivaldi and Opera** — it is a standard MV3
+extension with no Chrome-only APIs. Brave needs one extra step; see
+[Brave](#brave) below.
 
 ![Attic](icons/128.png)
 
@@ -27,7 +31,8 @@ npm run attic:serve -- --root /path/to/your/project
 Pass `--root` once per project you want to clip into, and `--port` if 8787 is
 taken.
 
-**2. Load the extension:** open `chrome://extensions`, turn on Developer mode,
+**2. Load the extension:** open `chrome://extensions` (Brave:
+`brave://extensions`, Edge: `edge://extensions`), turn on Developer mode,
 click **Load unpacked**, and select this `extension/` folder.
 
 **3. Click the toolbar icon and press Connect.** There is no token to copy:
@@ -38,6 +43,15 @@ the library finds the companion on the usual ports and pairs with it. See
 
 Clicking the toolbar icon opens the **library** in a full tab: a navigation
 rail, the item list, and a reading pane.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/library.png">
+  <source media="(prefers-color-scheme: light)" srcset="../assets/screenshots/library-light.png">
+  <img alt="The Attic library: navigation rail with kinds and tags, the item list, and an item rendered as markdown with a table, a code block, a wikilink and its backlinks" src="../assets/screenshots/library.png">
+</picture>
+
+*(Screenshots are generated from the real UI by `npm run screenshots`, against
+an attic written by the real `attic.js`.)*
 
 **Read** — item bodies render as markdown, not as a wall of monospace:
 headings, lists, tables, task lists and fenced code with its language. Long
@@ -59,11 +73,23 @@ clickable everywhere they appear.
 spread across kinds, what was added recently, and the latest decisions with
 their why.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/overview.png">
+  <source media="(prefers-color-scheme: light)" srcset="../assets/screenshots/overview-light.png">
+  <img alt="The overview pane: counts for items, decisions, pinned and tags, a bar showing the spread across kinds, recently added items, and a timeline of the latest decisions" src="../assets/screenshots/overview.png">
+</picture>
+
 **Decisions** — the full DECISIONS.md as a timeline, each entry split into what
 was decided and why.
 
 **Links** — which items reference each other, and every dangling reference with
 the item that made it.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/links.png">
+  <source media="(prefers-color-scheme: light)" srcset="../assets/screenshots/links-light.png">
+  <img alt="The Links view, listing each item with how many links it makes and how many point back at it" src="../assets/screenshots/links.png">
+</picture>
 
 **Health** — the same checks `attic validate` runs: index and item files
 agreeing, frontmatter complete, hooks within the cap.
@@ -71,9 +97,21 @@ agreeing, frontmatter complete, hooks within the cap.
 **Search** — across titles, hooks, tags and full bodies, with the match shown
 highlighted in context. Sort by date, title or kind.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/search.png">
+  <source media="(prefers-color-scheme: light)" srcset="../assets/screenshots/search-light.png">
+  <img alt="Searching for "evict" narrows the list to 3 of 7 items, with the matching text highlighted in each hook" src="../assets/screenshots/search.png">
+</picture>
+
 **Keyboard** — `⌘K`/`Ctrl-K` jumps to any item or runs a command, `/` focuses
 search, `j`/`k` move and `Enter` opens, `e` edits, `c` clips, `p` pins, `g h`
 goes to the overview, `r` reloads, and `?` lists the lot.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/palette.png">
+  <source media="(prefers-color-scheme: light)" srcset="../assets/screenshots/palette-light.png">
+  <img alt="The command palette open over the library, listing commands and items to jump to" src="../assets/screenshots/palette.png">
+</picture>
 
 **Edit** — `e`, or the Edit button, opens an item in place. Saving **replaces**
 the body; it does not append. (Stashing an existing slug from the CLI appends a
@@ -81,6 +119,12 @@ dated `## Update` section, which is right for an agent adding to a finding and
 wrong for a person fixing a typo in one — so editing uses `PUT /item`, not
 `/stash`.) The slug never changes, because handles and `[[links]]` point at it.
 `⌘Enter` saves.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/screenshots/editor.png">
+  <source media="(prefers-color-scheme: light)" srcset="../assets/screenshots/editor-light.png">
+  <img alt="Editing an item in place: title, kind, tags, hook and the markdown body in a textarea, with Save changes and a character count" src="../assets/screenshots/editor.png">
+</picture>
 
 **Pin and archive** — pinned items lead every list. Archiving moves the file to
 `.attic/archive/` and drops it from the index; Claude can still recall it, and
@@ -114,6 +158,22 @@ append rather than replace.
 
 **Right-click** — select text on any page and choose *Stash selection to
 attic*. No UI at all; a notification confirms the handle.
+
+## Brave
+
+Brave Shields blocks extension pages from reaching `127.0.0.1` by default. A
+companion that is running perfectly then looks exactly like one that is not:
+the library reports **"No companion found."**
+
+Fix it once, either way:
+
+- open `brave://settings/shields` and allow localhost access, or
+- lower Shields for extension pages.
+
+The setup card names this case rather than leaving you with a generic failure,
+because nothing about the symptom points at Shields.
+
+Everything else behaves as it does on Chrome.
 
 ## Pairing
 

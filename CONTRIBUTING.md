@@ -9,6 +9,15 @@ npm test                      # no dependencies to install
 claude --plugin-dir .         # load your checkout into a session
 ```
 
+The test suite and the plugin itself have **no dependencies**. The only
+optional one is Playwright, and only for regenerating the doc screenshots:
+
+```bash
+npm install && npx playwright install chromium
+npm run screenshots           # assets/screenshots/, both themes
+npm run make:gifs             # assets/*.gif (needs ffmpeg + librsvg)
+```
+
 ## Before opening a pull request
 
 ```bash
