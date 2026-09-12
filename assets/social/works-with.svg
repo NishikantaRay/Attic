@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="628" viewBox="0 0 1200 628" role="img"
+  aria-label="Attic works with Claude Code, Codex CLI, Chrome, Brave and Edge, all writing to one .attic folder in your repo">
+
+<defs>
+  <marker id="tip" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+    <path d="M0,1 L9,5 L0,9 z" fill="#CFC8BB"/>
+  </marker>
+</defs>
+<rect width="1200" height="628" fill="#FBF9F5"/>
+<rect x="0" y="0" width="1200" height="10" fill="#0B5D3B"/>
+
+
+  <path d="M 85.00,48.20 L 100.96,62.06 L 100.96,65.84 L 85.00,51.98 L 69.04,65.84 L 69.04,62.06 Z" fill="#1A1815"/>
+  <path d="M 72.40,62.48 L 72.40,80.96 L 74.92,80.96 L 74.92,62.48 Z" fill="#1A1815" opacity="0.35"/>
+  <path d="M 95.08,62.48 L 95.08,80.96 L 97.60,80.96 L 97.60,62.48 Z" fill="#1A1815" opacity="0.35"/>
+  <rect x="76.60" y="67.52" width="16.80" height="3.78" rx="0.84" fill="#0B5D3B" opacity="0.3"/><rect x="76.60" y="72.98" width="16.80" height="3.78" rx="0.84" fill="#0B5D3B" opacity="0.6"/><rect x="76.60" y="78.44" width="16.80" height="3.78" rx="0.84" fill="#0B5D3B" opacity="1"/>
+<text x="114" y="84" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="28" font-weight="700" fill="#1A1815">Attic</text>
+<text x="1136" y="84" text-anchor="end" font-family="Futura, 'Avenir Next', Avenir, sans-serif" font-size="15" letter-spacing="1.4" fill="#6B6459">OPEN SOURCE · MIT · NO TELEMETRY</text>
+
+<text x="64" y="168" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="46" font-weight="700" fill="#1A1815">Two agents and your browser.</text>
+<text x="64" y="220" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="46" font-weight="700" fill="#0B5D3B">One memory.</text>
+
+<!-- sources, left -->
+
+  <text x="64" y="292" text-anchor="start" font-family="Futura, 'Avenir Next', Avenir, sans-serif" font-size="17" letter-spacing="1.6" fill="#6B6459">CODING AGENTS</text>
+  <text x="64" y="332" text-anchor="start" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="34" font-weight="700" fill="#1A1815">Claude Code</text>
+  <text x="64" y="362" text-anchor="start" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="20" fill="#6B6459">stashes what it works out</text>
+
+  <text x="64" y="412" text-anchor="start" font-family="Futura, 'Avenir Next', Avenir, sans-serif" font-size="17" letter-spacing="1.6" fill="#6B6459"></text>
+  <text x="64" y="452" text-anchor="start" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="34" font-weight="700" fill="#1A1815">Codex CLI</text>
+  <text x="64" y="482" text-anchor="start" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="20" fill="#6B6459">reads the same folder</text>
+
+<!-- the folder everything writes into -->
+
+  <rect x="405" y="268" width="390" height="286" rx="14" fill="#fff" stroke="#E2DCD0" stroke-width="2"/>
+  <rect x="405" y="268" width="390" height="54" rx="14" fill="#D9E5DE"/>
+  <rect x="405" y="304" width="390" height="18" fill="#D9E5DE"/>
+  <text x="431" y="303" font-family="Menlo, 'SF Mono', monospace" font-size="21" font-weight="700" fill="#0B5D3B">.attic/</text>
+  <text x="769" y="303" text-anchor="end" font-family="Futura, 'Avenir Next', Avenir, sans-serif" font-size="15" letter-spacing="1.4" fill="#0B5D3B">IN YOUR REPO</text>
+  <text x="431" y="360" font-family="Menlo, 'SF Mono', monospace" font-size="18" fill="#1A1815">INDEX.md</text><text x="431" y="380" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="16" fill="#6B6459">one line per item</text>
+  <text x="431" y="408" font-family="Menlo, 'SF Mono', monospace" font-size="18" fill="#1A1815">items/redis-eviction.md</text><text x="431" y="428" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="16" fill="#6B6459">from your agent</text>
+  <text x="431" y="456" font-family="Menlo, 'SF Mono', monospace" font-size="18" fill="#1A1815">items/cache-no-ttl.md</text><text x="431" y="476" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="16" fill="#6B6459">clipped in the browser</text>
+  <text x="431" y="504" font-family="Menlo, 'SF Mono', monospace" font-size="18" fill="#1A1815">DECISIONS.md</text><text x="431" y="524" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="16" fill="#6B6459">what you chose, and why</text>
+
+<!-- sources, right -->
+
+  <text x="831" y="292" text-anchor="start" font-family="Futura, 'Avenir Next', Avenir, sans-serif" font-size="17" letter-spacing="1.6" fill="#6B6459">BROWSER EXTENSION</text>
+  <text x="831" y="332" text-anchor="start" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="34" font-weight="700" fill="#1A1815">Chrome · Brave</text>
+  <text x="831" y="362" text-anchor="start" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="20" fill="#6B6459">clip a page, right-click</text>
+
+  <text x="831" y="412" text-anchor="start" font-family="Futura, 'Avenir Next', Avenir, sans-serif" font-size="17" letter-spacing="1.6" fill="#6B6459"></text>
+  <text x="831" y="452" text-anchor="start" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="34" font-weight="700" fill="#1A1815">Edge · Vivaldi</text>
+  <text x="831" y="482" text-anchor="start" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="20" fill="#6B6459">same format, same checks</text>
+
+<path d="M 372 336 L 391 360" stroke="#CFC8BB" stroke-width="2.5"
+    stroke-linecap="round" marker-end="url(#tip)"/>
+<path d="M 372 452 L 391 420" stroke="#CFC8BB" stroke-width="2.5"
+    stroke-linecap="round" marker-end="url(#tip)"/>
+<path d="M 819 336 L 809 360" stroke="#CFC8BB" stroke-width="2.5"
+    stroke-linecap="round" marker-end="url(#tip)"/>
+<path d="M 819 452 L 809 420" stroke="#CFC8BB" stroke-width="2.5"
+    stroke-linecap="round" marker-end="url(#tip)"/>
+
+<line x1="64" y1="574" x2="1136" y2="574" stroke="#E2DCD0"/>
+<text x="64" y="604" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="19" fill="#6B6459">Plain markdown. It survives /compact, /clear and a new session.</text>
+<text x="1136" y="604" text-anchor="end" font-family="Menlo, 'SF Mono', monospace" font-size="16" fill="#0B5D3B">github.com/NishikantaRay/Attic</text>
+</svg>

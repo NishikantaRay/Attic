@@ -226,6 +226,7 @@ to loopback, token-authenticated, and limited to the project roots you name.
 ## More
 
 [Why your AI keeps forgetting](blog/why-your-ai-keeps-forgetting.md) ·
+[The answer was in a tab](blog/the-answer-was-in-a-tab.md) ·
 [Measuring agent memory](blog/measuring-agent-memory.md) ·
 [Quickstart](docs/QUICKSTART.md) ·
 [All commands](docs/COMMANDS.md) ·

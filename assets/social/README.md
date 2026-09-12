@@ -9,6 +9,22 @@ for f in compounding correctness-tie problem; do rsvg-convert -w 2400 -h 1254 $f
 rsvg-convert -w 2160 -h 2160 square.svg -o square.png
 ```
 
+The "works with" cards are a separate generator (`npm run make:works-with`):
+
+```sh
+node scripts/make-works-with.js
+cd assets/social
+rsvg-convert -w 2400 -h 1256 works-with.svg -o works-with.png
+rsvg-convert -w 2160 -h 2160 works-with-square.svg -o works-with-square.png
+```
+
+**Third-party names are set as wordmarks in our own typeface, never redrawn.**
+Chrome, Brave, Edge, Claude Code and Codex CLI are other people's trademarks:
+redrawing a mark is a legal risk and usually a poor likeness, and embedding
+official files would pull their brand rules into this repo. Attic's own mark is
+the only logo on the card. If you want official marks, fetch them from each
+vendor's press kit and check their guidelines first.
+
 Every figure is read from `benchmarks/results/`, so a card cannot outlive the
 run behind it. Nothing is hand-typed.
 
@@ -18,6 +34,8 @@ run behind it. Nothing is hand-typed.
 | `correctness-tie.png` | 2400×1254 | Credibility: same correctness, a third fewer tokens |
 | `problem.png` | 2400×1254 | Feeds where a percentage starts a methodology argument |
 | `square.png` | 2160×2160 | Instagram, LinkedIn carousels |
+| `works-with.png` | 2400×1256 | Compatibility: Claude Code, Codex CLI and Chromium browsers into one `.attic/` |
+| `works-with-square.png` | 2160×2160 | The same, for Instagram and carousels |
 
 Sizes are 2× for retina. All fit LinkedIn's 1.91:1 and X's 16:9 crops.
 

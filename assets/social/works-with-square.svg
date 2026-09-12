@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080" role="img"
+  aria-label="Attic works with Claude Code, Codex CLI and Chromium browsers, all writing to one .attic folder">
+<rect width="1080" height="1080" fill="#FBF9F5"/>
+<rect x="0" y="0" width="1080" height="12" fill="#0B5D3B"/>
+
+
+  <path d="M 121.00,90.20 L 144.56,110.66 L 144.56,116.24 L 121.00,95.78 L 97.44,116.24 L 97.44,110.66 Z" fill="#1A1815"/>
+  <path d="M 102.40,111.28 L 102.40,138.56 L 106.12,138.56 L 106.12,111.28 Z" fill="#1A1815" opacity="0.35"/>
+  <path d="M 135.88,111.28 L 135.88,138.56 L 139.60,138.56 L 139.60,111.28 Z" fill="#1A1815" opacity="0.35"/>
+  <rect x="108.60" y="118.72" width="24.80" height="5.58" rx="1.24" fill="#0B5D3B" opacity="0.3"/><rect x="108.60" y="126.78" width="24.80" height="5.58" rx="1.24" fill="#0B5D3B" opacity="0.6"/><rect x="108.60" y="134.84" width="24.80" height="5.58" rx="1.24" fill="#0B5D3B" opacity="1"/>
+<text x="166" y="144" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="38" font-weight="700" fill="#1A1815">Attic</text>
+
+<text x="90" y="268" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="60" font-weight="700" fill="#1A1815">Two agents and</text>
+<text x="90" y="336" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="60" font-weight="700" fill="#1A1815">your browser.</text>
+<text x="90" y="404" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="60" font-weight="700" fill="#0B5D3B">One memory.</text>
+
+
+  <text x="90" y="500" font-family="Futura, 'Avenir Next', Avenir, sans-serif" font-size="17" letter-spacing="1.6" fill="#6B6459">CODING AGENTS</text>
+  <text x="90" y="540" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="34" font-weight="700" fill="#1A1815">Claude Code</text>
+  <text x="990" y="540" text-anchor="end" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="19" fill="#6B6459">stashes what it works out</text>
+  <line x1="90" y1="562" x2="990" y2="562" stroke="#E2DCD0"/>
+
+  <text x="90" y="600" font-family="Futura, 'Avenir Next', Avenir, sans-serif" font-size="17" letter-spacing="1.6" fill="#6B6459"></text>
+  <text x="90" y="640" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="34" font-weight="700" fill="#1A1815">Codex CLI</text>
+  <text x="990" y="640" text-anchor="end" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="19" fill="#6B6459">reads the same folder</text>
+  <line x1="90" y1="662" x2="990" y2="662" stroke="#E2DCD0"/>
+
+  <text x="90" y="700" font-family="Futura, 'Avenir Next', Avenir, sans-serif" font-size="17" letter-spacing="1.6" fill="#6B6459">BROWSER</text>
+  <text x="90" y="740" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="34" font-weight="700" fill="#1A1815">Chrome · Brave · Edge</text>
+  <text x="990" y="740" text-anchor="end" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="19" fill="#6B6459">clip a page, right-click</text>
+  <line x1="90" y1="762" x2="990" y2="762" stroke="#E2DCD0"/>
+
+
+<rect x="90" y="790" width="900" height="128" rx="14" fill="#fff" stroke="#E2DCD0" stroke-width="2"/>
+<rect x="90" y="790" width="900" height="50" rx="14" fill="#D9E5DE"/>
+<rect x="90" y="824" width="900" height="16" fill="#D9E5DE"/>
+<text x="116" y="824" font-family="Menlo, 'SF Mono', monospace" font-size="21" font-weight="700" fill="#0B5D3B">.attic/</text>
+<text x="964" y="824" text-anchor="end" font-family="Futura, 'Avenir Next', Avenir, sans-serif" font-size="15" letter-spacing="1.4" fill="#0B5D3B">IN YOUR REPO</text>
+<text x="116" y="878" font-family="Menlo, 'SF Mono', monospace" font-size="19" fill="#1A1815">INDEX.md · items/ · DECISIONS.md</text>
+<text x="964" y="878" text-anchor="end" font-family="Charter, 'Iowan Old Style', Georgia, serif" font-size="17" fill="#6B6459">plain markdown</text>
+
+<text x="90" y="992" font-family="Menlo, 'SF Mono', monospace" font-size="18" fill="#0B5D3B">github.com/NishikantaRay/Attic</text>
+<text x="990" y="992" text-anchor="end" font-family="Futura, 'Avenir Next', Avenir, sans-serif" font-size="15" letter-spacing="1.4" fill="#6B6459">MIT · NO TELEMETRY</text>
+</svg>
