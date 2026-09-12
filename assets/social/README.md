@@ -91,6 +91,54 @@ Sizes are 2× for retina. All fit LinkedIn's 1.91:1 and X's 16:9 crops.
 >
 > Link in bio.
 
+### `works-with.png` — X / Twitter
+
+> Half of what you learn isn't in your codebase. You find it in a docs tab,
+> and your agent never sees it.
+>
+> Attic now clips from the browser into the same `.attic/` folder your agent
+> reads. Select, right-click, done.
+>
+> Claude Code · Codex CLI · Chrome · Brave · Edge
+
+### `works-with.png` — LinkedIn
+
+> **Your coding agent can't read your browser tabs.**
+>
+> Half of what you learn while building something isn't in the codebase. You
+> work out why users get logged out at random, and the answer turns out to be a
+> paragraph in a documentation page. That paragraph is now the most valuable
+> thing you found all day, and it lives in a tab your agent will never see.
+>
+> So Attic clips from the browser into the same `.attic/` folder in your repo
+> that Claude Code and Codex CLI already write to. Same format, same rules, and
+> the same refusal to write anything that looks like a credential.
+>
+> One folder. Plain markdown. You can grep it, commit it, and review it in a PR.
+>
+> Open source, MIT, no telemetry.
+
+### `works-with-square.png` — Instagram, carousels
+
+> The answer was in a browser tab. Your agent never saw it.
+>
+> Attic clips the page into the same folder your agent reads.
+>
+> Claude Code · Codex CLI · Chrome · Brave · Edge
+>
+> Link in bio.
+
+### Short form — for a reply, a comment, or Mastodon
+
+> A browser extension cannot write to your filesystem. That's the security
+> model, not an oversight.
+>
+> So Attic runs a small companion you start yourself: loopback only, token on
+> every request, and only the project folders you named are writable.
+>
+> It also doesn't know how to write an attic. It calls the same functions the
+> CLI does — which is why a clip containing an API key gets refused for free.
+
 ---
 
 ## What not to claim
@@ -104,3 +152,13 @@ will check.
 
 **Do mention the off switch.** Naming where it costs you buys more
 credibility than any percentage.
+
+**Don't attach a benchmark number to the extension posts.** There is no
+benchmark of clipping from a browser. The numbers in this repo measure agent
+sessions, and borrowing them for a feature they never tested is the kind of
+thing someone checks.
+
+**Don't put other people's logos on the cards.** Chrome, Brave, Claude Code and
+Codex CLI are trademarks. The cards set them as wordmarks in Attic's own
+typeface, which needs no permission; redrawn marks need a lawyer and usually
+look wrong anyway.
