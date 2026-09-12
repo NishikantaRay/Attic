@@ -12,63 +12,121 @@
 
    Light is the base. Dark is applied in two places — a prefers-color-scheme
    block guarded against an explicit light choice, and a [data-theme="dark"]
-   block — so the toggle wins in both directions.
+   block — so the toggle wins in both directions. Every token must be defined
+   on bare :root; one defined only inside a dark block breaks light mode.
 --------------------------------------------------------------------------- */
 :root {
   --brand: #0969da;         /* roof / beams */
   --brand-hover: #0860c4;
+  --brand-soft: #ddf4ff;    /* tinted fills that must not swallow text */
   --stack: #aecfb8;         /* lower boxes */
   --stack-top: #1a7f37;     /* the newest box */
   --ok: #1a7f37;
   --bad: #cf222e;
+  --warn: #9a6700;
 
   --bg: #ffffff;
   --panel: #f6f8fa;
   --raised: #ffffff;
   --fg: #1f2328;
   --muted: #59636e;
+  --faint: #818b98;
   --line: #d1d9e0;
   --line-soft: #e4e8ed;
   --sel: #ddf4ff;
+  --mark: #fff3c4;
   --shadow: 0 1px 3px rgba(31, 35, 40, .08), 0 8px 24px rgba(31, 35, 40, .06);
+  --shadow-lg: 0 12px 48px rgba(31, 35, 40, .18);
+  --scrim: rgba(31, 35, 40, .32);
+
+  /* Per-kind accents. A kind is the main structural fact about an item, so it
+     gets a colour rather than only a word — the list becomes scannable. */
+  --k-finding: #8250df;
+  --k-decision: #0969da;
+  --k-plan: #bf8700;
+  --k-output: #57606a;
+  --k-note: #1a7f37;
+
+  /* --k is the alias each .kind badge re-points at its own kind colour. It is
+     defined here too so a kind the CSS does not know about still paints with
+     the neutral colour rather than with nothing. */
+  --k: var(--k-output);
+
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --radius: 8px;
+
+  /* Motion. Three durations, no more: hover/press, content entering, and
+     overlays. Nothing here exceeds 260ms — the reader swaps on every j/k, so
+     a duration that reads as elegant once reads as lag by the tenth time.
+     `--ease-out` is fast-start/soft-settle, which is the curve that reads as
+     expensive; nothing overshoots, because springy UI reads as toy. */
+  --t-fast: 110ms;
+  --t-base: 180ms;
+  --t-slow: 260ms;
+  --ease: cubic-bezier(.4, 0, .2, 1);
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --brand: #58a6ff;
     --brand-hover: #79b8ff;
+    --brand-soft: #10305c;
     --stack: #2d6a3e;
     --stack-top: #3fb950;
     --ok: #3fb950;
     --bad: #f85149;
+    --warn: #d29922;
 
     --bg: #0d1117;
     --panel: #161b22;
     --raised: #161b22;
     --fg: #e6edf3;
     --muted: #8b949e;
+    --faint: #6e7681;
     --line: #30363d;
     --line-soft: #21262d;
     --sel: #0c2d6b;
+    --mark: #4d3800;
     --shadow: 0 1px 3px rgba(1, 4, 9, .4), 0 8px 24px rgba(1, 4, 9, .3);
+    --shadow-lg: 0 12px 48px rgba(1, 4, 9, .6);
+    --scrim: rgba(1, 4, 9, .6);
+
+    --k-finding: #bc8cff;
+    --k-decision: #58a6ff;
+    --k-plan: #d29922;
+    --k-output: #8b949e;
+    --k-note: #3fb950;
   }
 }
 :root[data-theme="dark"] {
   --brand: #58a6ff;
   --brand-hover: #79b8ff;
+  --brand-soft: #10305c;
   --stack: #2d6a3e;
   --stack-top: #3fb950;
   --ok: #3fb950;
   --bad: #f85149;
+  --warn: #d29922;
 
   --bg: #0d1117;
   --panel: #161b22;
   --raised: #161b22;
   --fg: #e6edf3;
   --muted: #8b949e;
+  --faint: #6e7681;
   --line: #30363d;
   --line-soft: #21262d;
   --sel: #0c2d6b;
+  --mark: #4d3800;
   --shadow: 0 1px 3px rgba(1, 4, 9, .4), 0 8px 24px rgba(1, 4, 9, .3);
+  --shadow-lg: 0 12px 48px rgba(1, 4, 9, .6);
+  --scrim: rgba(1, 4, 9, .6);
+
+  --k-finding: #bc8cff;
+  --k-decision: #58a6ff;
+  --k-plan: #d29922;
+  --k-output: #8b949e;
+  --k-note: #3fb950;
 }
 
 * { box-sizing: border-box; }
@@ -80,6 +138,16 @@ body {
   font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
+::selection { background: var(--sel); }
+
+/* Scrollbars, so three scrolling panes do not each paint a heavy OS bar. */
+.list, .reader, .panel, .side, .clip-form, .palette-results { scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+.list::-webkit-scrollbar, .reader::-webkit-scrollbar, .panel::-webkit-scrollbar,
+.side::-webkit-scrollbar, .clip-form::-webkit-scrollbar, .palette-results::-webkit-scrollbar { width: 10px; }
+.list::-webkit-scrollbar-thumb, .reader::-webkit-scrollbar-thumb, .panel::-webkit-scrollbar-thumb,
+.side::-webkit-scrollbar-thumb, .clip-form::-webkit-scrollbar-thumb, .palette-results::-webkit-scrollbar-thumb {
+  background: var(--line); border-radius: 5px; border: 3px solid transparent; background-clip: content-box;
+}
 
 /* The mark is inline SVG painted with the theme tokens, so one copy serves
    both modes instead of shipping a light and a dark PNG. Sized generously:
@@ -87,6 +155,14 @@ body {
    collapse into a smudge and it stops reading as the Attic mark at all. */
 .mark { width: 36px; height: 36px; flex: none; display: block; }
 .mark-sm { width: 24px; height: 24px; }
+
+.spacer { flex: 1; }
+.hint { font-weight: 400; color: var(--muted); font-size: 12px; }
+kbd {
+  font: 500 11px/1 var(--mono);
+  background: var(--panel); border: 1px solid var(--line); border-bottom-width: 2px;
+  border-radius: 4px; padding: 2px 5px; color: var(--muted);
+}
 
 /* ---------- setup ---------- */
 .setup { height: 100%; display: grid; place-items: center; padding: 24px; }
@@ -109,13 +185,12 @@ body {
 .setup-detail {
   background: var(--panel);
   border: 1px solid var(--line-soft);
-  border-radius: 8px;
+  border-radius: var(--radius);
   padding: 12px 14px; margin-bottom: 16px;
   font-size: 13px; line-height: 1.6; color: var(--muted);
 }
 .setup-detail code {
-  color: var(--brand);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--brand); font-family: var(--mono);
   font-size: 12px; word-break: break-all;
 }
 .adv { margin-top: 18px; border-top: 1px solid var(--line-soft); padding-top: 14px; }
@@ -128,7 +203,7 @@ input[type=text], input[type=password], input[type=number], input[type=search], 
   width: 100%; margin-top: 5px; padding: 7px 11px;
   background: var(--bg); color: var(--fg);
   border: 1px solid var(--line); border-radius: 7px;
-  transition: border-color .12s, box-shadow .12s;
+  transition: border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
 }
 input:focus, select:focus, textarea:focus {
   outline: none;
@@ -139,8 +214,10 @@ input:focus, select:focus, textarea:focus {
 button.primary {
   width: 100%; padding: 10px; border: 0; border-radius: 7px; cursor: pointer;
   background: var(--brand); color: #fff; font-weight: 600;
-  transition: background .12s;
+  transition: background var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
 }
+/* A press that moves is the cheapest way to make a button feel physical. */
+button.primary:active:not(:disabled) { transform: scale(.985); }
 button.primary:hover:not(:disabled) { background: var(--brand-hover); }
 button.primary:disabled { opacity: .55; cursor: default; }
 button.ghost {
@@ -149,96 +226,489 @@ button.ghost {
   border: 1px solid var(--line); border-radius: 7px;
 }
 button.ghost:hover { border-color: var(--brand); color: var(--brand); }
+button.danger:hover { border-color: var(--bad); color: var(--bad); }
 
-/* ---------- app ---------- */
+/* ---------- app shell ---------- */
 .app { height: 100%; display: flex; flex-direction: column; }
 .top {
-  display: flex; align-items: center; gap: 12px;
-  padding: 11px 18px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 16px;
   border-bottom: 1px solid var(--line);
   background: var(--panel);
+  flex: none;
 }
 .brand { display: flex; align-items: center; gap: 8px; font-size: 15px; letter-spacing: -.2px; }
 .brand b { font-weight: 600; }
-.root-picker { width: auto; max-width: 260px; margin: 0; font-size: 13px; }
-.top #q { flex: 1; margin: 0; max-width: 460px; }
-.count { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.root-picker { width: auto; max-width: 240px; margin: 0; font-size: 13px; padding: 6px 10px; }
+
+.search-wrap { position: relative; flex: 1; max-width: 480px; }
+.search-wrap #q { margin: 0; padding-right: 32px; }
+.kbd-hint {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  pointer-events: none; opacity: .7;
+}
+.search-wrap #q:focus + .kbd-hint { opacity: 0; }
+
 .icon-btn {
   background: var(--bg); border: 1px solid var(--line); border-radius: 7px;
-  color: var(--muted); cursor: pointer; padding: 6px 10px; line-height: 1;
-  transition: color .12s, border-color .12s;
+  color: var(--muted); cursor: pointer; padding: 7px 10px; line-height: 1;
+  transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
 }
 .icon-btn:hover { color: var(--brand); border-color: var(--brand); }
+.icon-btn:active { transform: scale(.94); }
 .clip-btn {
   background: var(--brand); color: #fff; border: 0; border-radius: 7px;
-  padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
-  transition: background .12s;
+  padding: 8px 15px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
+  transition: background var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
 }
 .clip-btn:hover { background: var(--brand-hover); }
+.clip-btn:active { transform: scale(.97); }
 
-.filters { display: flex; gap: 6px; padding: 10px 18px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
-.chip {
+/* Three columns: navigation, list, reading. The reader gets everything left
+   over, because reading is what this window is for. */
+.body-cols {
+  flex: 1; min-height: 0;
+  display: grid;
+  /* The list column is sized to fit a slug: a slug is the item's identity and
+     the thing handles and [[links]] use, so truncating it costs more than the
+     few pixels the reader gives up. */
+  grid-template-columns: 200px minmax(300px, 380px) minmax(0, 1fr);
+}
+
+/* ---------- sidebar ---------- */
+.side {
+  border-right: 1px solid var(--line);
+  background: var(--panel);
+  overflow-y: auto; padding: 12px 10px;
+}
+.side-label {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em;
+  color: var(--faint); font-weight: 600;
+  padding: 16px 8px 6px;
+}
+.side-group { display: flex; flex-direction: column; gap: 1px; }
+.side-group.tags { flex-direction: row; flex-wrap: wrap; gap: 5px; padding: 0 6px; }
+.nav {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; text-align: left; cursor: pointer;
+  background: none; border: 0; border-radius: 6px;
+  padding: 6px 9px; font-size: 13px; color: var(--muted);
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+.nav:hover { background: var(--bg); color: var(--fg); }
+.nav.on { background: var(--brand-soft); color: var(--brand); font-weight: 600; }
+.nav .n { margin-left: auto; font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
+.nav.on .n { color: var(--brand); }
+/* The kind dot is the same colour the list and reader use for that kind. */
+.nav .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+
+.tag {
   background: var(--bg); border: 1px solid var(--line); border-radius: 999px;
-  padding: 4px 13px; font-size: 12px; color: var(--muted); cursor: pointer;
-  transition: all .12s;
+  padding: 3px 10px; font-size: 11.5px; color: var(--muted); cursor: pointer;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
 }
-.chip:hover { color: var(--fg); border-color: var(--muted); }
-.chip.on {
-  background: var(--brand); border-color: var(--brand);
-  color: #fff; font-weight: 600;
-}
+.tag:hover { color: var(--fg); border-color: var(--muted); }
+.tag:active { transform: scale(.95); }
+.tag.on { background: var(--brand); border-color: var(--brand); color: #fff; font-weight: 600; }
 
-.cols { flex: 1; display: grid; grid-template-columns: minmax(280px, 360px) 1fr; min-height: 0; }
-.list { border-right: 1px solid var(--line); overflow-y: auto; background: var(--bg); }
+/* ---------- list ---------- */
+.list-pane { border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; min-width: 0; background: var(--bg); }
+.list-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-bottom: 1px solid var(--line-soft); flex: none;
+}
+.count { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.sort { width: auto; margin: 0 0 0 auto; font-size: 12px; padding: 4px 8px; border-color: transparent; background: transparent; color: var(--muted); }
+.sort:hover { border-color: var(--line); }
+.list { overflow-y: auto; flex: 1; }
+
 .card {
-  padding: 13px 16px; border-bottom: 1px solid var(--line-soft); cursor: pointer;
+  padding: 11px 14px; border-bottom: 1px solid var(--line-soft); cursor: pointer;
   border-left: 3px solid transparent;
-  transition: background .1s;
+  transition: background var(--t-fast) var(--ease), border-left-color var(--t-fast) var(--ease);
 }
 .card:hover { background: var(--panel); }
 .card.on { background: var(--sel); border-left-color: var(--brand); }
+/* Keyboard cursor is distinct from selection: j/k moves this, Enter selects. */
+.card.cursor { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--brand) 45%, transparent); }
+.card-top { display: flex; align-items: baseline; gap: 7px; margin-bottom: 4px; }
 .card .slug {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 13px; color: var(--brand); font-weight: 500;
+  font-family: var(--mono); font-size: 12.5px; color: var(--fg); font-weight: 500;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  min-width: 0;
 }
-.card .meta {
-  display: inline-block; margin-top: 5px;
-  font-size: 10px; letter-spacing: .05em; text-transform: uppercase;
-  color: var(--muted);
-  border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px;
-}
-.card .hook { font-size: 12.5px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+.card.on .slug { color: var(--brand); }
+.card .hook { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.card .hook mark, .reader mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1px; }
+.card-foot { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+.pin-mark { color: var(--warn); font-size: 11px; }
 
-.reader { overflow-y: auto; padding: 28px 34px; background: var(--bg); }
-.reader-empty { color: var(--muted); display: grid; place-items: center; height: 100%; font-size: 13px; }
-.reader h1 { font-size: 21px; margin: 0 0 6px; font-weight: 600; letter-spacing: -.3px; }
-.reader .sub { color: var(--muted); font-size: 12.5px; margin-bottom: 22px; }
-.reader .sub code { color: var(--brand); font-family: ui-monospace, Menlo, monospace; }
-.reader .body {
-  white-space: pre-wrap;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12.5px; line-height: 1.7;
+/* One badge style, tinted per kind by a data attribute, so adding a kind is a
+   token rather than another rule block. */
+.kind {
+  font-size: 10px; letter-spacing: .05em; text-transform: uppercase; font-weight: 600;
+  border-radius: 4px; padding: 2px 6px; flex: none;
+  color: var(--k); background: color-mix(in srgb, var(--k) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--k) 35%, transparent);
+}
+.kind[data-kind=finding] { --k: var(--k-finding); }
+.kind[data-kind=decision] { --k: var(--k-decision); }
+.kind[data-kind=plan]    { --k: var(--k-plan); }
+.kind[data-kind=output]  { --k: var(--k-output); }
+.kind[data-kind=note]    { --k: var(--k-note); }
+.date { font-size: 11px; color: var(--faint); margin-left: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+.empty { padding: 40px 20px; text-align: center; color: var(--muted); font-size: 13px; }
+.empty b { display: block; color: var(--fg); font-size: 14px; margin-bottom: 6px; }
+
+/* ---------- main pane ---------- */
+.main { min-height: 0; min-width: 0; display: flex; flex-direction: column; background: var(--bg); }
+.reader, .panel { overflow-y: auto; flex: 1; padding: 0; }
+
+/* Nothing open. A blank half-screen reads as a broken pane, so this states
+   what the side is for and which key fills it. */
+.reader-empty {
+  height: 100%; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 6px;
+  color: var(--muted); text-align: center; padding: 40px;
+}
+.reader-empty .mark { width: 44px; height: 44px; opacity: .45; margin-bottom: 6px; }
+.reader-empty b { color: var(--fg); font-size: 15px; font-weight: 600; }
+.reader-empty span { font-size: 13px; max-width: 42ch; line-height: 1.7; }
+
+/* Reader header sticks: on a long item the handle and the actions stay
+   reachable without scrolling back up. */
+.reader-head {
+  position: sticky; top: 0; z-index: 2;
+  background: var(--bg); border-bottom: 1px solid var(--line-soft);
+  padding: 20px 30px 14px;
+  min-width: 0;
+}
+.reader-head h1 { overflow-wrap: anywhere; }
+.reader-head h1 { font-size: 22px; margin: 0 0 8px; font-weight: 600; letter-spacing: -.3px; line-height: 1.25; }
+.sub { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; color: var(--muted); font-size: 12px; min-width: 0; }
+.sub code { color: var(--brand); font-family: var(--mono); }
+.handle-btn {
+  font-family: var(--mono); font-size: 12px; color: var(--brand);
+  background: var(--brand-soft); border: 1px solid color-mix(in srgb, var(--brand) 30%, transparent);
+  border-radius: 5px; padding: 2px 7px; cursor: pointer;
+}
+.handle-btn:hover { background: color-mix(in srgb, var(--brand) 20%, transparent); }
+.acts { display: flex; gap: 6px; margin-left: auto; }
+@media (max-width: 760px) { .acts { margin-left: 0; } }
+.acts button { margin: 0; padding: 5px 11px; font-size: 12px; }
+
+/* Body + outline rail. The rail collapses on a narrow window rather than
+   squeezing the prose. */
+.reader-body { display: grid; grid-template-columns: minmax(0, 1fr) 172px; gap: 28px; padding: 22px 30px 60px; align-items: start; }
+@media (max-width: 1180px) { .reader-body { grid-template-columns: minmax(0, 1fr); } .toc { display: none; } }
+
+.toc { position: sticky; top: 104px; font-size: 12px; border-left: 1px solid var(--line-soft); padding-left: 12px; }
+.toc-title { font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--faint); font-weight: 600; margin-bottom: 8px; }
+.toc a { display: block; color: var(--muted); text-decoration: none; padding: 3px 0; line-height: 1.4; }
+.toc a:hover { color: var(--brand); }
+.toc a[data-level="3"] { padding-left: 10px; font-size: 11.5px; }
+.toc a[data-level="4"] { padding-left: 20px; font-size: 11.5px; }
+
+/* ---------- prose ----------
+   Item bodies are markdown now, not a monospace dump. Measure is capped
+   because a body stretched across a wide window is unreadable. */
+.prose { max-width: 74ch; font-size: 14.5px; line-height: 1.68; min-width: 0; overflow-wrap: break-word; }
+.prose > *:first-child { margin-top: 0; }
+.prose h1, .prose h2, .prose h3, .prose h4 { font-weight: 600; letter-spacing: -.2px; line-height: 1.3; margin: 1.8em 0 .6em; scroll-margin-top: 110px; }
+.prose h1 { font-size: 20px; }
+.prose h2 { font-size: 17px; padding-bottom: .3em; border-bottom: 1px solid var(--line-soft); }
+.prose h3 { font-size: 15px; }
+.prose h4 { font-size: 14px; color: var(--muted); }
+.prose p { margin: 0 0 1em; }
+.prose ul, .prose ol { margin: 0 0 1em; padding-left: 1.4em; }
+.prose li { margin-bottom: .35em; }
+.prose ul.tasks { list-style: none; padding-left: .2em; }
+.prose li.task { display: flex; gap: 8px; align-items: flex-start; }
+.prose li.task input { width: auto; margin: 4px 0 0; }
+.prose li.task.done span { color: var(--muted); text-decoration: line-through; }
+.prose a { color: var(--brand); text-decoration-color: color-mix(in srgb, var(--brand) 40%, transparent); text-underline-offset: 2px; }
+.prose code {
+  font-family: var(--mono); font-size: .875em;
   background: var(--panel); border: 1px solid var(--line-soft);
-  border-radius: 10px; padding: 20px;
+  border-radius: 4px; padding: .1em .35em;
 }
-.reader .body a { color: var(--brand); }
-.empty { padding: 36px 18px; text-align: center; color: var(--muted); font-size: 13px; }
+.prose pre.code {
+  background: var(--panel); border: 1px solid var(--line-soft);
+  border-radius: var(--radius); padding: 14px 16px;
+  overflow-x: auto; margin: 0 0 1.1em; position: relative;
+}
+.prose pre.code code { background: none; border: 0; padding: 0; font-size: 12.5px; line-height: 1.6; }
+.prose pre.code[data-lang]::after {
+  content: attr(data-lang);
+  position: absolute; top: 7px; right: 10px;
+  font: 500 10px var(--mono); color: var(--faint); text-transform: uppercase; letter-spacing: .05em;
+}
+.prose blockquote {
+  margin: 0 0 1em; padding: 2px 0 2px 14px;
+  border-left: 3px solid var(--line); color: var(--muted);
+}
+.prose blockquote p:last-child { margin-bottom: 0; }
+.prose hr { border: 0; border-top: 1px solid var(--line-soft); margin: 1.8em 0; }
+/* A wide table scrolls inside its own box; the pane never scrolls sideways. */
+.table-wrap { overflow-x: auto; margin: 0 0 1.1em; border: 1px solid var(--line-soft); border-radius: var(--radius); }
+.prose table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.prose th, .prose td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line-soft); }
+.prose th { background: var(--panel); font-weight: 600; font-size: 12px; }
+.prose tr:last-child td { border-bottom: 0; }
 
-/* ---------- clip ---------- */
-.clip-form { overflow-y: auto; padding: 28px 34px; background: var(--bg); }
-.clip-form h2 { font-size: 18px; margin: 0 0 20px; font-weight: 600; letter-spacing: -.2px; }
+/* Wikilinks read as internal navigation, not as outbound links. */
+.wiki {
+  font-family: var(--mono); font-size: .9em;
+  background: var(--brand-soft); border-radius: 4px; padding: .05em .35em;
+  text-decoration: none; color: var(--brand); cursor: pointer;
+}
+.wiki:hover { background: color-mix(in srgb, var(--brand) 22%, transparent); }
+.wiki.dangling { background: none; color: var(--muted); border: 1px dashed var(--line); cursor: not-allowed; }
+
+/* ---------- backlinks ---------- */
+.links-box { max-width: 74ch; margin-top: 36px; border-top: 1px solid var(--line-soft); padding-top: 18px; }
+.links-box h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--faint); margin: 0 0 10px; }
+.link-row {
+  display: flex; align-items: center; gap: 10px; padding: 8px 11px;
+  border: 1px solid var(--line-soft); border-radius: 6px; margin-bottom: 6px;
+  cursor: pointer; background: var(--panel);
+  max-width: 900px;
+}
+.link-row:hover { border-color: var(--brand); }
+/* The slug is an identifier: keep it on one line and let the hook, which is
+   prose, absorb the leftover width instead. */
+.link-row .slug { font-family: var(--mono); font-size: 12.5px; color: var(--brand); white-space: nowrap; flex: none; }
+.link-row .hook { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+
+/* ---------- dashboard / panels ---------- */
+.panel { padding: 26px 30px 60px; }
+.panel h2 { font-size: 19px; margin: 0 0 4px; font-weight: 600; letter-spacing: -.2px; }
+.panel .lede { color: var(--muted); font-size: 13px; margin: 0 0 22px; }
+.panel h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--faint); margin: 28px 0 10px; }
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; max-width: 620px; }
+.stat { background: var(--panel); border: 1px solid var(--line-soft); border-radius: var(--radius); padding: 13px 15px; }
+.stat .v { font-size: 24px; font-weight: 600; letter-spacing: -.5px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.stat .l { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+/* Kind distribution: a plain proportional bar beats a pie for five values. */
+.bar { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: var(--panel); max-width: 620px; }
+.bar span { display: block; }
+.bar-key { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px; font-size: 12px; color: var(--muted); }
+.bar-key i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
+
+.timeline { max-width: 760px; border-left: 2px solid var(--line-soft); padding-left: 16px; margin-left: 4px; }
+.tl-row { position: relative; padding: 0 0 16px; font-size: 13px; line-height: 1.6; }
+.tl-row::before {
+  content: ''; position: absolute; left: -21px; top: 7px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--brand); border: 2px solid var(--bg);
+}
+.tl-date { font-family: var(--mono); font-size: 11.5px; color: var(--faint); }
+.tl-why { color: var(--muted); }
+
+.health-row {
+  display: flex; gap: 10px; align-items: baseline;
+  padding: 9px 12px; border: 1px solid var(--line-soft); border-radius: 6px;
+  margin-bottom: 6px; font-size: 13px; max-width: 760px;
+}
+.health-row .lvl { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; flex: none; }
+.health-row.error { border-color: color-mix(in srgb, var(--bad) 40%, transparent); }
+.health-row.error .lvl { color: var(--bad); }
+.health-row.warn .lvl { color: var(--warn); }
+.health-row .slug { font-family: var(--mono); font-size: 12px; color: var(--brand); cursor: pointer; }
+.all-good { color: var(--ok); font-size: 13px; }
+
+/* ---------- clip / edit form ---------- */
+.clip-form { overflow-y: auto; padding: 24px 30px 60px; background: var(--bg); flex: 1; }
+.clip-form h2 { font-size: 18px; margin: 0 0 18px; font-weight: 600; letter-spacing: -.2px; }
 .clip-form label { display: block; margin-bottom: 13px; font-size: 12px; color: var(--muted); }
 .clip-form .row { display: flex; gap: 10px; align-items: flex-end; }
 .clip-form .grow { flex: 1; }
-.clip-form textarea {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12.5px; line-height: 1.65; resize: vertical;
-}
+.clip-form textarea { font-family: var(--mono); font-size: 12.5px; line-height: 1.65; resize: vertical; }
 .clip-form .primary { width: auto; padding: 9px 22px; }
 .clip-form .ghost { margin-top: 0; }
-.handle { font-size: 12px; color: var(--muted); margin: -7px 0 13px; }
-.handle code { color: var(--brand); font-family: ui-monospace, Menlo, monospace; }
-.hint { font-weight: 400; opacity: .85; }
+.handle { font-size: 12px; color: var(--muted); margin: -7px 0 13px; display: flex; align-items: center; gap: 8px; }
+.handle code { color: var(--brand); font-family: var(--mono); }
+.dupe { color: var(--warn); font-size: 11.5px; }
 .msg { margin: 13px 0 0; font-size: 13px; }
 .msg.ok { color: var(--ok); }
 .msg.bad { color: var(--bad); }
+
+/* ---------- command palette ---------- */
+.palette {
+  position: fixed; inset: 0; z-index: 50;
+  background: var(--scrim);
+  display: flex; justify-content: center; align-items: flex-start;
+  padding-top: 12vh;
+}
+.palette-box {
+  width: min(560px, 92vw);
+  background: var(--raised); border: 1px solid var(--line);
+  border-radius: 12px; box-shadow: var(--shadow-lg); overflow: hidden;
+}
+.palette-box #p-input {
+  margin: 0; border: 0; border-bottom: 1px solid var(--line-soft);
+  border-radius: 0; padding: 15px 18px; font-size: 15px; background: var(--raised);
+}
+.palette-box #p-input:focus { box-shadow: none; }
+.palette-results { max-height: 50vh; overflow-y: auto; }
+.p-row {
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 18px; cursor: pointer; font-size: 13px;
+}
+.p-row.on { background: var(--sel); }
+.p-row .slug { font-family: var(--mono); font-size: 12.5px; white-space: nowrap; flex: none; max-width: 44%; overflow: hidden; text-overflow: ellipsis; }
+.p-row .hook { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+.p-row .go { margin-left: auto; font-size: 11px; color: var(--faint); }
+.p-empty { padding: 22px 18px; color: var(--muted); font-size: 13px; text-align: center; }
+
+.keys-box { padding: 22px 24px; }
+.keys-box h3 { margin: 0 0 14px; font-size: 15px; font-weight: 600; }
+.keys-box dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; margin: 0 0 18px; font-size: 13px; }
+.keys-box dt { text-align: right; }
+.keys-box dd { margin: 0; color: var(--muted); }
+
+/* ---------- status bar & toast ---------- */
+.statusbar {
+  flex: none; display: flex; align-items: center; gap: 10px;
+  padding: 5px 16px; border-top: 1px solid var(--line);
+  background: var(--panel); font-size: 11.5px; color: var(--muted);
+}
+.toast {
+  position: fixed; bottom: 44px; left: 50%; transform: translateX(-50%);
+  z-index: 60; padding: 9px 18px; border-radius: 999px;
+  background: var(--fg); color: var(--bg); font-size: 13px; font-weight: 500;
+  box-shadow: var(--shadow-lg);
+}
+.toast.bad { background: var(--bad); color: #fff; }
+
+/* A narrow window drops the nav rail first: the list and the reader are the
+   two panes you cannot work without. */
+@media (max-width: 900px) {
+  .body-cols { grid-template-columns: minmax(200px, 260px) minmax(0, 1fr); }
+  .side { display: none; }
+  .reader-head { padding: 16px 18px 12px; }
+  .reader-body, .panel { padding-left: 18px; padding-right: 18px; }
+}
+
+/* ---------------------------------------------------------------------------
+   Motion.
+
+   Rules that keep this feeling fast rather than decorative:
+   - only `opacity` and `transform` are animated — both composite on the GPU,
+     where `height`/`top` force layout on every frame;
+   - entrances are short and rise a few pixels, never slide a long way: the
+     reader swaps on every j/k, and a distance that reads as elegant once reads
+     as lag by the tenth time;
+   - nothing overshoots or bounces;
+   - the list does NOT re-animate while you type in the search box. See the
+     reduced-motion block at the end, which switches all of this off.
+--------------------------------------------------------------------------- */
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes pop {
+  from { opacity: 0; transform: translateY(8px) scale(.98); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+@keyframes shimmer {
+  from { background-position: -400px 0; }
+  to   { background-position: 400px 0; }
+}
+
+/* Content entering a pane. Applied by the script on each repaint, so it has to
+   be re-triggerable — see restartAnim() in library.js. */
+.enter { animation: rise var(--t-base) var(--ease-out) both; }
+.fade-in { animation: fade var(--t-base) var(--ease-out) both; }
+
+/* The list staggers only on a full reload, never per keystroke. --i is set
+   inline per row and capped in the script, so a 300-item attic does not end
+   with rows arriving four seconds late. */
+.list.staggered .card {
+  animation: rise var(--t-base) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 14ms);
+}
+
+/* Overlays. The scrim fades while the box rises: two different durations on
+   purpose, so the box feels like it arrives rather than being pasted on. */
+.palette { animation: fade var(--t-fast) var(--ease) both; }
+.palette-box { animation: pop var(--t-slow) var(--ease-out) both; }
+
+/* The class, not the element, carries the entrance, so a second toast landing
+   while the first is still up re-runs it instead of just swapping the text. */
+.toast-show { animation: toast-in var(--t-base) var(--ease-out) both; }
+.toast-out { animation: toast-out 200ms var(--ease) both; }
+@keyframes toast-out {
+  to { opacity: 0; transform: translate(-50%, 6px); }
+}
+
+/* The setup card is seen once per connection, so it can afford the slow token
+   and a slightly longer rise than anything in the main UI. */
+.setup-card { animation: pop var(--t-slow) var(--ease-out) both; }
+
+/* Selecting a row. The left border growing in is enough of a cue; the row
+   itself must not move, or the list jitters as you arrow through it. */
+.card { border-left-width: 3px; }
+.card.on { animation: fade var(--t-fast) var(--ease) both; }
+
+/* Reader internals arrive just behind the header, which reads as the page
+   settling rather than four separate things appearing. */
+.reader-head { animation: rise var(--t-base) var(--ease-out) both; }
+.reader-body { animation: rise var(--t-base) var(--ease-out) both; animation-delay: 40ms; }
+
+/* The overview's kind bar grows from nothing, once, on first paint. This is
+   the one place `width` is animated: a handful of elements, one time. */
+.bar span { animation: bar-grow var(--t-slow) var(--ease-out) both; }
+@keyframes bar-grow { from { width: 0 !important; } }
+
+.stat { animation: rise var(--t-base) var(--ease-out) both; animation-delay: calc(var(--i, 0) * 30ms); }
+.tl-row { animation: rise var(--t-base) var(--ease-out) both; animation-delay: calc(var(--i, 0) * 30ms); }
+
+/* Skeleton rows while /items is in flight. A pane that shows its shape while
+   loading reads as fast; a blank one reads as broken. */
+.skeleton { padding: 11px 14px; border-bottom: 1px solid var(--line-soft); }
+.skel-line {
+  height: 9px; border-radius: 4px; margin-bottom: 7px;
+  background: linear-gradient(90deg, var(--panel) 0%, var(--line-soft) 50%, var(--panel) 100%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+.skel-line.w-60 { width: 60%; }
+.skel-line.w-90 { width: 90%; }
+.skel-line.w-40 { width: 40%; height: 7px; margin-bottom: 0; }
+
+/* Smooth scrolling within the panes, for the outline rail's jumps. */
+.reader, .panel, .list { scroll-behavior: smooth; }
+
+/* ---------------------------------------------------------------------------
+   Reduced motion. One block rather than per-rule guards: setting the duration
+   tokens to ~0 covers every transition, and the explicit resets cover the
+   keyframe animations, which do not read those tokens.
+
+   This is not a nicety. Vestibular disorders are real, and this is a tool for
+   reading.
+--------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  :root { --t-fast: 0.01ms; --t-base: 0.01ms; --t-slow: 0.01ms; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* The shimmer is a loop, so it must be stopped outright rather than sped up. */
+  .skel-line { animation: none; background: var(--line-soft); }
+}

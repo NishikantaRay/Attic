@@ -55,6 +55,72 @@ and hoped. Now the script exits 2 and writes nothing. The instruction
 remains, because instructions still shape intent, but it is no longer the
 only thing standing between a credential and disk.
 
+## The browser extension
+
+Optional, and structurally a second front end over the same `.attic/` rather
+than a parallel implementation of it.
+
+```
+Extension ──────────  extension/library.{html,css,js}  the library UI
+    │                 extension/markdown.js            renderer (escape-first)
+    │                 extension/api.js                 one client for the companion
+    │                 extension/background.js          context menu
+    ▼
+Companion ──────────  extension/server/server.js       transport and trust ONLY
+    │
+    ▼
+Scripts ────────────  skills/attic/scripts/attic.js    the same functions the CLI calls
+```
+
+**The load-bearing rule: the companion owns transport and trust, and nothing
+else.** It does not format frontmatter, generate slugs, truncate hooks, or
+scan for secrets — it `require()`s `attic.js` and calls `cmdStash`, `cmdEdit`,
+`cmdRecall`, `cmdIndex`, `cmdArchive`, `cmdPin` and `cmdValidate` with `cwd`
+set to the chosen project. A clip from the browser therefore inherits the
+format, the slug rules, the index bookkeeping, the atomic writes, the file
+lock and the secret refusal for free. Anything reimplemented in the server is
+something that will drift from the CLI.
+
+This is why editing lives in `attic.js` as `cmdEdit` rather than as file
+writes in the server, and why it is a genuinely different operation from
+stashing: `cmdStash` on an existing slug appends a dated `## Update` section,
+which is correct for an agent adding to a finding and wrong for a person
+fixing a typo in one.
+
+| Concern | Owner | Why |
+|---|---|---|
+| Is the caller allowed? | `server.js` | Token, origin, root allowlist. |
+| Which project is this? | `server.js` | Maps a request to an allowed `cwd`. |
+| How is the item written? | `attic.js` | Format, lock, atomicity — shared with the CLI. |
+| Does it contain a credential? | `attic.js` | The same scan, on edit as on stash. |
+| What does the item say? | The person | No model is involved on this path. |
+
+### Trust boundary
+
+The companion is the attack surface: a localhost port that writes files,
+reachable from any page the browser loads. Four mitigations, none sufficient
+alone — bound to `127.0.0.1` and never `0.0.0.0`; a shared token on every
+request; an explicit allowlist of project roots, so a request naming a path
+outside it is refused; and an origin check restricting callers to the
+extension. `--force` is never forwarded, so a secret-scan refusal cannot be
+overridden from a browser.
+
+There is deliberately no delete endpoint. `cmdArchive` is a rename into
+`.attic/archive/` and restore reverses it, so nothing the browser does is
+unrecoverable — which is the argument that makes browser-side writing
+defensible at all. Editing and archiving act only on a slug that already
+exists inside an allowed root, so they reach nothing `/stash` could not
+already reach.
+
+### Rendering untrusted text
+
+Item bodies contain clipped web pages and reach the DOM through `innerHTML`,
+so `markdown.js` escapes every string **before** it introduces any structure,
+and only `http(s)` URLs survive as links. The renderer is hand-rolled because
+MV3's content security policy blocks loading a parser from a CDN; vendoring a
+full one to render the handful of constructs an item uses would be a poor
+trade. Its tests are mostly adversarial rather than about appearance.
+
 ## Workflow patterns
 
 Attic combines two of the four shapes:

@@ -36,11 +36,62 @@ the library finds the companion on the usual ports and pairs with it. See
 
 ## Using it
 
-Clicking the toolbar icon opens the **library** in a full tab.
+Clicking the toolbar icon opens the **library** in a full tab: a navigation
+rail, the item list, and a reading pane.
 
-**Browse** — items on the left, reading pane on the right. Filter by kind with
-the chips, search across titles, hooks and bodies (bodies load in the
-background the first time you focus the search box).
+**Read** — item bodies render as markdown, not as a wall of monospace:
+headings, lists, tables, task lists and fenced code with its language. Long
+items get an outline rail on the right. The renderer is hand-rolled (MV3's CSP
+blocks a CDN parser) and escapes before it adds any structure, so a clipped
+page cannot inject markup.
+
+**Follow links** — write `[[another-slug]]` in a body and it becomes a link to
+that item; `attic:some-slug` handles link too. Each item lists what it **links
+to** and what is **linked from** it, so an attic reads as a connected set
+rather than a folder. A link to a slug that does not exist yet shows as
+dangling instead of a dead click.
+
+**Navigate** — the rail carries the views (All, Pinned, Decisions, Links,
+Health), the kinds with their counts, and every tag in the attic. Tags are
+clickable everywhere they appear.
+
+**Overview** — the landing pane shows what the attic contains: counts, the
+spread across kinds, what was added recently, and the latest decisions with
+their why.
+
+**Decisions** — the full DECISIONS.md as a timeline, each entry split into what
+was decided and why.
+
+**Links** — which items reference each other, and every dangling reference with
+the item that made it.
+
+**Health** — the same checks `attic validate` runs: index and item files
+agreeing, frontmatter complete, hooks within the cap.
+
+**Search** — across titles, hooks, tags and full bodies, with the match shown
+highlighted in context. Sort by date, title or kind.
+
+**Keyboard** — `⌘K`/`Ctrl-K` jumps to any item or runs a command, `/` focuses
+search, `j`/`k` move and `Enter` opens, `e` edits, `c` clips, `p` pins, `g h`
+goes to the overview, `r` reloads, and `?` lists the lot.
+
+**Edit** — `e`, or the Edit button, opens an item in place. Saving **replaces**
+the body; it does not append. (Stashing an existing slug from the CLI appends a
+dated `## Update` section, which is right for an agent adding to a finding and
+wrong for a person fixing a typo in one — so editing uses `PUT /item`, not
+`/stash`.) The slug never changes, because handles and `[[links]]` point at it.
+`⌘Enter` saves.
+
+**Pin and archive** — pinned items lead every list. Archiving moves the file to
+`.attic/archive/` and drops it from the index; Claude can still recall it, and
+Restore puts it back. There is no delete.
+
+**Motion** — content rises and fades in rather than snapping; the list
+staggers on load, overlays scale up, and a shimmer skeleton holds the layout
+while the attic loads. It is deliberately quick — nothing exceeds 260ms,
+because the reader swaps on every `j`/`k` — and the list does **not**
+re-animate while you type, which would make a fast filter feel slow. All of it
+switches off under `prefers-reduced-motion`.
 
 **Theme** — the ◐ button cycles system → light → dark. "System" is the default
 and follows the OS. The palette is Attic's own, read from `assets/logo.svg`,
@@ -50,10 +101,16 @@ one copy serves both modes.
 **Switch projects** — start the companion with several `--root` flags and a
 project dropdown appears next to the search box.
 
-**Clip** — **+ Clip tab** pulls the title, URL and text from the last real page
-you were on (your selection if you made one, else the article text). Edit the
-title and the handle updates live; pick a kind, add tags, stash. The source URL
-is prepended to the body.
+**Clip** — you do not fill this in by hand. Be on the page you want to keep,
+select the part you care about if you only want a part of it, then open the
+library and press **Clip tab** (or just `c`). It pulls the title, URL and text
+from the last ordinary web page in the window — your selection if you made one,
+otherwise the article text — because the library is itself a tab and cannot
+clip itself. Edit the
+title and the handle updates live; pick a kind, add tags — autocompleted from
+the tags already in the attic — and stash. The source URL is prepended to the
+body. If the slug already exists you are told before you write that it will
+append rather than replace.
 
 **Right-click** — select text on any page and choose *Stash selection to
 attic*. No UI at all; a notification confirms the handle.
@@ -95,6 +152,12 @@ blocked by the origin check.
 - **Other origins.** Requests must come from a `chrome-extension://` origin;
   a web page cannot drive the writer.
 - **Remote connections.** The server binds `127.0.0.1` only, never `0.0.0.0`.
+- **Deleting anything.** There is no delete endpoint. Archiving is a rename
+  into `.attic/archive/` and Restore reverses it, so nothing you do from the
+  browser destroys an item.
+
+Editing is held to the same line as clipping: the secret scan runs on a save
+exactly as it runs on a stash, so "edit" is not a way around the check.
 
 The token is a shared secret in a local file. Anyone who can read your home
 directory and reach the port can write to the roots you allowed — which is the
@@ -102,19 +165,50 @@ same trust boundary as your shell.
 
 ## Endpoints
 
-| Method | Path      | Notes                                     |
-| ------ | --------- | ----------------------------------------- |
-| GET    | `/ping`   | No token, so the UI can distinguish "down" from "wrong token". `?pair=1` claims the token while the pairing window is open |
-| GET    | `/index`  | The index for a root                      |
-| GET    | `/recall` | `?q=<slug or words>`                      |
-| POST   | `/stash`  | 200 written · 422 refused · 400 failed    |
+Every one of these delegates to `skills/attic/scripts/attic.js`. None of them
+formats frontmatter, scans for secrets or touches the index by hand.
+
+| Method | Path         | Notes                                     |
+| ------ | ------------ | ----------------------------------------- |
+| GET    | `/ping`      | No token, so the UI can distinguish "down" from "wrong token". `?pair=1` claims the token while the pairing window is open |
+| GET    | `/index`     | The index for a root                      |
+| GET    | `/items`     | Every item with its body and frontmatter, in one round trip — the library needs them all to resolve links, build backlinks and search text |
+| GET    | `/recall`    | `?q=<slug or words>`                      |
+| GET    | `/decisions` | All of DECISIONS.md (`/index` caps at 10) |
+| GET    | `/validate`  | The health check                          |
+| POST   | `/stash`     | Create, or append to an existing slug · 200 written · 422 refused · 400 failed |
+| PUT    | `/item`      | **Replace** an existing item · 422 refused · 400 failed |
+| POST   | `/archive`   | Move to `.attic/archive/`; `{restore:true}` moves it back |
+| POST   | `/pin`       | Set or clear the `pinned` frontmatter flag |
+
+There is deliberately **no delete endpoint**. Archive covers the intent and is
+a rename, so nothing the browser does is unrecoverable; a localhost port that
+can unlink files is a worse trade.
 
 ## Tests
 
 ```sh
-node --test tests/extension-server.test.js
+node --test tests/extension-server.test.js    # transport and trust
+node --test tests/extension-write.test.js     # edit, archive, pin
+node --test tests/extension-markdown.test.js  # the renderer, and its escaping
+node --test tests/extension-ui.test.js        # static contracts across the three files
 ```
 
-Covers the write path, both refusal paths, token and origin rejection, root
-allowlisting, the body size cap, and every pairing transition (claimed once,
-not burned by a status ping, disabled by `--no-pair`, expired by time).
+The server tests cover the write path, both refusal paths, token and origin
+rejection, root allowlisting, the body size cap, and every pairing transition.
+
+The write tests assert the properties that make browser-side editing
+defensible: an edit **replaces** rather than appends, keeps the original date,
+cannot blank an item, cannot create one, and is refused by the secret scan
+exactly as a stash is; archive **moves** rather than unlinks; the allowlist
+covers the new routes; and no delete endpoint exists.
+
+The UI tests also pin the motion contract: reduced motion is honoured (and the
+looping shimmer stopped, not merely sped up), the duration scale stays under
+300ms, keyframes touch only compositor-safe properties, and the search box
+never triggers the list stagger.
+
+The markdown tests are mostly about escaping — raw HTML, a `<script>` in a code
+fence, a `javascript:` link and a hostile table cell all have to come out
+inert, because item bodies contain clipped web pages and reach the DOM through
+`innerHTML`.

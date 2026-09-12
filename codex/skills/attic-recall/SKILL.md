@@ -6,7 +6,7 @@ description: >
   X", "what's in the attic about X", or when the user references an
   attic:<slug> handle. A question with no topic that just asks what the attic
   contains goes to attic-index instead.
-version: 1.4.0
+version: 1.5.0
 license: MIT
 ---
 

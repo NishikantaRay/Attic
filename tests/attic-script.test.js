@@ -512,3 +512,76 @@ test('stats reports rediscovery and ignores reads of .attic itself', () => {
     assert.equal(r.rediscovery.repeated, 1, 'only a.js was read twice');
   } finally { process.env.HOME = prevHome; }
 });
+
+// ---------------------------------------------------------------------------
+// edit — the counterpart to stash's append.
+// ---------------------------------------------------------------------------
+
+test('edit replaces the body where stash would have appended', () => {
+  const cwd = proj();
+  stash(cwd);
+  const again = stash(cwd, ['--body', 'Second pass.']);
+  assert.equal(again.out.appended, true, 'stash on an existing slug appends');
+
+  const r = run(cwd, ['edit', '--slug', 'demo-finding', '--body', 'Replaced entirely.']);
+  assert.equal(r.status, 0);
+  assert.equal(r.out.edited, true);
+  const item = fs.readFileSync(path.join(cwd, '.attic', 'items', 'demo-finding.md'), 'utf8');
+  assert.match(item, /Replaced entirely\./);
+  assert.ok(!item.includes('## Update'), 'an edit leaves no dated update section');
+  assert.ok(!item.includes('Second pass.'), 'the previous body is gone, not appended to');
+});
+
+test('edit keeps the original date but updates the index hook', () => {
+  const cwd = proj();
+  stash(cwd);
+  const file = path.join(cwd, '.attic', 'items', 'demo-finding.md');
+  fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace(/date: \S+/, 'date: 2020-05-05'));
+
+  const r = run(cwd, ['edit', '--slug', 'demo-finding', '--hook', 'a better hook']);
+  assert.equal(r.status, 0);
+  assert.match(fs.readFileSync(file, 'utf8'), /date: 2020-05-05/, 'the date is when it was learned');
+  assert.match(fs.readFileSync(path.join(cwd, '.attic', 'INDEX.md'), 'utf8'), /a better hook/);
+});
+
+test('edit leaves fields alone when they are not passed', () => {
+  const cwd = proj();
+  stash(cwd, ['--tags', 'one,two']);
+  const r = run(cwd, ['edit', '--slug', 'demo-finding', '--body', 'New body.']);
+  assert.equal(r.status, 0);
+  const item = fs.readFileSync(path.join(cwd, '.attic', 'items', 'demo-finding.md'), 'utf8');
+  assert.match(item, /title: Demo finding/, 'title survives an edit that does not pass one');
+  assert.match(item, /kind: finding/);
+  assert.match(item, /tags: \[one, two\]/, 'tags survive too');
+  assert.match(fs.readFileSync(path.join(cwd, '.attic', 'INDEX.md'), 'utf8'), /a short hook/,
+    'the hook is read back from the index rather than invented from the new body');
+});
+
+test('edit takes --body-file, and refuses a secret with exit 2', () => {
+  const cwd = proj();
+  stash(cwd);
+  const bodyFile = path.join(cwd, 'body.txt');
+  fs.writeFileSync(bodyFile, 'Body from a file.');
+  const ok = run(cwd, ['edit', '--slug', 'demo-finding', '--body-file', bodyFile]);
+  assert.equal(ok.status, 0);
+  assert.match(fs.readFileSync(path.join(cwd, '.attic', 'items', 'demo-finding.md'), 'utf8'), /Body from a file\./);
+
+  // The same refusal stash gives: editing must not be the way around the scan.
+  const bad = run(cwd, ['edit', '--slug', 'demo-finding', '--body', 'key=ghp_' + 'a'.repeat(36)]);
+  assert.equal(bad.status, 2, 'a refusal exits 2');
+  assert.equal(bad.out.refused, true);
+  assert.match(fs.readFileSync(path.join(cwd, '.attic', 'items', 'demo-finding.md'), 'utf8'), /Body from a file\./,
+    'the refused edit wrote nothing');
+});
+
+test('edit fails on a slug that does not exist, and cannot blank an item', () => {
+  const cwd = proj();
+  stash(cwd);
+  const missing = run(cwd, ['edit', '--slug', 'no-such-item', '--body', 'hello']);
+  assert.equal(missing.status, 1);
+  assert.ok(!fs.existsSync(path.join(cwd, '.attic', 'items', 'no-such-item.md')),
+    'creation belongs to stash; edit must not invent an item');
+
+  const blank = run(cwd, ['edit', '--slug', 'demo-finding', '--body', '   ']);
+  assert.equal(blank.status, 1);
+});

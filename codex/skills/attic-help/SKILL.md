@@ -1,7 +1,7 @@
 ---
 name: attic-help
 description: One-screen reference for the attic commands and levels.
-version: 1.4.0
+version: 1.5.0
 license: MIT
 ---
 

@@ -41,49 +41,116 @@
       <rect x="30" y="69" width="40" height="9" rx="2.5" fill="var(--stack)" opacity=".8"/>
       <rect x="30" y="82" width="40" height="9" rx="2.5" fill="var(--stack-top)"/>
     </svg><b>Attic</b></span>
+
     <select id="root-picker" class="root-picker" title="project"></select>
-    <input id="q" type="search" placeholder="Search titles, hooks, bodies…" autocomplete="off">
-    <span id="count" class="count"></span>
-    <button id="clip" class="clip-btn" title="Clip the current tab">+ Clip tab</button>
-    <button id="refresh" class="icon-btn" title="Refresh">↻</button>
+
+    <div class="search-wrap">
+      <input id="q" type="search" placeholder="Search titles, hooks, bodies…" autocomplete="off" spellcheck="false">
+      <kbd class="kbd-hint">/</kbd>
+    </div>
+
+    <span class="spacer"></span>
+    <button id="clip" class="clip-btn" title="Clip the current tab (c)">Clip tab</button>
+    <button id="refresh" class="icon-btn" title="Refresh (r)">↻</button>
     <button id="theme" class="icon-btn" title="Theme">◐</button>
     <button id="settings" class="icon-btn" title="Connection">⚙</button>
   </header>
 
-  <nav class="filters" id="filters"></nav>
-
-  <main class="cols">
-    <aside class="list" id="list"></aside>
-    <section class="reader" id="reader">
-      <div class="reader-empty">Select an item to read it.</div>
-    </section>
-
-    <form class="clip-form" id="clip-form" hidden>
-      <h2>Clip a page</h2>
-      <label>Title<input id="f-title" type="text" autocomplete="off"></label>
-      <div class="handle">→ <code id="f-handle">attic:…</code></div>
-      <div class="row">
-        <label class="grow">Kind
-          <select id="f-kind">
-            <option value="note" selected>note</option>
-            <option value="finding">finding</option>
-            <option value="decision">decision</option>
-            <option value="plan">plan</option>
-            <option value="output">output</option>
-          </select>
-        </label>
-        <label class="grow">Tags<input id="f-tags" type="text" placeholder="a, b" autocomplete="off"></label>
+  <div class="body-cols">
+    <!-- Navigation rail: views, then kinds, then tags. Tags come from the
+         items themselves, so the sidebar grows with the attic. -->
+    <nav class="side" id="side">
+      <div class="side-group">
+        <button class="nav on" data-view="all">All items <span class="n" id="n-all"></span></button>
+        <button class="nav" data-view="pinned">Pinned <span class="n" id="n-pinned"></span></button>
+        <button class="nav" data-view="decisions">Decisions <span class="n" id="n-dec"></span></button>
+        <button class="nav" data-view="graph">Links <span class="n" id="n-links"></span></button>
+        <button class="nav" data-view="health">Health <span class="n" id="n-health"></span></button>
       </div>
-      <label>Hook <span class="hint">one line, shown in the index</span>
-        <input id="f-hook" type="text" maxlength="100" autocomplete="off"></label>
-      <label>Body<textarea id="f-body" rows="12"></textarea></label>
-      <div class="row">
-        <button type="button" id="do-stash" class="primary">Stash to attic</button>
-        <button type="button" id="cancel-clip" class="ghost">Cancel</button>
+      <div class="side-label">Kind</div>
+      <div class="side-group" id="kind-nav"></div>
+      <div class="side-label">Tags</div>
+      <div class="side-group tags" id="tag-nav"></div>
+    </nav>
+
+    <!-- Item list -->
+    <aside class="list-pane">
+      <div class="list-head">
+        <span id="count" class="count"></span>
+        <select id="sort" class="sort" title="Sort">
+          <option value="recent">Newest first</option>
+          <option value="oldest">Oldest first</option>
+          <option value="title">Title A–Z</option>
+          <option value="kind">Kind</option>
+        </select>
       </div>
-      <p id="clip-msg" class="msg" hidden></p>
-    </form>
-  </main>
+      <div class="list" id="list"></div>
+    </aside>
+
+    <!-- Main pane: one of reader / dashboard / clip form / editor -->
+    <main class="main" id="main">
+      <section class="reader" id="reader"></section>
+      <section class="panel" id="panel" hidden></section>
+
+      <form class="clip-form" id="clip-form" hidden>
+        <h2 id="clip-heading">Clip a page</h2>
+        <label>Title<input id="f-title" type="text" autocomplete="off"></label>
+        <div class="handle">→ <code id="f-handle">attic:…</code> <span id="f-dupe" class="dupe" hidden></span></div>
+        <div class="row">
+          <label class="grow">Kind
+            <select id="f-kind">
+              <option value="note" selected>note</option>
+              <option value="finding">finding</option>
+              <option value="decision">decision</option>
+              <option value="plan">plan</option>
+              <option value="output">output</option>
+            </select>
+          </label>
+          <label class="grow">Tags
+            <input id="f-tags" type="text" placeholder="a, b" autocomplete="off" list="tag-list">
+            <datalist id="tag-list"></datalist>
+          </label>
+        </div>
+        <label>Hook <span class="hint">· one line, shown in the index</span>
+          <input id="f-hook" type="text" maxlength="100" autocomplete="off"></label>
+        <label class="body-label">Body <span class="hint">· markdown, and <code>[[slug]]</code> links to another item</span>
+          <textarea id="f-body" rows="16" spellcheck="false"></textarea></label>
+        <div class="row">
+          <button type="button" id="do-stash" class="primary">Stash to attic</button>
+          <button type="button" id="cancel-clip" class="ghost">Cancel</button>
+          <span class="grow"></span>
+          <span class="hint" id="f-count"></span>
+        </div>
+        <p id="clip-msg" class="msg" hidden></p>
+      </form>
+    </main>
+  </div>
+
+  <footer class="statusbar">
+    <span id="status-left"></span>
+    <span class="spacer"></span>
+    <span class="hint">
+      <kbd>/</kbd> search · <kbd>⌘K</kbd> jump · <kbd>j</kbd><kbd>k</kbd> move · <kbd>e</kbd> edit · <kbd>?</kbd> keys
+    </span>
+  </footer>
 </div>
+
+<!-- Command palette. Lives outside .app so it can sit over anything. -->
+<div id="palette" class="palette" hidden>
+  <div class="palette-box">
+    <input id="p-input" type="text" placeholder="Jump to an item, or type a command…" autocomplete="off" spellcheck="false">
+    <div id="p-results" class="palette-results"></div>
+  </div>
+</div>
+
+<div id="keys" class="palette" hidden>
+  <div class="palette-box keys-box">
+    <h3>Keyboard</h3>
+    <dl id="keys-list"></dl>
+    <button id="keys-close" class="ghost">Close</button>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
 
 <script type="module" src="library.js"></script>

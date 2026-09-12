@@ -10,6 +10,9 @@
  * Usage:
  *   attic.js stash --slug <s> --kind <k> --hook <h> [--title <t>] [--tags a,b]
  *                  [--body-file <f> | --body <text>] [--decision-why <w>] [--json]
+ *   attic.js edit --slug <s> [--title <t>] [--kind <k>] [--hook <h>] [--tags a,b]
+ *                 [--body-file <f> | --body <text>] [--json]
+ *                 (replaces the item; stash on an existing slug appends instead)
  *   attic.js recall <query> [--json]
  *   attic.js index [--json] [--limit N]
  *   attic.js validate [--json]
@@ -266,6 +269,78 @@ function cmdStash(cwd, args) {
     out.decisionLine = appendDecision(cwd, args.title || slug.replace(/-/g, ' '), args['decision-why'] || hook);
   }
   return out;
+}
+
+/**
+ * Replace an existing item in place.
+ *
+ * This is NOT cmdStash. Stashing an existing slug appends a dated
+ * `## Update` section, which is the right behaviour for an agent adding to a
+ * finding and the wrong behaviour for a human editing one: an editor that
+ * appends on every save turns one item into a pile of near-duplicates.
+ *
+ * It lives here rather than in the extension server so the frontmatter
+ * format, the secret scan, the hook cap and the atomic write stay in exactly
+ * one place. A second writer that formats its own frontmatter is how the two
+ * drift apart.
+ */
+function cmdEdit(cwd, args) {
+  const slug = slugify(args.slug || args._ && args._[0]);
+  if (!slug) return { ok: false, error: 'a --slug is required' };
+  const found = findItem(cwd, slug);
+  if (!found) return { ok: false, error: `no item "${slug}" in the attic` };
+
+  const prev = parseFrontmatter(fs.readFileSync(found.file, 'utf8'));
+  let body = args.body !== undefined ? String(args.body) : prev.body;
+  // Same escape hatch stash has: a replacement body is often longer than a
+  // shell argument wants to be.
+  if (args['body-file']) {
+    try { body = fs.readFileSync(args['body-file'], 'utf8'); }
+    catch (e) { return { ok: false, error: `cannot read --body-file ${args['body-file']}` }; }
+  }
+  if (!oneLine(body)) return { ok: false, error: 'empty body: an edit may not blank an item' };
+
+  const kind = String(args.kind || prev.meta.kind || 'note').toLowerCase();
+  if (!KINDS.includes(kind)) return { ok: false, error: `--kind must be one of ${KINDS.join(', ')}` };
+
+  // An edit is a write of user-supplied text, so it gets the same scan a stash
+  // gets. Skipping it here would make "edit" the way to smuggle a credential
+  // past the check.
+  const hook = truncateHook(args.hook !== undefined ? args.hook : (readHook(cwd, slug) || body));
+  const secrets = scanSecrets(body + '\n' + hook);
+  if (secrets.length && !args.force) {
+    return {
+      ok: false, refused: true,
+      error: `refusing to save: ${secrets.map((s) => `${s.label} (line ${s.line})`).join(', ')}. Redact it, then retry.`,
+    };
+  }
+
+  // The original date is kept: an item's date is when it was learned, not when
+  // a typo in it was fixed.
+  const meta = Object.assign({}, prev.meta, {
+    title: oneLine(args.title || prev.meta.title || slug.replace(/-/g, ' ')),
+    kind,
+    date: prev.meta.date || today(),
+  });
+  if (args.tags !== undefined) {
+    meta.tags = String(args.tags).split(',').map((t) => slugify(t)).filter(Boolean);
+  }
+  writeAtomic(found.file, renderItem(meta, String(body).trim()));
+
+  // An archived item is not in the index, so editing one must not put it back.
+  if (!found.archived) upsertIndexLine(cwd, { slug, kind, hook });
+  return {
+    ok: true, slug, handle: `attic:${slug}`,
+    file: path.relative(cwd, found.file), archived: found.archived, edited: true,
+  };
+}
+
+// The hook lives in INDEX.md, not in the item, so an edit that does not pass
+// one has to read the current line back rather than invent a new hook from the
+// body and silently rewrite it.
+function readHook(cwd, slug) {
+  const line = readIndexLines(cwd).map(parseIndexLine).find((e) => e && e.slug === slug);
+  return line ? line.hook : '';
 }
 
 function cmdRecall(cwd, query) {
@@ -548,6 +623,7 @@ function human(cmd, r) {
       const dec = r.recentDecisions.length ? `\n\nRecent decisions:\n${r.recentDecisions.join('\n')}` : '';
       return `${lines.join('\n') || '(empty)'}${dec}\n\n${r.counts.items} item(s), ${r.counts.decisions} decision(s)`;
     }
+    case 'edit': return `Saved \`${r.handle}\` -> ${r.file}${r.archived ? ' (archived)' : ''}`;
     case 'pin': return `${r.pinned ? 'Pinned' : 'Unpinned'} \`${r.handle}\``;
     case 'archive': return r.archived
       ? `Archived \`${r.handle}\` -> ${r.file}. Still recallable, no longer injected.`
@@ -587,10 +663,11 @@ function main() {
     case 'validate': r = cmdValidate(cwd); break;
     case 'pin': r = cmdPin(cwd, args); break;
     case 'archive': r = cmdArchive(cwd, args); break;
+    case 'edit': r = cmdEdit(cwd, args); break;
     case 'prune': r = cmdPrune(cwd, args); break;
     case 'rebuild': r = cmdRebuild(cwd, args); break;
     default:
-      process.stderr.write('usage: attic.js <init|stash|recall|index|validate|pin|archive|prune|rebuild> [options]\n');
+      process.stderr.write('usage: attic.js <init|stash|edit|recall|index|validate|pin|archive|prune|rebuild> [options]\n');
       process.exit(1);
   }
   } catch (e) {
@@ -606,4 +683,4 @@ function main() {
 }
 
 if (require.main === module) main();
-module.exports = { slugify, truncateHook, scanSecrets, withLock, cmdPin, cmdArchive, cmdPrune, cmdRebuild, findItem, parseFrontmatter, renderItem, cmdInit, cmdStash, cmdRecall, cmdIndex, cmdValidate, parseIndexLine, KINDS };
+module.exports = { cmdEdit, slugify, truncateHook, scanSecrets, withLock, cmdPin, cmdArchive, cmdPrune, cmdRebuild, findItem, parseFrontmatter, renderItem, cmdInit, cmdStash, cmdRecall, cmdIndex, cmdValidate, parseIndexLine, KINDS };

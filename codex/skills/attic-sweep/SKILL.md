@@ -8,7 +8,7 @@ description: >
   "checkpoint", "context is getting long", "summarise what we've done so
   far", "where are we", or "recap the session". A request to recap session
   progress IS a sweep: give the recap and persist it in the same pass.
-version: 1.4.0
+version: 1.5.0
 license: MIT
 ---
 

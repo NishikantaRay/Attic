@@ -136,7 +136,7 @@ function send(res, status, obj, origin) {
   if (origin) {
     headers['access-control-allow-origin'] = origin;
     headers['access-control-allow-headers'] = 'content-type, x-attic-token';
-    headers['access-control-allow-methods'] = 'GET, POST, OPTIONS';
+    headers['access-control-allow-methods'] = 'GET, POST, PUT, OPTIONS';
   }
   res.writeHead(status, headers);
   res.end(body);
@@ -200,7 +200,7 @@ async function handle(req, res, ctx) {
     return send(res, 401, { ok: false, error: 'bad or missing token' }, allowOrigin);
   }
 
-  const body = req.method === 'POST' ? await readBody(req) : {};
+  const body = (req.method === 'POST' || req.method === 'PUT') ? await readBody(req) : {};
   const cwd = rootAllowed(ctx.roots, body.root || url.searchParams.get('root'));
   if (!cwd) return send(res, 403, { ok: false, error: 'project root not allowed' }, allowOrigin);
 
@@ -231,6 +231,77 @@ async function handle(req, res, ctx) {
     // 422 keeps a refusal (a credential in the clip) distinct from a failure.
     const status = r.ok ? 200 : (r.refused ? 422 : 400);
     return send(res, status, r, allowOrigin);
+  }
+
+  // ---- writes beyond /stash -------------------------------------------
+  // Editing, archiving and pinning act only on a slug that already exists
+  // inside an allowed root, so they reach nothing /stash could not already
+  // reach. Every one of them delegates to attic.js: the secret scan, the hook
+  // cap, the index bookkeeping and the atomic write are not reimplemented here.
+  //
+  // There is deliberately no delete. cmdArchive is a rename into
+  // .attic/archive/ and restore is one call, so nothing the browser does is
+  // unrecoverable; a localhost port that can unlink files is a worse trade.
+  if (url.pathname === '/item' && req.method === 'PUT') {
+    const r = attic.cmdEdit(cwd, {
+      slug: body.slug,
+      title: body.title,
+      kind: body.kind,
+      hook: body.hook,
+      tags: body.tags,
+      body: body.body,
+      // --force is not forwarded, exactly as in /stash: a refused secret is
+      // fixed by editing the text, never by a flag from the browser.
+    });
+    const status = r.ok ? 200 : (r.refused ? 422 : 400);
+    return send(res, status, r, allowOrigin);
+  }
+
+  if (url.pathname === '/archive' && req.method === 'POST') {
+    const r = attic.cmdArchive(cwd, { _: [], slug: body.slug, restore: !!body.restore });
+    return send(res, r.ok ? 200 : 400, r, allowOrigin);
+  }
+
+  if (url.pathname === '/pin' && req.method === 'POST') {
+    const r = attic.cmdPin(cwd, { _: [], slug: body.slug, unpin: !!body.unpin });
+    return send(res, r.ok ? 200 : 400, r, allowOrigin);
+  }
+
+  // ---- reads ------------------------------------------------------------
+  if (url.pathname === '/validate' && req.method === 'GET') {
+    const r = attic.cmdValidate(cwd);
+    return send(res, 200, r, allowOrigin);
+  }
+
+  // /index caps recentDecisions at 10; the decisions view wants all of them.
+  if (url.pathname === '/decisions' && req.method === 'GET') {
+    let lines = [];
+    try {
+      lines = fs.readFileSync(path.join(cwd, '.attic', 'DECISIONS.md'), 'utf8')
+        .split('\n').filter((l) => l.startsWith('- '));
+    } catch (e) { /* none yet */ }
+    return send(res, 200, { ok: true, decisions: lines }, allowOrigin);
+  }
+
+  // Every item at once, so the library can resolve [[wikilinks]], compute
+  // backlinks and search bodies without N round trips on a big attic.
+  if (url.pathname === '/items' && req.method === 'GET') {
+    const idx = attic.cmdIndex(cwd, {});
+    if (!idx.ok) return send(res, 404, idx, allowOrigin);
+    const items = [];
+    for (const e of idx.items) {
+      const found = attic.findItem(cwd, e.slug);
+      if (!found) continue;
+      let parsed;
+      try { parsed = attic.parseFrontmatter(fs.readFileSync(found.file, 'utf8')); }
+      catch (err) { continue; }
+      items.push({
+        slug: e.slug, kind: e.kind, hook: e.hook,
+        meta: parsed.meta, body: parsed.body.trim(),
+        archived: found.archived,
+      });
+    }
+    return send(res, 200, { ok: true, counts: idx.counts, items }, allowOrigin);
   }
 
   return send(res, 404, { ok: false, error: 'no such endpoint' }, allowOrigin);

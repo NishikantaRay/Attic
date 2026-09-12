@@ -103,6 +103,19 @@ export const api = {
   index: (limit) => call('/index', { params: { limit } }),
   recall: (q) => call('/recall', { params: { q } }),
   stash: (item) => call('/stash', { method: 'POST', body: item }),
+
+  // One round trip for the whole attic. The library needs every body anyway —
+  // to resolve [[wikilinks]], build backlinks and search text — and fetching
+  // them one recall at a time was N requests for the same bytes.
+  items: () => call('/items'),
+  decisions: () => call('/decisions'),
+  validate: () => call('/validate'),
+
+  // PUT, not POST: /stash on an existing slug appends a dated update, which is
+  // correct for an agent adding to a finding and wrong for a human fixing one.
+  edit: (item) => call('/item', { method: 'PUT', body: item }),
+  archive: (slug, restore) => call('/archive', { method: 'POST', body: { slug, restore } }),
+  pin: (slug, unpin) => call('/pin', { method: 'POST', body: { slug, unpin } }),
 };
 
 // The slug the CLI would generate, so the popup can show the real handle

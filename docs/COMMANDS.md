@@ -72,6 +72,7 @@ node skills/attic/scripts/attic.js <command> [options]
 |---|---|
 | `init` | create `.attic/` |
 | `stash` | `--slug` `--kind` `--title` `--hook` `--tags a,b` `--body` \| `--body-file` `--decision-why` |
+| `edit` | `--slug` `--title` `--kind` `--hook` `--tags a,b` `--body` \| `--body-file` — **replaces** the item, where `stash` on an existing slug appends |
 | `recall <words>` | — |
 | `index` | `--limit N` |
 | `pin <slug>` | `--unpin` |

@@ -3,6 +3,105 @@
 All notable changes to Attic. Versions follow semver: the on-disk `.attic/`
 format is a public interface, so changing it is a major version.
 
+## [1.5.0] - 2026-09-12
+
+The browser library becomes something you can read and write in, not just
+search.
+
+### Added
+
+- **Item bodies render as markdown.** Headings, lists, tables, task lists,
+  blockquotes and fenced code with its language, instead of one monospace
+  block. The renderer is hand-rolled in `extension/markdown.js` because MV3's
+  CSP blocks loading a parser from a CDN, and it escapes before it adds any
+  structure — item bodies contain clipped web pages and reach the DOM through
+  `innerHTML`, so a page carrying `<img onerror=...>` is not hypothetical.
+  Only `http(s)` links survive; a `javascript:` URL is dropped.
+- **`[[slug]]` links between items.** Writing `[[another-slug]]` in a body
+  links to that item, as does an `attic:some-slug` handle. Each item shows
+  what it links to and what links back, computed from the bodies rather than
+  stored, so adding a link shows up under its target immediately. A link to a
+  slug that does not exist yet renders as visibly dangling instead of a dead
+  click.
+- **Editing an item in the browser** (`e`, or the Edit button). Saving
+  **replaces** the body. This is a different write from stashing: `attic stash`
+  on an existing slug appends a dated `## Update` section, which is right for
+  an agent adding to a finding and wrong for a person fixing a typo in one.
+  The slug is deliberately not editable, because handles and `[[links]]` point
+  at it.
+- **`attic.js edit`**, the CLI form of the same operation, and the `PUT /item`
+  endpoint behind it. The secret scan runs on an edit exactly as it runs on a
+  stash — otherwise "edit" would be the way around the check — and an edit
+  keeps the item's original date, because that is when the thing was learned,
+  not when a typo in it was fixed.
+- **Pin and archive from the browser** (`POST /pin`, `POST /archive`). Pinned
+  items lead every list. Archiving moves the file into `.attic/archive/` and
+  drops it from the index; Restore reverses it.
+- **Navigation and overview panes.** A rail carrying the views, the kinds with
+  their counts and every tag in the attic; an overview with counts, the spread
+  across kinds and recent decisions; a Decisions timeline; a Links view
+  showing how items reference each other and every dangling reference; and a
+  Health panel running the same checks as `attic validate`.
+- **A command palette** (`⌘K` / `Ctrl-K`) for jumping to an item or running a
+  command, plus keyboard navigation throughout: `/` search, `j`/`k`/`Enter`,
+  `e` edit, `c` clip, `p` pin, `g h` overview, `r` reload, `?` for the list.
+- **Search across full bodies**, with the match shown highlighted in context,
+  and sorting by date, title or kind.
+- **Motion, and a loading skeleton.** Content rises and fades in rather than
+  snapping; the list staggers on load; a shimmer skeleton holds the layout
+  while the attic loads. Nothing exceeds 260ms — the reader swaps on every
+  `j`/`k` — and the list deliberately does **not** re-animate while you type,
+  which would make a fast filter feel slow. Keyframes touch only `opacity` and
+  `transform`, which composite on the GPU. All of it switches off under
+  `prefers-reduced-motion`, including the looping shimmer, which is stopped
+  outright rather than sped up into a flicker.
+- **`GET /items`**, returning every item with its body and frontmatter in one
+  round trip, plus `GET /decisions` and `GET /validate`. The library needs all
+  the bodies anyway — for links, backlinks and body search — so fetching them
+  one recall at a time was N requests for the same bytes.
+
+- **New README GIFs, in both themes.** A single `hero` GIF now covers the
+  whole product in one pass — the agent working something out and stashing it,
+  `/compact`, it still knowing, clipping a page from the browser into the same
+  attic, the library, and Codex recalling it — plus `clip` and `library` as the
+  detailed versions. Each is built light and dark and referenced with
+  `<picture>` + `prefers-color-scheme`, so GitHub serves the right one. They
+  are generated from SVG scenes rather than screen-recorded, so they are
+  diffable, regenerate with `npm run make:gifs`, and bake in no OS theme or
+  window size. Replaces `assets/demo.gif`, which the hero folds in.
+
+### Fixed
+
+- **Clip tab opened a completely blank form.** The code asked for
+  `chrome.tabs.query({active: true, ...})`, which returns exactly one tab: the
+  focused one. The library is itself a full tab, so the focused tab *was* the
+  library — and the next line filtered it out as `chrome-extension://`,
+  discarding the only result. The query and the filter contradicted each
+  other. Clipping now takes the most recently used ordinary page in the
+  window, which is the page you were reading before you opened the library.
+- **A restricted page now says so.** A PDF viewer or Web Store page yields a
+  title and URL but no readable text; the form keeps those and explains what
+  happened, rather than showing an unexplained empty body.
+- **Panes were clipped, not scrolled, on a narrow window.** A CSS grid track's
+  default minimum is `min-content`, so a bare `1fr` refused to shrink below
+  its widest child and the reader's right-hand side was cut off. The
+  shrinkable tracks now use `minmax(0, 1fr)`.
+
+### Notes
+
+- There is deliberately **no delete endpoint**. Archive covers the intent and
+  is a rename, so nothing the browser does is unrecoverable; a localhost port
+  that can unlink files is a worse trade. Its absence is tested.
+- The trust boundary is unchanged: loopback-bound, token-authenticated, origin
+  checked, and limited to the roots you name. Edit, pin and archive act only
+  on a slug that already exists inside an allowed root, so they reach nothing
+  `/stash` could not already reach.
+- **Restart the companion after upgrading.** A Node process does not reload
+  its source, so a companion left running from a previous version keeps
+  serving the old routes — `/items` 404s and the library comes up empty. Stop
+  it and run `npm run attic:serve` again.
+- 183 tests, up from 133.
+
 ## [1.4.0] - 2026-09-08
 
 Clip from your browser into the same attic your agent writes to.

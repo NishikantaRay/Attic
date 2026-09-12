@@ -1,42 +1,42 @@
-Two things, both about the same question: **how would you know whether any of this is helping?**
+The browser library becomes something you can read and write in, not just search.
 
-## /attic-stats now measures the return, not just the cost
+1.4.0 shipped a Chrome extension that could clip a page and list what was already stashed. The listing part was thin: items were shown as raw monospace text, and everything else — editing, organising, following a thread between two findings — still meant opening the files. This release closes that.
 
-It used to report what the index cost and then admit the benefit was "unmeasured" — honest, but no use to someone deciding whether to keep it on. It now reports two numbers that answer the question:
+## Items read like documents
 
-- **Cited in replies** — how often the agent answered from the attic instead of re-reading
-- **Repeat file reads** — the share of reads that repeated an earlier session's read, which is the thing the plugin exists to reduce
+Bodies render as markdown: headings, tables, task lists, fenced code with its language. Long items get an outline. The renderer is hand-rolled, because MV3's content security policy blocks loading a parser from a CDN, and it escapes every string before adding any structure — item bodies contain clipped web pages, so a body carrying `<img onerror=...>` is not hypothetical. A `javascript:` link is dropped rather than rendered.
 
-Against the two arms of the benchmark those numbers discriminate correctly: the Attic arm shows 8 citations and 35.7% repeat reads, the baseline 0 and 41.2%.
+## Items link to each other
 
-**It can now say no.** After enough turns with no citation it prints `NOT EARNING ITS KEEP` and suggests `/attic off`. A tool that cannot report its own failure is asking for trust it has not earned.
+Write `[[another-slug]]` in a body and it becomes a link; `attic:some-slug` handles work too. Each item shows what it links to **and what links back to it**, computed from the bodies rather than stored, so adding a link appears under its target immediately. A link to a slug you have not written yet shows as dangling instead of a dead click.
 
-### Two bugs behind that
+That is the difference between a folder of notes and something you can actually navigate.
 
-Both produced a flattering or empty answer rather than an error, which is the dangerous kind.
+## You can write, not just read
 
-**It was counting its own output as evidence.** Citations were matched anywhere in a transcript, so the script's own `Stashed attic:x` lines echoing back through tool results counted as use. It reported 130 where 2 were real — the tool congratulating itself for running.
+Editing an item in place, pinning it, archiving it. Saving **replaces** the body — which is a genuinely different operation from stashing, because `attic stash` on an existing slug appends a dated `## Update` section. That is right for an agent adding to a finding and wrong for a person fixing a typo in one, so editing got its own path (`attic.js edit`, and `PUT /item` behind it). The secret scan runs on an edit exactly as it runs on a stash; otherwise "edit" would be the way around the check.
 
-**Any project path containing an underscore got no measurement at all.** The transcript lookup slug replaces `_` as well as `/` and `.`, and on macOS a `/var` path resolves to `/private/var`. Both cases reported "no transcripts found", which reads as "nothing to measure" rather than a lookup failure.
+There is deliberately **no delete**. Archiving is a rename into `.attic/archive/` and restore reverses it, so nothing you do from a browser is unrecoverable. That is the argument that makes browser-side writing defensible at all.
 
-## A new tool: session metrics
+## Finding things
 
-`tools/session-metrics/` answers a broader question — *is my agent setup getting better?* — from transcripts you have already written. Nothing to instrument, and it works retroactively, so you get a baseline for the past for free.
+A command palette on `⌘K`, search across full bodies with the match highlighted in context, filtering by kind or tag, and views for decisions, the link graph, and attic health. Keyboard throughout: `/` search, `j`/`k`/`Enter`, `e` edit, `c` clip, `?` for the rest.
 
-```sh
-node tools/session-metrics/report.js     # per-project baselines and trends
-node tools/session-metrics/extract.js    # the raw per-session rows
-```
+## One fix worth naming
 
-The metric is the **repeat-read rate**: of all file reads in a session, what fraction were files that session had already read. Chosen after testing four candidates against 280 real sessions. User corrections are a dead end (2 hits in 80 sessions — people do not type "that is wrong"). Tool error rates sit at 1-3% everywhere and do not discriminate. Context growth mostly restates session length. Repeat-read rate ranges 0-64% with −0.02 correlation to session length, so it measures the work rather than its duration.
-
-**It refuses to guess.** A trend needs 4 scored sessions, 2 on each side of the split, and a move of at least 10 points. Below that it says how far short it is and stops. On a fresh corpus that means it will mostly say "not enough to call a trend yet" — which is the correct answer, not a disappointing one.
-
-This is a separate tool, not part of the plugin: it measures every project whether or not Attic is installed.
+**Clip tab opened a completely blank form.** The code asked for the active tab — but the library is itself a tab, so the active tab *was* the library, and the next line filtered it out for being an extension page. The query and the filter contradicted each other, so nothing was ever found. Clipping now reads the most recently used ordinary page in the window, which is the page you were looking at before you opened the library.
 
 ## Upgrading
 
-Nothing about how the plugin behaves during your work has changed. The `.attic/` format is untouched.
+**Restart the companion.** A Node process does not reload its source, so one left running from 1.4.0 keeps serving the old routes and the library will come up empty:
+
+```
+npm run attic:serve -- --root /path/to/project
+```
+
+Then reload the extension at `chrome://extensions`.
+
+---
 
 ```
 claude plugin marketplace add NishikantaRay/Attic
@@ -48,4 +48,4 @@ codex plugin marketplace add NishikantaRay/Attic
 codex plugin add attic@attic
 ```
 
-No network calls, no telemetry, no API keys.
+No network calls, no telemetry, no API keys. The optional browser companion is bound to loopback, token-authenticated, and limited to the project roots you name.

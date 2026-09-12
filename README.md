@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img alt="version 1.4.0" src="https://img.shields.io/badge/version-1.4.0-2ea44f"></a>
+  <a href="CHANGELOG.md"><img alt="version 1.5.0" src="https://img.shields.io/badge/version-1.5.0-2ea44f"></a>
   <a href="#install"><img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-7c3aed"></a>
   <a href="docs/CODEX.md"><img alt="Codex CLI plugin" src="https://img.shields.io/badge/Codex%20CLI-plugin-10a37f"></a>
   <a href="skills/attic/evals/results/"><img alt="activation evals 22/22" src="https://img.shields.io/badge/activation%20evals-22%2F22-2ea44f"></a>
@@ -21,7 +21,11 @@ so tomorrow it already knows.
 A plugin for [Claude Code](https://claude.com/claude-code) and
 [Codex CLI](https://developers.openai.com/codex).
 
-![Attic in action: a finding is stashed, the context is compacted, the agent still knows, and the same attic works on Codex](assets/demo.gif)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/hero.gif">
+  <source media="(prefers-color-scheme: light)" srcset="assets/hero-light.gif">
+  <img alt="Attic in action: an agent works something out and stashes it, the context is compacted, it still knows, a page is clipped from the browser into the same attic, the library reads it back, and Codex recalls it too" src="assets/hero.gif">
+</picture>
 
 ## What it does
 
@@ -168,15 +172,40 @@ Method, prompts and raw results:
 The answer is often in a tab: an MDN page, an issue thread, a changelog. The
 [Chrome extension](extension/) puts it in the same attic your agent writes to.
 
+### Select it, stash it
+
+Select the part that matters, right-click, done. No form, no filename, no tab
+switch — and next session your agent answers from it without reading a file.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/clip.gif">
+  <source media="(prefers-color-scheme: light)" srcset="assets/clip-light.gif">
+  <img alt="Selecting text on a page, stashing it to the attic from the right-click menu, and the agent answering from it in a later session" src="assets/clip.gif">
+</picture>
+
+### Then read it back
+
+Clicking the toolbar icon opens a library over your `.attic/`: items rendered
+as markdown, `[[slug]]` links between them with backlinks, full-body search,
+`⌘K` to jump anywhere, and editing in place.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/library.gif">
+  <source media="(prefers-color-scheme: light)" srcset="assets/library-light.gif">
+  <img alt="The Attic library: an item rendered as markdown with backlinks, full-body search, the command palette, an overview of the attic, and editing an item in place" src="assets/library.gif">
+</picture>
+
+### Setting it up
+
 ```
 npm run attic:serve -- --root /path/to/project
 ```
 
 Then load `extension/` unpacked at `chrome://extensions` and press Connect.
-Clicking the toolbar icon opens a library over your `.attic/` — search, filter
-by kind, read an item, or clip the page you are on. It is not on the Chrome
-Web Store: it writes to your filesystem through a companion you start
-yourself, which is not something a store install can offer.
+
+It is not on the Chrome Web Store: it writes to your filesystem through a
+companion you start yourself, which is not something a store install can
+offer.
 
 [Setup, security model and endpoints](extension/README.md).
 

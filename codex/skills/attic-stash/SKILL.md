@@ -5,7 +5,7 @@ description: >
   with its handle. Use when the user says "stash this", "put this in the
   attic", "remember this", "save this for later", or when a finding is worth
   keeping and attic mode is active.
-version: 1.4.0
+version: 1.5.0
 license: MIT
 ---
 

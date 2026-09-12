@@ -14,7 +14,7 @@ description: >
   fixes, or non-coding chat.
 argument-hint: "[lite|full|ultra|off]"
 allowed-tools: Bash(node "${CLAUDE_SKILL_DIR}/scripts/attic.js" *) Bash(node "${CLAUDE_SKILL_DIR}/scripts/attic.js"*)
-version: 1.4.0
+version: 1.5.0
 license: MIT
 ---
 

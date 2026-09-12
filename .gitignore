@@ -2,5 +2,7 @@ node_modules/
 .DS_Store
 # This repo's own attic, if one is ever created while developing here
 .attic/
-# GIF build inputs; assets/demo.gif is committed, the frames are not
+# GIF build inputs. The .gif files are committed; the scene SVGs they are
+# built from are not — they regenerate with `npm run make:gifs`.
 assets/frames/
+assets/frames-*/

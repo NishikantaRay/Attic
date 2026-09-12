@@ -3,9 +3,11 @@
 /**
  * make-assets.js — generate README visuals. No dependencies.
  *
- * Writes theme-aware SVG (readable on light and dark GitHub) plus GIF frames
- * that ffmpeg assembles. Numbers come from benchmarks/results/, never
- * hand-written, so a stale chart cannot outlive the data.
+ * Writes theme-aware SVG charts (readable on light and dark GitHub). Numbers
+ * come from benchmarks/results/, never hand-written, so a stale chart cannot
+ * outlive the data.
+ *
+ * GIF frames live in make-extension-gifs.js.
  */
 const fs = require('fs');
 const path = require('path');
@@ -160,80 +162,6 @@ ${side(62, 62 + 3 * H + 2 * GAP, 'Model decides', ['is this worth keeping?', 'wh
 ${side(62 + 3 * (H + GAP), 62 + 6 * H + 5 * GAP, 'Software decides', ['valid frontmatter, no dupes', 'no credential reaches disk', 'index survives merge + compact', 'did the skill actually fire?'], C.good)}`);
 }
 
-// ---------- 4. GIF frames ----------
-function frames() {
-  const dir = path.join(OUT, 'frames');
-  fs.rmSync(dir, { recursive: true, force: true });
-  fs.mkdirSync(dir, { recursive: true });
-
-  const W = 800, H = 360;
-  const term = (lines, caption, host) => {
-    const rows = lines.map((l, i) => {
-      const y = 92 + i * 22;
-      const fill = l.c || C.text;
-      return `<text x="34" y="${y}" font-family="${C.mono}" font-size="13.5" fill="${fill}">${esc(l.t)}</text>`;
-    }).join('\n');
-    return svg(W, H, `
-<rect x="16" y="16" width="${W - 32}" height="${H - 72}" rx="9" fill="${C.panel}" stroke="${C.line}"/>
-<circle cx="40" cy="42" r="6" fill="#ff5f56"/><circle cx="60" cy="42" r="6" fill="#ffbd2e"/><circle cx="80" cy="42" r="6" fill="#27c93f"/>
-<text x="104" y="47" font-family="${C.sans}" font-size="12" fill="${C.dim}">${esc(host || 'claude code')}</text>
-<line x1="16" y1="64" x2="${W - 16}" y2="64" stroke="${C.line}"/>
-${rows}
-<text x="16" y="${H - 26}" font-family="${C.sans}" font-size="14" font-weight="600" fill="${C.accent}">${esc(caption)}</text>`);
-  };
-
-  const S = [];
-  S.push(term([
-    { t: '> why does the cache serve stale data?', c: C.accent },
-  ], '1. You ask. Claude investigates.'));
-  S.push(term([
-    { t: '> why does the cache serve stale data?', c: C.accent },
-    { t: '  Read src/cache.ts', c: C.dim },
-    { t: '  Grep "store.get"', c: C.dim },
-    { t: '  Read src/module7.ts …', c: C.dim },
-  ], '1. You ask. Claude investigates.'));
-  S.push(term([
-    { t: '> why does the cache serve stale data?', c: C.accent },
-    { t: '  Read src/cache.ts', c: C.dim },
-    { t: '  Grep "store.get"', c: C.dim },
-    { t: '  Read src/module7.ts …', c: C.dim },
-    { t: '' },
-    { t: 'attic:cache-no-ttl · get() never checks the', c: C.good },
-    { t: 'stored timestamp, so there is no TTL.', c: C.text },
-  ], '2. The finding is stashed, not just spoken.'));
-  S.push(term([
-    { t: '.attic/', c: C.text },
-    { t: '  INDEX.md          + 1 line', c: C.good },
-    { t: '  items/cache-no-ttl.md', c: C.good },
-    { t: '', c: C.dim },
-    { t: '> /compact', c: C.accent },
-    { t: '  context cleared …', c: C.dim },
-  ], '3. Context is compacted. Chat history is gone.'));
-  S.push(term([
-    { t: '> what was wrong with the cache?', c: C.accent },
-    { t: '' },
-    { t: 'attic:cache-no-ttl · get() ignores the stored', c: C.good },
-    { t: 'timestamp, so entries are served forever.', c: C.text },
-    { t: 'Fix: compare Date.now() - at against a TTL.', c: C.text },
-    { t: '' },
-    { t: 'no files read', c: C.warn },
-  ], '4. It still knows. The attic survived /compact.'));
-  S.push(term([
-    { t: '$attic-recall cache', c: C.accent },
-    { t: '' },
-    { t: 'attic:cache-no-ttl · get() ignores the stored', c: C.good },
-    { t: 'timestamp, so entries are served forever.', c: C.text },
-    { t: '' },
-    { t: 'same .attic/, different agent', c: C.warn },
-  ], '5. Same attic on Codex CLI.', 'codex'));
-
-  // One file per scene. Duration is applied at assembly time, so the frames
-  // stay cheap to rasterise.
-  S.forEach((s, i) => fs.writeFileSync(path.join(dir, `scene${i}.svg`), s));
-  fs.writeFileSync(path.join(dir, 'holds.json'), JSON.stringify([1.5, 1.7, 2.6, 2.2, 3.0, 3.0]));
-  return { dir, count: S.length };
-}
-
 const files = {
   'how-it-works.svg': howItWorks(),
   'scale-fix.svg': scaleFix(),
@@ -245,5 +173,3 @@ for (const [name, content] of Object.entries(files)) {
   fs.writeFileSync(path.join(OUT, name), content);
   console.log(`wrote assets/${name}`);
 }
-const f = frames();
-console.log(`wrote ${f.count} frames to assets/frames/`);
