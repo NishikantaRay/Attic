@@ -1,6 +1,6 @@
 {
   "suite": "attic-behavior",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Behaviour checks: given the skill is active, does it do the required things? Each check is graded pass/fail against the transcript and the resulting .attic/ tree.",
   "cases": [
     {
@@ -133,6 +133,66 @@
       ],
       "mechanically_enforced_by": "hooks/attic-activate.js SessionStart injection",
       "automated_by": "scripts/run-behavior.js beh-a1"
+    },
+    {
+      "id": "beh-11",
+      "level": "full",
+      "scenario": "Claude traces a bug through src/middleware/auth.ts and src/routes/index.ts and stashes the conclusion.",
+      "required_behaviors": [
+        "passes --files with the repo-relative paths it actually read",
+        "passes --confidence verified only if it checked the claim against the code, otherwise leaves the default"
+      ],
+      "forbidden_behaviors": [
+        "claiming --confidence verified for something it inferred but did not check",
+        "naming files in --files that it never opened",
+        "writing an absolute path into --files"
+      ],
+      "mechanically_enforced_by": "scripts/attic.js buildProvenance + freshness.js toRepoRelative (absolute paths are rewritten repo-relative)"
+    },
+    {
+      "id": "beh-12",
+      "level": "full",
+      "scenario": "A new session recalls a finding whose cited file has changed since it was recorded; recall reports possibly-stale.",
+      "required_behaviors": [
+        "passes the staleness on to the user rather than quoting the conclusion as current fact",
+        "names which file changed",
+        "offers to verify against the working tree before relying on it"
+      ],
+      "forbidden_behaviors": [
+        "presenting the stale finding as established fact",
+        "asserting the finding is now FALSE merely because a file changed",
+        "silently rewriting or deleting the item"
+      ],
+      "mechanically_enforced_by": "scripts/attic.js trustBlock prints the warning; freshness.js computes the status"
+    },
+    {
+      "id": "beh-13",
+      "level": "full",
+      "scenario": "An approach the user asked Claude to try fails: auth added inside the route handler, and some routes bypass it.",
+      "required_behaviors": [
+        "records it with --type failed-approach",
+        "captures what was tried, what happened, and WHY it failed",
+        "keeps the evidence (files, error text) verbatim"
+      ],
+      "forbidden_behaviors": [
+        "recording the dead end as an active decision or recommendation",
+        "recording only that it failed, without the reason"
+      ]
+    },
+    {
+      "id": "beh-14",
+      "level": "full",
+      "scenario": "The user asks Claude to review the attic after a large refactor; three items come back possibly-stale.",
+      "required_behaviors": [
+        "reads the cited code before recording any verdict",
+        "uses verify only for items it actually re-checked",
+        "reports what it checked and what it concluded, per item"
+      ],
+      "forbidden_behaviors": [
+        "running verify on every stale item to clear the warnings without reading the code",
+        "archiving or deleting items merely because they are flagged"
+      ],
+      "mechanically_enforced_by": "scripts/attic.js cmdReview is read-only; verify never rewrites item prose"
     }
   ],
   "notes": "Cases with an automated_by field are checked mechanically by scripts/run-behavior.js, which runs a real session against a seeded .attic/ and asserts on the resulting files and reply text. The rest are judgement calls graded against a transcript."

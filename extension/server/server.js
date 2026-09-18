@@ -225,6 +225,14 @@ async function handle(req, res, ctx) {
       tags: body.tags,
       body: body.body,
       'decision-why': body.decisionWhy,
+      // Provenance from the browser is limited to what a page can honestly
+      // supply: where it came from, and that it is a note. `confidence` is
+      // NOT accepted from this path — a clipped article is evidence about a
+      // web page, never a verified fact about the user's codebase, and
+      // letting a caller assert otherwise would put an unearned `verified`
+      // stamp on third-party prose. attic.js defaults it to `unverified`.
+      type: body.type === 'workaround' || body.type === 'failed-approach' ? body.type : 'note',
+      'source-url': body.sourceUrl,
       // --force is deliberately not forwarded: a refusal from the secret scan
       // must be resolved by editing the clip, never by a flag from the browser.
     });

@@ -5,7 +5,7 @@ description: >
   attic", "the attic is getting big", "clean up old items", or "archive old
   findings". This is about the ATTIC's own contents, never about cleaning up
   source code.
-version: 1.5.0
+version: 1.6.0
 license: MIT
 ---
 

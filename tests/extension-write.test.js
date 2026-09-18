@@ -230,3 +230,48 @@ test('there is no delete endpoint', async () => {
   });
   assert.equal(del.status, 404, 'DELETE /item must not be routed');
 });
+
+// ---------- clip provenance (1.6) ----------
+
+test('a clip records its source url as structured provenance', async () => {
+  const r = await call('POST', '/stash', {
+    slug: 'clipped-article', title: 'Clipped article', kind: 'note',
+    hook: 'something from the web', sourceUrl: 'https://example.test/post',
+    body: 'Source: https://example.test/post\n\n> quoted text',
+  });
+  assert.equal(r.status, 200);
+  const item = read('clipped-article');
+  assert.match(item, /^source_url: https:\/\/example\.test\/post$/m);
+  assert.match(item, /^type: note$/m);
+});
+
+test('a clip is never recorded as verified, even if the caller asks', async () => {
+  // A clipped page is provenance about a web page, not a checked fact about
+  // the user's code. The server does not forward `confidence`, so a page that
+  // POSTs one cannot put an unearned verified stamp on third-party prose.
+  const r = await call('POST', '/stash', {
+    slug: 'sneaky-clip', title: 'Sneaky clip', kind: 'note',
+    hook: 'claims to be verified', confidence: 'verified',
+    body: 'Some clipped text.',
+  });
+  assert.equal(r.status, 200);
+  assert.match(read('sneaky-clip'), /^confidence: unverified$/m);
+});
+
+test('a clip cannot smuggle a non-http source url', async () => {
+  await call('POST', '/stash', {
+    slug: 'bad-url-clip', title: 'Bad url clip', kind: 'note',
+    hook: 'js url', sourceUrl: 'javascript:alert(1)', body: 'Text.',
+  });
+  assert.doesNotMatch(read('bad-url-clip'), /source_url/);
+});
+
+test('a clip still cannot write a credential', async () => {
+  const r = await call('POST', '/stash', {
+    slug: 'secret-clip', title: 'Secret clip', kind: 'note', hook: 'leak',
+    sourceUrl: 'https://example.test/x',
+    body: 'Copied from the page: api_key = "aB3xY9zQ1mN7pL4k"',
+  });
+  assert.equal(r.status, 422, 'a refusal stays distinct from a failure');
+  assert.equal(fs.existsSync(path.join(root, '.attic', 'items', 'secret-clip.md')), false);
+});

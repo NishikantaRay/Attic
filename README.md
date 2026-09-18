@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img alt="version 1.5.0" src="https://img.shields.io/badge/version-1.5.0-2ea44f"></a>
+  <a href="CHANGELOG.md"><img alt="version 1.6.0" src="https://img.shields.io/badge/version-1.6.0-2ea44f"></a>
   <a href="#install"><img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-7c3aed"></a>
   <a href="docs/CODEX.md"><img alt="Codex CLI plugin" src="https://img.shields.io/badge/Codex%20CLI-plugin-10a37f"></a>
   <a href="skills/attic/evals/results/"><img alt="activation evals 22/22" src="https://img.shields.io/badge/activation%20evals-22%2F22-2ea44f"></a>
@@ -99,8 +99,10 @@ answers with their token counts. Nothing outside a temp folder is touched.
 | `/attic-recall <topic>` | What did we learn about X? |
 | `/attic-index` | Show everything kept in this project |
 | `/attic-sweep` | Save the session before `/compact` |
+| `/attic-review` | Which findings may no longer match the code? |
+| `/attic-fail` | Record an approach that did not work, so it is not retried |
 
-Four more exist for pinning, pruning, health checks and git setup. Full list
+Five more exist for pinning, pruning, health checks and git setup. Full list
 with every flag: [docs/COMMANDS.md](docs/COMMANDS.md).
 
 ## How much it keeps
@@ -115,6 +117,64 @@ with every flag: [docs/COMMANDS.md](docs/COMMANDS.md).
 | `off` | Dormant |
 
 Start with `full`. If it feels chatty, drop to `lite`.
+
+## Knowing when to trust a finding (1.6)
+
+Remembering something is only half the problem. The other half is knowing
+whether it is still true.
+
+```
+Agent discovers something
+        ↓
+Attic stores the finding + the evidence it came from
+        ↓
+New session recalls the finding
+        ↓
+Attic checks whether that evidence moved
+        ↓
+Agent reuses it, or verifies it first
+```
+
+A finding now records where its knowledge came from: the files it was read
+from, the commands that produced it, the commit it was recorded at, and how
+far it was actually checked. On recall, Attic compares that against the tree
+as it is now:
+
+```
+[auth-order] Auth middleware runs after route registration
+finding · verified · possibly-stale
+revision: a1b2c3d (now e4f5g6h)
+evidence: src/middleware/auth.ts
+
+⚠ Possibly stale
+referenced file(s) changed since a1b2c3d: src/middleware/auth.ts
+Verify against the current working tree before reuse.
+```
+
+`/attic-review` lists everything in that state; `verify` records that you
+looked and it still holds.
+
+### The trust model
+
+Read this part before relying on any of it.
+
+- Attic stores knowledge. It does **not** guarantee any finding is still true.
+- `possibly-stale` means **a file underneath the finding changed**. It does not
+  mean the finding is wrong, and Attic never decides that it is. Only a person
+  or an agent that reads the code can.
+- `current` means nothing it cites has moved. That is evidence, not proof: a
+  finding can be wrong the day it is written, and Attic cannot tell.
+- `verified` means somebody claimed they checked it, on some past date. It is a
+  record of an act, not a fact about the code today.
+- Unknown provenance is different from verified provenance. An item with no
+  evidence is not a suspect item — it is an unchecked one, and the two should
+  be read differently.
+- Nothing is ever deleted or rewritten because it looks stale. A finding that
+  no longer holds gets flagged and keeps its text, because knowing what was
+  once believed, and why, is often the useful part.
+
+Attic tracks **whether the ground moved**, not whether the conclusion survived.
+Treat a warning as a prompt to look, never as a verdict.
 
 ## What ends up in your project
 
@@ -222,6 +282,12 @@ credential. [Security notes](SECURITY.md).
 The plugin itself makes no network calls at all. The optional browser
 extension talks to a companion on `127.0.0.1` that you start yourself — bound
 to loopback, token-authenticated, and limited to the project roots you name.
+
+Provenance is deliberately conservative about what it records. File paths are
+stored relative to the repository root, never as absolute paths that would name
+your home directory in a file your team may commit. Commands are stored as the
+command line only, never their output, and any command line that trips the
+credential scanner is dropped while the finding itself is still saved.
 
 ## More
 

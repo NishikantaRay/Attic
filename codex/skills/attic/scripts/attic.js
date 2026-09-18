@@ -13,18 +13,69 @@
  *   attic.js edit --slug <s> [--title <t>] [--kind <k>] [--hook <h>] [--tags a,b]
  *                 [--body-file <f> | --body <text>] [--json]
  *                 (replaces the item; stash on an existing slug appends instead)
- *   attic.js recall <query> [--json]
+ *   attic.js recall <query> [--json] [--no-freshness]
  *   attic.js index [--json] [--limit N]
+ *   attic.js review [--limit N] [--all] [--json]
+ *   attic.js verify <slug> [--stale] [--confidence c] [--files a,b] [--note t]
  *   attic.js validate [--json]
  *   attic.js init
+ *
+ * Trust metadata (1.6), all optional on stash:
+ *   --type finding|decision|note|failed-approach|workaround
+ *   --confidence unknown|unverified|verified   (default: unverified)
+ *   --files a.js,b.js      repo-relative evidence, used for freshness
+ *   --commands "cmd"       newline-separated; secret-bearing lines are dropped
+ *   --source-url https://  http(s) only
  *
  * Exit codes: 0 ok, 1 usage/not-found, 2 refused (secret detected), 3 validation failed.
  */
 const fs = require('fs');
 const path = require('path');
+const freshness = require('./freshness.js');
 
 const KINDS = ['finding', 'decision', 'plan', 'output', 'note'];
 const HOOK_MAX = 100;
+
+// ---------- trust vocabulary (1.6) ----------
+// `type` is deliberately a SEPARATE field from `kind` rather than more values
+// for it. The INDEX line matches kind as ([a-z]+) — no hyphen — and that regex
+// is duplicated in hooks/attic-runtime.js and in the generated codex/ copy. A
+// `failed-approach` in the kind position would not match, and an unupgraded
+// reader would drop the line silently rather than fail loudly. Missing
+// knowledge with no error is the exact outcome Attic exists to prevent.
+const TYPES = ['finding', 'decision', 'note', 'failed-approach', 'workaround'];
+const CONFIDENCES = ['unknown', 'unverified', 'verified'];
+const FRESHNESSES = ['unknown', 'current', 'possibly-stale', 'needs-review'];
+
+// Which `type` a given `kind` implies, when the caller names only a kind. Only
+// where the mapping is unambiguous: `plan` and `output` have no type of their
+// own, and guessing one would be inventing metadata.
+const KIND_TO_TYPE = { finding: 'finding', decision: 'decision', note: 'note' };
+
+const MAX_FILES = 20;
+const MAX_COMMANDS = 10;
+
+/**
+ * Commands are stored so a later reader can re-run the evidence. That makes
+ * them a place a credential can land — `curl -H "Authorization: Bearer ..."`
+ * is a command someone genuinely ran. They go through the same scan the body
+ * does, and a command carrying a secret is dropped rather than refused: the
+ * finding itself is still worth keeping, and losing one evidence line is a far
+ * better outcome than either writing the token or rejecting the stash.
+ */
+function safeCommands(list) {
+  const out = [];
+  for (const raw of list) {
+    const c = oneLine(raw);
+    if (!c) continue;
+    if (scanSecrets(c).length) continue;
+    // A command line is evidence, not a script. Cap it so a pasted heredoc
+    // cannot push the frontmatter past the size the index budget assumes.
+    out.push(c.length > 200 ? c.slice(0, 199) + '…' : c);
+    if (out.length >= MAX_COMMANDS) break;
+  }
+  return out;
+}
 
 // ---------- paths ----------
 function atticRoot(cwd) { return path.join(cwd || process.cwd(), '.attic'); }
@@ -143,16 +194,69 @@ function parseFrontmatter(raw) {
   return { meta, body: m[2] };
 }
 
+// Fields this renderer positions explicitly, in this order. Everything else a
+// caller put on `meta` is written after them, so the renderer is no longer a
+// filter that silently drops what it does not recognise.
+const CORE_FIELDS = ['title', 'kind', 'date', 'tags'];
+// Trust metadata (1.6). Ordered so an item reads top-down as: what it is, how
+// far to trust it, where the knowledge came from.
+const TRUST_FIELDS = ['type', 'confidence', 'freshness', 'status',
+  'revision', 'verified_at', 'files', 'commands', 'source_url'];
+const LIST_FIELDS = new Set(['tags', 'files', 'commands']);
+
+function renderValue(key, v) {
+  if (LIST_FIELDS.has(key)) {
+    const list = Array.isArray(v) ? v : (v ? [v] : []);
+    return `[${list.join(', ')}]`;
+  }
+  return String(v);
+}
+
+/**
+ * Render frontmatter + body.
+ *
+ * Until 1.6 this hard-coded its field list, which made it a filter: a key it
+ * did not know about was dropped on the next write. Since `pin`, `edit` and
+ * `archive` all round-trip an item through here, an unrelated `/attic-pin`
+ * would have erased any metadata this function had not been taught about.
+ * That is why unknown keys are now carried through verbatim — a reader newer
+ * than this one must be able to add a field without a passing pin quietly
+ * deleting it.
+ */
 function renderItem(meta, body) {
-  const tags = Array.isArray(meta.tags) ? meta.tags : (meta.tags ? [meta.tags] : []);
-  const lines = [
-    '---',
-    `title: ${meta.title}`,
-    `kind: ${meta.kind}`,
-    `date: ${meta.date}`,
-    `tags: [${tags.join(', ')}]`,
-  ];
-  if (meta.pinned === true || meta.pinned === 'true') lines.push('pinned: true');
+  const lines = ['---'];
+  const written = new Set();
+  const put = (k, v) => { lines.push(`${k}: ${renderValue(k, v)}`); written.add(k); };
+
+  // Core fields keep their exact historical order and are always present, so
+  // a 1.5 reader sees byte-identical frontmatter for an item with no trust
+  // metadata on it.
+  put('title', meta.title);
+  put('kind', meta.kind);
+  put('date', meta.date);
+  put('tags', meta.tags);
+
+  // `pinned` stays immediately after the core block: hooks/attic-runtime.js
+  // only reads the first 512 bytes of an item looking for it, so pushing it
+  // below a long files/commands list would make pinned items look unpinned.
+  if (meta.pinned === true || meta.pinned === 'true') put('pinned', true);
+
+  for (const k of TRUST_FIELDS) {
+    if (written.has(k)) continue;
+    const v = meta[k];
+    if (v === undefined || v === null || v === '') continue;
+    if (LIST_FIELDS.has(k) && Array.isArray(v) && !v.length) continue;
+    put(k, v);
+  }
+
+  // Anything else the caller carried. Unknown does not mean unwanted.
+  for (const k of Object.keys(meta)) {
+    if (written.has(k) || k === 'pinned') continue;
+    const v = meta[k];
+    if (v === undefined || v === null || v === '') continue;
+    put(k, v);
+  }
+
   return lines.concat([
     '---',
     '',
@@ -203,6 +307,76 @@ function appendDecision(cwd, decision, why) {
   });
 }
 
+// ---------- provenance (1.6) ----------
+/**
+ * Reject an unknown --type or --confidence rather than quietly ignoring it.
+ *
+ * A silently dropped `--confidence verifed` writes an item the caller believes
+ * is marked verified and which recall will report as unverified. Trust
+ * metadata that lies in the safe direction is still metadata that lies, and it
+ * is worth one round trip to say so.
+ */
+function checkVocab(args) {
+  if (args.type !== undefined && !TYPES.includes(String(args.type).toLowerCase())) {
+    return `--type must be one of ${TYPES.join(', ')}`;
+  }
+  if (args.confidence !== undefined && !CONFIDENCES.includes(String(args.confidence).toLowerCase())) {
+    return `--confidence must be one of ${CONFIDENCES.join(', ')}`;
+  }
+  return null;
+}
+
+/**
+ * Build the trust metadata for a new item from what is actually knowable.
+ *
+ * The rule this function exists to enforce: **provenance is never invented.**
+ * A value that cannot be determined is left off the item entirely rather than
+ * written as a guess, because an absent field reads as "unknown" while a
+ * fabricated one reads as evidence. Saving an item is not evidence that its
+ * contents were checked, so nothing here ever defaults confidence to
+ * `verified` — that claim has to be made explicitly by the caller.
+ */
+function buildProvenance(cwd, args, kind) {
+  const meta = {};
+
+  const type = args.type ? String(args.type).toLowerCase() : KIND_TO_TYPE[kind];
+  if (type && TYPES.includes(type)) meta.type = type;
+
+  // Least-assumptive default. An agent that has actually checked its
+  // conclusion against the code passes --confidence verified; everything else
+  // is unverified, including anything a human typed in by hand.
+  const conf = args.confidence ? String(args.confidence).toLowerCase() : 'unverified';
+  if (CONFIDENCES.includes(conf)) meta.confidence = conf;
+
+  // Only repo-relative paths, so the item stays portable and does not publish
+  // the author's home directory into a file the team commits.
+  const files = [];
+  for (const f of String(args.files || '').split(',').map((x) => x.trim()).filter(Boolean)) {
+    const rel = freshness.toRepoRelative(cwd, f);
+    if (rel && !files.includes(rel)) files.push(rel);
+    if (files.length >= MAX_FILES) break;
+  }
+  if (files.length) meta.files = files;
+
+  const commands = safeCommands(String(args.commands || '').split('\n'));
+  if (commands.length) meta.commands = commands;
+
+  // Only http(s). A file: or javascript: URL in an item that the browser
+  // library later renders is a liability, and neither is a real source.
+  if (args['source-url'] && /^https?:\/\/\S+$/i.test(String(args['source-url']).trim())) {
+    meta.source_url = oneLine(args['source-url']);
+  }
+
+  // Git is optional. Outside a repository there is simply no revision, and the
+  // item is still a perfectly good note.
+  const rev = freshness.isGitRepo(cwd) ? freshness.currentRevision(cwd) : null;
+  if (rev) meta.revision = rev;
+
+  if (meta.confidence === 'verified') meta.verified_at = today();
+
+  return meta;
+}
+
 // ---------- commands ----------
 function cmdInit(cwd) {
   const p = P(cwd);
@@ -217,6 +391,8 @@ function cmdStash(cwd, args) {
   if (!slug) return { ok: false, error: 'a --slug or --title is required' };
   const kind = String(args.kind || 'finding').toLowerCase();
   if (!KINDS.includes(kind)) return { ok: false, error: `--kind must be one of ${KINDS.join(', ')}` };
+  const vocabError = checkVocab(args);
+  if (vocabError) return { ok: false, error: vocabError };
 
   let body = args.body || '';
   if (args['body-file']) {
@@ -241,11 +417,12 @@ function cmdStash(cwd, args) {
   cmdInit(cwd);
   const p = P(cwd);
   const file = path.join(p.items, slug + '.md');
-  const meta = {
+  const provenance = buildProvenance(cwd, args, kind);
+  const meta = Object.assign({
     title: oneLine(args.title || slug.replace(/-/g, ' ')),
     kind, date: today(),
     tags: args.tags ? String(args.tags).split(',').map((t) => slugify(t)).filter(Boolean) : [],
-  };
+  }, provenance);
 
   let appended = false;
   if (fs.existsSync(file)) {
@@ -257,6 +434,31 @@ function cmdStash(cwd, args) {
       const old = Array.isArray(parsed.meta.tags) ? parsed.meta.tags : [];
       keepMeta.tags = Array.from(new Set(old.concat(meta.tags)));
     }
+    // An append is new evidence about the same subject, so the provenance
+    // moves forward with it: a fresh revision, and any newly named files or
+    // commands unioned onto what was already there. Evidence is only ever
+    // added on this path — an update that happens not to mention a file is not
+    // a statement that the file stopped being relevant.
+    for (const k of ['files', 'commands']) {
+      if (!provenance[k]) continue;
+      const old = Array.isArray(parsed.meta[k]) ? parsed.meta[k] : (parsed.meta[k] ? [parsed.meta[k]] : []);
+      keepMeta[k] = Array.from(new Set(old.concat(provenance[k])));
+    }
+    for (const k of ['type', 'source_url']) {
+      if (provenance[k] && !keepMeta[k]) keepMeta[k] = provenance[k];
+    }
+    if (provenance.revision) keepMeta.revision = provenance.revision;
+    // Confidence is only restated when the caller said so on this call.
+    // Re-stashing does not promote an item, and it does not demote one that
+    // was previously verified either.
+    if (args.confidence && provenance.confidence) {
+      keepMeta.confidence = provenance.confidence;
+      if (provenance.verified_at) keepMeta.verified_at = provenance.verified_at;
+      else delete keepMeta.verified_at;
+    }
+    // The body changed, so a stored freshness verdict computed against the old
+    // body no longer describes this item. Drop it and let recall recompute.
+    delete keepMeta.freshness;
     writeAtomic(file, renderItem(keepMeta, merged));
     appended = true;
   } else {
@@ -343,7 +545,7 @@ function readHook(cwd, slug) {
   return line ? line.hook : '';
 }
 
-function cmdRecall(cwd, query) {
+function cmdRecall(cwd, query, args = {}) {
   const p = P(cwd);
   if (!fs.existsSync(p.index)) return { ok: false, error: 'no .attic/ in this project yet' };
   const q = String(query || '').trim().toLowerCase();
@@ -384,11 +586,19 @@ function cmdRecall(cwd, query) {
   const file = found.file;
   const content = fs.readFileSync(file, 'utf8');
   const parsed = parseFrontmatter(content);
-  return {
+  const out = {
     ok: true, slug: best.entry.slug, handle: `attic:${best.entry.slug}`,
     file: path.relative(cwd, file), meta: parsed.meta, body: parsed.body.trim(),
     alternatives: scored.slice(0, 4).map((s) => s.entry.slug).filter((s) => s !== best.entry.slug),
   };
+  // Freshness is computed for the one item being recalled, never for the whole
+  // attic: this is the only place a git call is worth making, and it is two
+  // calls scoped to that item's own file list.
+  if (!args['no-freshness']) {
+    out.freshness = freshness.evaluate(cwd, parsed.meta, { archived: found.archived });
+    out.recommendation = freshness.recommendation(out.freshness);
+  }
+  return out;
 }
 
 function cmdIndex(cwd, args) {
@@ -436,6 +646,26 @@ function cmdValidate(cwd) {
     }
     if (meta.kind && !KINDS.includes(meta.kind)) problems.push({ level: 'error', slug, msg: `unknown kind "${meta.kind}"` });
     if (meta.date && !/^\d{4}-\d{2}-\d{2}$/.test(meta.date)) problems.push({ level: 'error', slug, msg: `date "${meta.date}" is not YYYY-MM-DD` });
+
+    // Trust metadata is optional, so absence is never a problem. A PRESENT but
+    // unrecognised value is, because these strings are printed into an agent's
+    // context as if they meant something: a hand-edited `confidence: bogus`
+    // reads to a model exactly like a real verdict. Warn rather than error —
+    // the item's knowledge is still intact and still worth keeping.
+    for (const [field, allowed] of [['type', TYPES], ['confidence', CONFIDENCES], ['freshness', FRESHNESSES]]) {
+      if (meta[field] && !allowed.includes(String(meta[field]))) {
+        problems.push({ level: 'warn', slug, msg: `unknown ${field} "${meta[field]}" (expected one of ${allowed.join(', ')})` });
+      }
+    }
+    if (meta.verified_at && !/^\d{4}-\d{2}-\d{2}$/.test(meta.verified_at)) {
+      problems.push({ level: 'warn', slug, msg: `verified_at "${meta.verified_at}" is not YYYY-MM-DD` });
+    }
+    // An absolute path in `files` is a privacy problem, not a cosmetic one: it
+    // names the author's machine layout in a file teams commit, and it breaks
+    // on clone.
+    for (const f of (Array.isArray(meta.files) ? meta.files : [])) {
+      if (path.isAbsolute(f)) problems.push({ level: 'warn', slug, msg: `files entry "${f}" is an absolute path; it should be repo-relative` });
+    }
     if (slug !== slugify(slug)) problems.push({ level: 'warn', slug, msg: 'filename is not a clean slug' });
     for (const hit of scanSecrets(raw)) problems.push({ level: 'error', slug, msg: `possible ${hit.label} at line ${hit.line}` });
   }
@@ -541,6 +771,137 @@ function cmdPrune(cwd, args) {
   };
 }
 
+/**
+ * List items whose knowledge may no longer match the tree.
+ *
+ * Read-only by design. Review reports; `verify` and `archive` act. Splitting
+ * them is the point: a command that both finds stale knowledge and decides
+ * what to do with it would be rewriting the user's memory on a heuristic, and
+ * a heuristic about whether a conclusion still holds is exactly the thing this
+ * release refuses to guess at.
+ *
+ * The cost of this command IS proportional to the attic, unlike recall — it
+ * has to look at every item to find the stale ones. That is why freshness is
+ * computed here and on recall, and nowhere else: nothing on the session-start
+ * path or in the index shells out to git.
+ */
+function cmdReview(cwd, args) {
+  const p = P(cwd);
+  if (!fs.existsSync(p.index)) return { ok: false, error: 'no .attic/ in this project yet' };
+
+  // A malformed --limit must not silently render as an empty attic: NaN slices
+  // to nothing, which reads exactly like "nothing needs review" — the most
+  // misleading possible answer from this command.
+  let limit = 20;
+  if (args.limit !== undefined && args.limit !== true) {
+    limit = parseInt(args.limit, 10);
+    if (!Number.isFinite(limit) || limit < 1) {
+      return { ok: false, error: '--limit takes a positive whole number' };
+    }
+  }
+  const entries = readIndexLines(cwd).map(parseIndexLine).filter(Boolean);
+  const rows = [];
+  let current = 0;
+  for (const e of entries) {
+    const found = findItem(cwd, e.slug);
+    if (!found) continue;
+    let meta = {};
+    try { meta = parseFrontmatter(fs.readFileSync(found.file, 'utf8')).meta; } catch (err) { continue; }
+    const f = freshness.evaluate(cwd, meta, { archived: found.archived });
+    if (f.status === 'current') { current++; continue; }
+    // An item with no 1.6 metadata is not "needing review"; it is simply from
+    // before the feature existed. Surfacing every pre-1.6 item as a problem on
+    // first upgrade would make the command useless on the attics that already
+    // exist, so unknown is only reported when asked for.
+    const pre16 = !meta.revision && !meta.files && !meta.type && !meta.confidence;
+    if (f.status === 'unknown' && pre16 && !args.all) continue;
+    rows.push({
+      slug: e.slug, kind: e.kind, hook: e.hook,
+      type: meta.type || null, confidence: meta.confidence || null,
+      status: f.status, reason: f.reason,
+      changedFiles: f.changedFiles, missingFiles: f.missingFiles,
+      recordedRevision: f.recordedRevision, currentRevision: f.currentRevision,
+    });
+  }
+
+  const order = { 'needs-review': 0, 'possibly-stale': 1, unknown: 2, archived: 3 };
+  rows.sort((a, b) => (order[a.status] ?? 9) - (order[b.status] ?? 9));
+  return {
+    ok: true, total: entries.length, current,
+    needingReview: rows.length, items: rows.slice(0, limit),
+    truncated: Math.max(0, rows.length - limit),
+  };
+}
+
+/**
+ * Record that a human or an agent checked an item against the current tree.
+ *
+ * This is the only way `confidence: verified` and a fresh revision get onto an
+ * existing item, and it is deliberately an explicit act. Nothing in Attic
+ * promotes an item to verified on its own — if staleness could be cleared by
+ * anything other than someone actually looking, the freshness signal would
+ * decay into noise within a few sessions.
+ *
+ * The item's PROSE is never touched. Verification restamps provenance; if the
+ * conclusion itself changed, that is a stash (which appends an update) or an
+ * edit, not this.
+ */
+function cmdVerify(cwd, args) {
+  const slug = slugify(args._ && args._[0] || args.slug);
+  if (!slug) return { ok: false, error: 'a slug is required' };
+  const found = findItem(cwd, slug);
+  if (!found) return { ok: false, error: `no item "${slug}" in the attic` };
+  const vocabError = checkVocab(args);
+  if (vocabError) return { ok: false, error: vocabError };
+
+  const parsed = parseFrontmatter(fs.readFileSync(found.file, 'utf8'));
+  const meta = Object.assign({}, parsed.meta);
+
+  // --stale records the opposite verdict: someone looked and it does NOT hold
+  // any more. It is still not a deletion, and still does not touch the prose.
+  if (args.stale) {
+    meta.freshness = 'needs-review';
+    delete meta.verified_at;
+  } else {
+    meta.confidence = args.confidence ? String(args.confidence).toLowerCase() : 'verified';
+    meta.verified_at = today();
+    // The whole point of verifying is to move the baseline forward, so the
+    // next freshness check compares against what was actually looked at.
+    const rev = freshness.isGitRepo(cwd) ? freshness.currentRevision(cwd) : null;
+    if (rev) meta.revision = rev;
+    // A stored needs-review was an instruction to look. That has now happened.
+    if (meta.freshness === 'needs-review') delete meta.freshness;
+  }
+
+  // New evidence may be named at verification time.
+  if (args.files) {
+    const files = Array.isArray(meta.files) ? meta.files.slice() : (meta.files ? [meta.files] : []);
+    for (const f of String(args.files).split(',').map((x) => x.trim()).filter(Boolean)) {
+      const rel = freshness.toRepoRelative(cwd, f);
+      if (rel && !files.includes(rel)) files.push(rel);
+      if (files.length >= MAX_FILES) break;
+    }
+    if (files.length) meta.files = files;
+  }
+  if (args.note) {
+    const n = oneLine(args.note);
+    if (scanSecrets(n).length) return { ok: false, refused: true, error: 'refusing to record a --note containing a credential.' };
+  }
+
+  const body = args.note
+    ? parsed.body.trim() + `\n\n## ${args.stale ? 'Flagged' : 'Verified'} ${today()}\n\n${oneLine(args.note)}`
+    : parsed.body.trim();
+
+  writeAtomic(found.file, renderItem(meta, body));
+  return {
+    ok: true, slug, handle: `attic:${slug}`,
+    file: path.relative(cwd, found.file),
+    confidence: meta.confidence || null,
+    revision: meta.revision || null,
+    flagged: !!args.stale,
+  };
+}
+
 // Rebuild INDEX.md from the item files on disk. The items are the source of
 // truth; the index is a derived cache, so it can always be regenerated.
 function cmdRebuild(cwd, args) {
@@ -582,8 +943,10 @@ function cmdRebuild(cwd, args) {
 
 // ---------- cli ----------
 const FLAGS = ['slug', 'kind', 'hook', 'title', 'tags', 'body', 'body-file',
-  'decision-why', 'cwd', 'limit', 'suite', 'case', 'claude', 'out', 'older-than'];
-const BOOLS = ['json', 'force', 'dry-run', 'unpin', 'restore', 'apply'];
+  'decision-why', 'cwd', 'limit', 'suite', 'case', 'claude', 'out', 'older-than',
+  'type', 'confidence', 'files', 'commands', 'source-url', 'status', 'note'];
+const BOOLS = ['json', 'force', 'dry-run', 'unpin', 'restore', 'apply',
+  'stale', 'all', 'no-freshness'];
 
 // Only a recognised --name is a flag. Anything else is a value, so bodies
 // starting with "-----BEGIN ... KEY-----" or "--foo" survive intact.
@@ -605,6 +968,54 @@ function parseArgs(argv) {
   return args;
 }
 
+/**
+ * The trust header shown above a recalled item's body.
+ *
+ * Two constraints fight here. Recall output is injected into a model's
+ * context, so every line costs tokens on every recall; but a stale finding
+ * reused as fact is the failure this release exists to prevent. The
+ * resolution: a `current` item with nothing notable spends ONE line, and the
+ * multi-line warning block is spent only when there is something to act on.
+ *
+ * An item carrying no 1.6 metadata at all — every item stashed before this
+ * release — produces nothing, so recall on an existing attic looks exactly as
+ * it did in 1.5 rather than sprouting a column of "unknown".
+ */
+function trustBlock(r) {
+  const m = r.meta || {};
+  const f = r.freshness;
+  const facts = [];
+  // Only recognised vocabulary is echoed. A hand-edited `confidence: bogus`
+  // reads to a model exactly like a real verdict, so an unknown value is
+  // dropped here and reported by `validate` instead.
+  if (m.type && TYPES.includes(String(m.type))) facts.push(m.type);
+  if (m.confidence && CONFIDENCES.includes(String(m.confidence))) facts.push(m.confidence);
+  if (f && f.status !== 'unknown') facts.push(f.status);
+
+  const lines = [];
+  if (facts.length) lines.push(facts.join(' · '));
+  if (m.revision) lines.push(`revision: ${m.revision}` + (f && f.currentRevision && f.currentRevision !== m.revision ? ` (now ${f.currentRevision})` : ''));
+
+  const evidence = Array.isArray(m.files) ? m.files : (m.files ? [m.files] : []);
+  if (evidence.length) {
+    // Bounded: an item may name up to MAX_FILES, and recall is not the place
+    // to print all of them.
+    const shown = evidence.slice(0, 6);
+    lines.push(`evidence: ${shown.join(', ')}` + (evidence.length > shown.length ? ` (+${evidence.length - shown.length} more)` : ''));
+  }
+  if (m.source_url) lines.push(`source: ${m.source_url}`);
+
+  // The warning is spent only where it changes what the reader should do.
+  if (f && (f.status === 'possibly-stale' || f.status === 'needs-review')) {
+    lines.push('');
+    lines.push(f.status === 'possibly-stale' ? '⚠ Possibly stale' : '⚠ Needs review');
+    if (f.reason) lines.push(f.reason);
+    lines.push(freshness.recommendation(f));
+  }
+
+  return lines.length ? lines.join('\n') + '\n' : '';
+}
+
 function human(cmd, r) {
   // validate reports problems rather than an error string; render them.
   if (!r.ok && cmd === 'validate' && Array.isArray(r.problems)) {
@@ -616,7 +1027,8 @@ function human(cmd, r) {
     case 'stash': return `Stashed \`${r.handle}\`${r.appended ? ' (appended)' : ''} -> ${r.file}`;
     case 'recall': {
       const alt = r.alternatives.length ? `\n(also matched: ${r.alternatives.join(', ')})` : '';
-      return `# ${r.meta.title}\nkind: ${r.meta.kind} · date: ${r.meta.date} · \`${r.handle}\`\n\n${r.body}${alt}`;
+      return `# ${r.meta.title}\nkind: ${r.meta.kind} · date: ${r.meta.date} · \`${r.handle}\`\n` +
+             trustBlock(r) + `\n${r.body}${alt}`;
     }
     case 'index': {
       const lines = r.items.map((e) => `- [${e.slug}](items/${e.slug}.md) · ${e.kind} · ${e.hook}`);
@@ -634,6 +1046,23 @@ function human(cmd, r) {
       return `Candidates older than ${r.cutoff} (${r.candidates.length}):\n${rows.join('\n')}` +
              (r.skippedPinned ? `\n${r.skippedPinned} pinned item(s) skipped.` : '') + `\n\n${r.note}`;
     }
+    case 'review': {
+      if (!r.needingReview) {
+        return `Nothing needs review. ${r.current} of ${r.total} item(s) check out against the current tree.`;
+      }
+      const rows = r.items.map((i) => {
+        const tags = [i.type, i.confidence, i.status].filter(Boolean).join(' · ');
+        return `[${i.slug}] ${i.hook}\n  ${tags}\n  ${i.reason}`;
+      });
+      const more = r.truncated ? `\n\n(+${r.truncated} more; --limit to see them)` : '';
+      return `${r.needingReview} item(s) need review:\n\n${rows.join('\n\n')}${more}\n\n` +
+             `Act with: attic.js verify <slug>   (checked, still holds)\n` +
+             `          attic.js verify <slug> --stale   (checked, no longer holds)\n` +
+             `          attic.js archive <slug>   (obsolete; still recallable)`;
+    }
+    case 'verify': return r.flagged
+      ? `Flagged \`${r.handle}\` as needing review. Its text is unchanged.`
+      : `Verified \`${r.handle}\`${r.revision ? ` at ${r.revision}` : ''} (confidence: ${r.confidence}).`;
     case 'rebuild': {
       const parts = [r.note];
       if (r.recovered.length) parts.push(`recovered into the index: ${r.recovered.join(', ')}`);
@@ -658,16 +1087,18 @@ function main() {
   switch (cmd) {
     case 'init': r = cmdInit(cwd); break;
     case 'stash': r = cmdStash(cwd, args); break;
-    case 'recall': r = cmdRecall(cwd, args._.join(' ')); break;
+    case 'recall': r = cmdRecall(cwd, args._.join(' '), args); break;
     case 'index': r = cmdIndex(cwd, args); break;
     case 'validate': r = cmdValidate(cwd); break;
     case 'pin': r = cmdPin(cwd, args); break;
     case 'archive': r = cmdArchive(cwd, args); break;
     case 'edit': r = cmdEdit(cwd, args); break;
     case 'prune': r = cmdPrune(cwd, args); break;
+    case 'review': r = cmdReview(cwd, args); break;
+    case 'verify': r = cmdVerify(cwd, args); break;
     case 'rebuild': r = cmdRebuild(cwd, args); break;
     default:
-      process.stderr.write('usage: attic.js <init|stash|edit|recall|index|validate|pin|archive|prune|rebuild> [options]\n');
+      process.stderr.write('usage: attic.js <init|stash|edit|recall|index|validate|pin|archive|prune|review|verify|rebuild> [options]\n');
       process.exit(1);
   }
   } catch (e) {
@@ -683,4 +1114,4 @@ function main() {
 }
 
 if (require.main === module) main();
-module.exports = { cmdEdit, slugify, truncateHook, scanSecrets, withLock, cmdPin, cmdArchive, cmdPrune, cmdRebuild, findItem, parseFrontmatter, renderItem, cmdInit, cmdStash, cmdRecall, cmdIndex, cmdValidate, parseIndexLine, KINDS };
+module.exports = { cmdEdit, cmdReview, cmdVerify, buildProvenance, trustBlock, safeCommands, checkVocab, TYPES, CONFIDENCES, FRESHNESSES, freshness, slugify, truncateHook, scanSecrets, withLock, cmdPin, cmdArchive, cmdPrune, cmdRebuild, findItem, parseFrontmatter, renderItem, cmdInit, cmdStash, cmdRecall, cmdIndex, cmdValidate, parseIndexLine, KINDS };

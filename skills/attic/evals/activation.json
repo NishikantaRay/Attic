@@ -1,6 +1,6 @@
 {
   "suite": "attic-activation",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Activation is a classification problem: does the right attic skill fire, and does it stay quiet when it should?",
   "skills": [
     "attic",
@@ -8,7 +8,9 @@
     "attic-recall",
     "attic-index",
     "attic-sweep",
-    "attic-help"
+    "attic-help",
+    "attic-review",
+    "attic-fail"
   ],
   "cases": [
     {
@@ -170,6 +172,55 @@
       "should_activate": false,
       "collides_with": "attic-pin",
       "rationale": "pin used in an unrelated sense"
+    },
+    {
+      "id": "act-27",
+      "prompt": "is anything in the attic out of date after that refactor?",
+      "expected_skill": "attic-review",
+      "should_activate": true,
+      "rationale": "asks whether stashed knowledge is still TRUE, which is review, not prune"
+    },
+    {
+      "id": "act-28",
+      "prompt": "check the attic findings against the current code",
+      "expected_skill": "attic-review",
+      "should_activate": true,
+      "rationale": "verification against the working tree"
+    },
+    {
+      "id": "act-29",
+      "prompt": "that didn't work, make a note so we don't try it again",
+      "expected_skill": "attic-fail",
+      "should_activate": true,
+      "rationale": "recording a dead end; failure intent without the word attic"
+    },
+    {
+      "id": "act-30",
+      "prompt": "this is only a temporary workaround, don't let it become permanent",
+      "expected_skill": "attic-fail",
+      "should_activate": true,
+      "rationale": "a workaround is recorded through the same skill, with --type workaround"
+    },
+    {
+      "id": "act-31",
+      "prompt": "the attic is getting big, archive anything old",
+      "expected_skill": "attic-prune",
+      "should_activate": true,
+      "rationale": "collision: age, not truth. Must NOT route to attic-review"
+    },
+    {
+      "id": "act-32",
+      "prompt": "is the attic healthy? did anything leak into it?",
+      "expected_skill": "attic-doctor",
+      "should_activate": true,
+      "rationale": "collision: structural damage, not staleness. Must NOT route to attic-review"
+    },
+    {
+      "id": "act-33",
+      "prompt": "review this pull request for bugs",
+      "expected_skill": null,
+      "should_activate": false,
+      "rationale": "negative: 'review' about source code, not about the attic's contents"
     }
   ],
   "notes": "Activation measures skill INVOCATION only. Attic's always-on rules arrive via the SessionStart hook, so a case whose correct outcome is \"apply the rules without invoking a skill\" belongs in behavior.json, not here."

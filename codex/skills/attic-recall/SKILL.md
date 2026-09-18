@@ -6,7 +6,7 @@ description: >
   X", "what's in the attic about X", or when the user references an
   attic:<slug> handle. A question with no topic that just asks what the attic
   contains goes to attic-index instead.
-version: 1.5.0
+version: 1.6.0
 license: MIT
 ---
 
@@ -35,3 +35,25 @@ lists alternatives.
    verbatim. End with the handle.
 
 Never rewrite or delete items while recalling.
+
+## Freshness
+
+Recall prints a trust line above the body, and for anything that is not
+current, a warning with the reason. Pass it on — an item's staleness is part
+of the item, and dropping it while quoting the conclusion is the failure this
+release exists to prevent.
+
+| What recall says | What you do |
+|---|---|
+| `current` | Use it. Mention the item is current only if asked. |
+| `possibly-stale` | Quote it, then say which files changed and that it needs checking before it is relied on. |
+| `needs-review` | As above, and do not present the claim as fact. A cited file may be gone. |
+| `unverified` | Say it was recorded but never checked. |
+| no trust line at all | An item from before 1.6. Treat its provenance as unknown, not as verified. |
+
+The distinction to hold on to: `possibly-stale` means **a file underneath this
+finding moved**, not that the finding is false. Report it as something to
+check, never as something that is now wrong — you have not checked it either.
+
+If the user acts on a stale item, offer to verify it against the current code
+and record the result with `/attic-review`. Recall itself never writes.

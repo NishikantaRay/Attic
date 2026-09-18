@@ -22,6 +22,49 @@ Fix: raise the timeout or mock smtplib.SMTP in the fixture.
 Frontmatter fields are all required except `tags`. `kind` is one of
 `finding`, `decision`, `plan`, `output`, `note`. `date` is `YYYY-MM-DD`.
 
+## Trust metadata (optional, 1.6)
+
+Written after the required fields. Every one is optional; an item without them
+is valid and reads exactly as it did in 1.5.
+
+```markdown
+---
+title: Auth middleware runs after route registration
+kind: finding
+date: 2026-09-18
+tags: [auth]
+type: finding
+confidence: verified
+revision: a1b2c3d
+verified_at: 2026-09-18
+files: [src/middleware/auth.ts, src/routes/index.ts]
+commands: [rg "authMiddleware" src]
+---
+```
+
+| Field | Values |
+|---|---|
+| `type` | `finding` `decision` `note` `failed-approach` `workaround` |
+| `confidence` | `unknown` `unverified` `verified` |
+| `freshness` | `needs-review` only; other values are computed, not stored |
+| `revision` | short git SHA at the time it was recorded |
+| `verified_at` | `YYYY-MM-DD` of the last explicit check |
+| `files` | repo-relative paths. **Never absolute** |
+| `commands` | command lines only, never their output |
+| `source_url` | one `http(s)` URL, for clipped items |
+
+The frontmatter parser is flat and line-based: `key: value`, with `[a, b]` for
+lists. **Nested YAML is not supported** — a `repo:` block with indented keys
+underneath will not parse. Keep every field at the top level.
+
+`type` is separate from `kind` because the `INDEX.md` line matches kind as
+`[a-z]+`; a hyphenated value there would be unreadable to older copies of the
+script and the item would silently vanish from the index.
+
+Freshness is computed at read time by comparing `revision` and `files` against
+the working tree. It is not stored, because a stored verdict goes stale the
+moment someone edits a file — the one failure this feature exists to prevent.
+
 Body structure that survives re-reading:
 
 1. What is true, stated flatly.

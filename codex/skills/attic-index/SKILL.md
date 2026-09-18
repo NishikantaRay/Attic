@@ -6,7 +6,7 @@ description: >
   stashed", "list stashed items", "show the index", "how many items are in
   the attic". A question about a specific topic goes to attic-recall instead;
   this skill answers "what is in there", not "what did we find about X".
-version: 1.5.0
+version: 1.6.0
 license: MIT
 ---
 

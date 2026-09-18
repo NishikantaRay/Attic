@@ -14,7 +14,7 @@ description: >
   fixes, or non-coding chat.
 argument-hint: "[lite|full|ultra|off]"
 allowed-tools: Bash(node "${CLAUDE_SKILL_DIR}/scripts/attic.js" *) Bash(node "${CLAUDE_SKILL_DIR}/scripts/attic.js"*)
-version: 1.5.0
+version: 1.6.0
 license: MIT
 ---
 
@@ -67,6 +67,14 @@ go through `--body-file`. Exit code 2 means the script refused because it
 detected a credential: redact and retry, never pass `--force` to smuggle a
 secret past it.
 
+Record the evidence too: `--files` (the repo-relative files you actually read)
+and `--commands` (what produced the result). These are what let a later session
+tell whether the finding still matches the code. Add `--confidence verified`
+**only** when you checked the claim against the code in this session; the
+default `unverified` is usually right, and over-claiming disables the warning a
+future session would have received. Use `--type failed-approach` for something
+that was tried and did not work, and `--type workaround` for a temporary fix.
+
 Your judgement decides *what* is worth stashing and writes the prose. The
 script decides *how* it lands on disk.
 
@@ -96,6 +104,11 @@ script decides *how* it lands on disk.
 7. **Exactness inside items.** Code, commands, paths, line numbers and error
    text are copied verbatim. Never paraphrase them.
 8. **Never stash secrets.** The script enforces this; do not work around it.
+9. **Carry the freshness warning.** When recall reports an item as
+   `possibly-stale` or `needs-review`, say so when you use it. It means a file
+   the finding cites has changed — something to check, never proof the finding
+   is wrong. Never present a stale item's claim as current fact, and never run
+   `verify` on an item you have not actually re-read.
 
 ## Intensity
 

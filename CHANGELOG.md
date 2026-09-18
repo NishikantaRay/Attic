@@ -3,6 +3,76 @@
 All notable changes to Attic. Versions follow semver: the on-disk `.attic/`
 format is a public interface, so changing it is a major version.
 
+## [1.6.0] - 2026-09-18
+
+Trustworthy agent memory. A finding now records where its knowledge came from,
+and Attic tells you when that ground has moved.
+
+### Added
+
+- **Provenance on every new item.** A stash can record the files it was read
+  from, the commands that produced it, the git revision it was recorded at, and
+  how far it was actually checked (`--files`, `--commands`, `--confidence`,
+  `--type`, `--source-url`). All optional; an item without them is still valid.
+  Nothing is invented — a value that cannot be determined is omitted rather
+  than guessed, because an absent field reads as unknown while a fabricated one
+  reads as evidence.
+- **Freshness detection.** `skills/attic/scripts/freshness.js` compares an
+  item's recorded revision and file list against the working tree, using two
+  git calls scoped to that item's own paths. `recall` reports the result and
+  `review` lists everything that needs a look.
+- **`/attic-review` and the `review` / `verify` commands.** `review` is
+  read-only and reports what may no longer match the code. `verify` records
+  that a person or agent actually checked an item, restamping its confidence
+  and moving its revision baseline forward; `verify --stale` records the
+  opposite verdict. Neither ever rewrites the item's prose.
+- **`/attic-fail` and first-class failed approaches.** `--type failed-approach`
+  records what was tried, what happened and why it failed, so the next session
+  does not pay for the same dead end. `--type workaround` marks a temporary fix,
+  and workarounds are always surfaced by `review` — a workaround that quietly
+  becomes permanent is its own kind of failure.
+- **Clips carry their source.** A browser clip records its page URL as
+  structured `source_url` provenance alongside the existing body line.
+
+### Changed
+
+- **`renderItem` no longer drops unknown frontmatter keys.** It used to write
+  only the fields it knew about, which made it a filter: an unrelated
+  `/attic-pin` would silently erase metadata added by a newer writer. Unknown
+  keys now round-trip.
+- **Recall prints a trust line.** One line for an item that is current, a
+  warning block only where there is something to act on. An item with no 1.6
+  metadata prints nothing extra and looks exactly as it did in 1.5.
+
+### Fixed
+
+- `git status --porcelain` output is no longer trimmed before parsing. An
+  unstaged edit is reported as `" M path"`, and trimming shifted the record so
+  that `src/auth.js` was reported as `rc/auth.js`. Paths are now read with
+  `-z`, which also keeps paths containing spaces intact.
+- Repo-relative paths resolve both sides through `realpath` first. On macOS a
+  temp dir is `/var/...` while git reports `/private/var/...`, so an absolute
+  path could survive into the frontmatter and name the developer's home
+  directory in a file the team commits.
+
+### Compatibility
+
+The on-disk format is additive, so this is a minor version. Existing `.attic/`
+folders work unchanged and need no migration: every new field is optional, a
+missing one means unknown, and the `INDEX.md` line format is byte-identical —
+trust metadata lives in the item, not in the injected index, so the per-session
+context cost is unchanged.
+
+Items stashed before 1.6 have no provenance. They recall normally, report
+freshness as `unknown`, and are **excluded** from `review` by default, since
+listing an entire existing attic as suspect on first upgrade would make the
+command useless. `review --all` includes them.
+
+`type` is a new field rather than new `kind` values, because the `INDEX.md`
+line matches kind as `[a-z]+`; a hyphenated `failed-approach` there would be
+unparseable to an older copy of the script and the item would vanish from the
+index without an error.
+
 ## [1.5.0] - 2026-09-12
 
 The browser library becomes something you can read and write in, not just

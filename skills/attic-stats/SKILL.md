@@ -7,7 +7,7 @@ description: >
   plugin's value.
 disable-model-invocation: true
 allowed-tools: Bash(node "${CLAUDE_SKILL_DIR}/../../scripts/attic-stats.js" *)
-version: 1.5.0
+version: 1.6.0
 license: MIT
 ---
 

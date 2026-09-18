@@ -9,7 +9,7 @@ description: >
   merge conflict goes to attic-git.
 disable-model-invocation: true
 allowed-tools: Bash(node "${CLAUDE_SKILL_DIR}/../attic/scripts/attic.js" *) Bash(node "${CLAUDE_SKILL_DIR}/../attic/scripts/attic.js"*)
-version: 1.5.0
+version: 1.6.0
 license: MIT
 ---
 

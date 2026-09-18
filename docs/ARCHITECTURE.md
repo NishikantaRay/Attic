@@ -22,6 +22,7 @@ AI reasoning ───────  what is worth stashing, how to word it
     │
     ▼
 Scripts ────────────  skills/attic/scripts/attic.js   deterministic file operations
+    │                 skills/attic/scripts/freshness.js  git comparison, read-only
     │
     ▼
 Enforcement ────────  hooks/*.js                      session-start injection, level tracking
@@ -49,6 +50,8 @@ The governing principle: **use AI for judgement, software for certainty.**
 | Does this contain a credential? | `attic.js` | Pattern matching beats a promise. |
 | Is the write atomic? | `attic.js` | Correctness under interruption. |
 | Did the attic drift? | `attic.js validate` + CI | Regression detection. |
+| Have the cited files changed? | `freshness.js` | Comparing SHAs is arithmetic. |
+| Is the finding still *true*? | Model, after reading the code | Requires judgement, and the answer is not in git. |
 
 Before this split, the skill instructed the model to "never stash secrets"
 and hoped. Now the script exits 2 and writes nothing. The instruction
@@ -120,6 +123,34 @@ and only `http(s)` URLs survive as links. The renderer is hand-rolled because
 MV3's content security policy blocks loading a parser from a CDN; vendoring a
 full one to render the handful of constructs an item uses would be a poor
 trade. Its tests are mostly adversarial rather than about appearance.
+
+## Trust metadata and freshness
+
+Added in 1.6. The split that makes it work is the same one the rest of the
+project uses: `freshness.js` answers a mechanical question, and the model
+answers the judgement one.
+
+**Freshness never decides whether a finding is true.** It reports whether the
+evidence underneath it moved. `possibly-stale` is a prompt to look, and a
+command that both detected staleness and resolved it would be rewriting the
+user's memory on a heuristic — which is why `review` is read-only and `verify`
+is a separate, explicit act.
+
+Three constraints shaped the schema, all of them compatibility:
+
+1. `parseFrontmatter` is flat and line-based, so provenance is flat keys.
+   Nested YAML would not parse.
+2. The `INDEX.md` line matches kind as `[a-z]+` and that regex is duplicated in
+   `hooks/attic-runtime.js` and the generated `codex/` copy, so `type` is a new
+   field rather than new `kind` values. A hyphenated kind would make the line
+   unparseable and the item would disappear from the index silently.
+3. `renderItem` used to drop keys it did not know, which made any write a
+   potential data loss for a newer writer's fields. It now preserves them.
+
+Cost is deliberately confined. Freshness runs on `recall` (one item, two git
+calls scoped to its own paths) and on `review` (the whole attic, on demand).
+Nothing on the session-start path shells out to git, and the injected index
+line is byte-identical to 1.5, so trust metadata adds no per-session context.
 
 ## Workflow patterns
 
@@ -219,6 +250,7 @@ than a silent failure in someone's session.
 | `attic-doctor`, `attic-help` | Active |
 | `attic-pin`, `attic-prune` | Active, since 1.1.0 |
 | `attic-stats`, `attic-git` | Active, since 1.1.0 |
+| `attic-review`, `attic-fail` | Active, since 1.6.0 |
 
 `attic-init-team` was renamed to `attic-git` before release, never shipped
 under the old name, so no deprecation window was needed. The lesson is

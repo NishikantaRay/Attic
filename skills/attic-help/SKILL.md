@@ -2,7 +2,7 @@
 name: attic-help
 description: One-screen reference for the attic commands and levels.
 disable-model-invocation: true
-version: 1.5.0
+version: 1.6.0
 license: MIT
 ---
 
@@ -18,7 +18,9 @@ Attic · offload context into .attic/, keep the chat lean
 /attic-index                   list everything stashed in this project
 /attic-sweep                   save plan + open questions + state; run before /compact
 /attic-pin <slug> [--unpin]    always inject this item, never trim it
-/attic-prune [--apply]         archive stale items (dry run by default)
+/attic-prune [--apply]         archive OLD items (dry run by default)
+/attic-review [slug]           which findings may no longer match the code
+/attic-fail                    record an approach that did not work, and why
 /attic-doctor                  check .attic/ for drift, orphans and leaked secrets
 /attic-help                    this screen
 
@@ -28,10 +30,15 @@ Levels
   ultra  stash everything non-trivial, replies are handle + 3 lines
   off    dormant
 
+Trust    type       finding | decision | note | failed-approach | workaround
+         confidence unknown | unverified | verified   (default: unverified)
+         freshness  current | possibly-stale | needs-review | unknown
+         possibly-stale means a cited file MOVED, not that the finding is wrong
+
 Layout   .attic/INDEX.md · .attic/DECISIONS.md · .attic/items/<slug>.md
          .attic/archive/<slug>.md  (recallable, not injected)
 Index    pinned items first, then newest; older items collapse to a summary
 Handle   attic:<slug>
 Env      ATTIC_DEFAULT_MODE=lite|full|ultra|off
-Script   skills/attic/scripts/attic.js (stash|recall|index|validate|init)
+Script   skills/attic/scripts/attic.js (stash|recall|index|review|verify|validate|init)
 ```

@@ -45,12 +45,18 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== 'attic-stash-selection' || !info.selectionText) return;
   const title = tab?.title || 'Clipped selection';
   const slug = slugify(title) || 'clip-' + Date.now();
+  const source = info.pageUrl || tab?.url || '';
   const r = await api.stash({
     slug,
     title,
     kind: 'note',
     hook: info.selectionText,
-    body: `Source: ${info.pageUrl || tab?.url || 'unknown'}\n\n> ${info.selectionText.trim().replace(/\n/g, '\n> ')}`,
+    // The source also stays in the body prose. The frontmatter field is for
+    // machines (recall prints it, and it survives an edit); the body line is
+    // what a person reads. Neither claims the clip is true — a clipped page is
+    // provenance about a web page, not a verified fact about the codebase.
+    sourceUrl: source,
+    body: `Source: ${source || 'unknown'}\n\n> ${info.selectionText.trim().replace(/\n/g, '\n> ')}`,
   });
   if (r.ok) notify('Stashed', `attic:${r.handle?.replace(/^attic:/, '') || slug}`);
   else if (r.refused) notify('Refused', 'That selection looks like it contains a credential. Nothing was written.');

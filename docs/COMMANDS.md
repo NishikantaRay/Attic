@@ -34,7 +34,8 @@ the starting level for a session.
 | `/attic-stash [title]` | Stash the latest finding, result, plan or decision. Replies with the handle. Reusing a slug appends a dated update rather than overwriting |
 | `/attic-sweep` | Save the whole session: plan, open questions, in-progress state, plus anything not yet stashed. Ends with "Safe to /compact." |
 | `/attic-pin <slug>` | Always inject this item; never trim it. `--unpin` reverses |
-| `/attic-prune` | Find stale items and archive them. **Dry run by default**; needs `--apply`, and never deletes |
+| `/attic-prune` | Find items that are merely OLD and archive them. **Dry run by default**; needs `--apply`, and never deletes |
+| `/attic-fail` | Record an approach that was tried and did not work, with the reason. Also used for temporary workarounds |
 
 Fires on its own (at `full`/`ultra`): "stash this", "remember this", "save
 this for later", "before compact", "context is getting long", "where are we",
@@ -57,7 +58,12 @@ there at all". Archived items stay recallable.
 | Command | What it does |
 |---|---|
 | `/attic-doctor` | Check `.attic/` for drift: orphans, stale index lines, malformed frontmatter, leaked credentials |
+| `/attic-review` | Check which items may no longer match the code, and resolve them with `verify` or `archive` |
 | `/attic-git` | Fix `.attic/` merge conflicts and set up a shared team attic |
+
+`prune`, `doctor` and `review` answer three different questions: prune asks
+what is **old**, doctor asks what is **structurally broken**, and review asks
+what may no longer be **true**.
 
 ## The script underneath
 
@@ -71,13 +77,15 @@ node skills/attic/scripts/attic.js <command> [options]
 | Command | Options |
 |---|---|
 | `init` | create `.attic/` |
-| `stash` | `--slug` `--kind` `--title` `--hook` `--tags a,b` `--body` \| `--body-file` `--decision-why` |
+| `stash` | `--slug` `--kind` `--title` `--hook` `--tags a,b` `--body` \| `--body-file` `--decision-why` `--type` `--confidence` `--files` `--commands` `--source-url` |
 | `edit` | `--slug` `--title` `--kind` `--hook` `--tags a,b` `--body` \| `--body-file` — **replaces** the item, where `stash` on an existing slug appends |
-| `recall <words>` | — |
+| `recall <words>` | `--no-freshness` to skip the git check |
 | `index` | `--limit N` |
 | `pin <slug>` | `--unpin` |
 | `archive <slug>` | `--restore` |
 | `prune` | `--older-than 90d` `--kind output` `--apply` |
+| `review` | `--limit N` `--all` — list items whose evidence moved. Read-only |
+| `verify <slug>` | `--stale` `--confidence c` `--files a,b` `--note t` — record that someone checked it |
 | `rebuild` | `--dry-run` — regenerate `INDEX.md` from the item files |
 | `validate` | — |
 
@@ -85,6 +93,35 @@ Global: `--json` for machine-readable output, `--cwd <dir>` to target another
 project.
 
 `--kind` is one of `finding`, `decision`, `plan`, `output`, `note`.
+
+## Trust metadata (1.6)
+
+All optional. An item written without them still works; it simply reports its
+provenance as unknown rather than as verified.
+
+| Flag | Values | Default |
+|---|---|---|
+| `--type` | `finding` `decision` `note` `failed-approach` `workaround` | follows `--kind` |
+| `--confidence` | `unknown` `unverified` `verified` | `unverified` |
+| `--files` | comma-separated, stored repo-relative | none |
+| `--commands` | newline-separated; lines with a credential are dropped | none |
+| `--source-url` | one `http(s)` URL | none |
+
+`--type` is a separate field from `--kind` on purpose: the `INDEX.md` line
+format matches `kind` as `[a-z]+`, so a hyphenated value there would be
+unreadable to any older copy of the script.
+
+Freshness statuses reported by `recall` and `review`:
+
+| Status | Meaning |
+|---|---|
+| `current` | Nothing the item cites has changed. |
+| `possibly-stale` | A cited file changed since the item was recorded. **Check it**, do not assume it is wrong. |
+| `needs-review` | A cited file is gone, the item is a workaround, or it was flagged. |
+| `unknown` | No provenance, or not a git repository. |
+
+Freshness runs only on `recall` (one item) and `review` (all items). Nothing
+on the session-start path shells out to git.
 
 **Exit codes.** `0` ok · `1` usage or not found · `2` refused, a credential
 was detected · `3` validation failed.
